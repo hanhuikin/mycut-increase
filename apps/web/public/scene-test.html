@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>场景名称显示测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f9f9f9;
+        }
+        .correct {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .incorrect {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #2563eb;
+        }
+        h1 { color: #1f2937; }
+        h2 { color: #4b5563; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 OpenCut 场景名称显示测试</h1>
+
+    <div class="test-section">
+        <h2>1. 数据层（应该显示标识符）</h2>
+        <p>在数据库和代码中，主场景应该使用内部标识符：</p>
+        <pre>{
+  "id": "scene-123",
+  "name": "__main_scene__",  <span class="correct">✓ 这是正确的</span>
+  "isMain": true
+}</pre>
+        <p><strong>说明：</strong>这是<span class="correct">预期行为</span>，数据库中存储标识符而不是翻译文本。</p>
+    </div>
+
+    <div class="test-section">
+        <h2>2. UI 显示层（应该显示翻译文本）</h2>
+        <p>在用户界面中，应该显示翻译后的文本：</p>
+        <div id="ui-display" style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">
+            <p><strong>中文界面：</strong> <span id="zh-display" style="font-size: 18px;"></span></p>
+            <p><strong>英文界面：</strong> <span id="en-display" style="font-size: 18px;"></span></p>
+        </div>
+        <p style="margin-top: 15px;">
+            <strong>预期结果：</strong><br>
+            中文应该显示：<span class="correct">主场景</span><br>
+            英文应该显示：<span class="correct">Main scene</span>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 如何验证</h2>
+        <ol>
+            <li>启动项目：<code>cd apps/web && npm run dev</code></li>
+            <li>打开浏览器：<a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+            <li>创建新项目或打开现有项目</li>
+            <li>点击编辑器中的 <strong>场景</strong> 按钮（通常在时间轴附近）</li>
+            <li>查看场景选择器侧边栏</li>
+        </ol>
+
+        <h3>场景选择器中应该看到：</h3>
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px;">
+            <div style="border: 1px solid #3b82f6; border-radius: 4px; padding: 10px; background: #eff6ff;">
+                <span style="color: #1f2937; font-weight: 500;">主场景</span>
+                <span style="float: right; color: #3b82f6;">✓</span>
+            </div>
+        </div>
+        <p style="margin-top: 10px;">
+            <span class="incorrect">❌ 错误：</span> 如果显示 <code>__main_scene__</code><br>
+            <span class="correct">✓ 正确：</span> 如果显示 <strong>主场景</strong> 或 <strong>Main scene</strong>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 常见误解</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="background: #f3f4f6;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #e5e7eb;">位置</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #e5e7eb;">显示内容</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #e5e7eb;">是否正常</th>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">IndexedDB 数据库</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><code>__main_scene__</code></td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><span class="correct">✓ 正常</span></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">localStorage</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><code>__main_scene__</code></td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><span class="correct">✓ 正常</span></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">控制台日志</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><code>__main_scene__</code></td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><span class="correct">✓ 正常</span></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">场景选择器 UI</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><strong>主场景</strong></td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><span class="correct">✓ 正常</span></td>
+            </tr>
+            <tr style="background: #fee2e2;">
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">场景选择器 UI</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><code>__main_scene__</code></td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;"><span class="incorrect">✗ 异常（需要修复）</span></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 故障排除</h2>
+        <h3>如果场景选择器中显示 <code>__main_scene__</code>：</h3>
+
+        <h4>方法 1：清除缓存</h4>
+        <button class="btn" onclick="clearCache()">清除浏览器缓存</button>
+        <pre style="font-size: 12px;">
+# 或在终端执行：
+cd apps/web
+rm -rf .next
+npm run dev</pre>
+
+        <h4>方法 2：检查语言设置</h4>
+        <button class="btn" onclick="checkLocale()">检查当前语言</button>
+        <button class="btn" onclick="setZh()">设置为中文</button>
+        <button class="btn" onclick="setEn()">设置为英文</button>
+        <div id="locale-result" style="margin-top: 10px; padding: 10px; background: white; border-radius: 4px; display: none;"></div>
+
+        <h4>方法 3：强制刷新</h4>
+        <p>
+            <button class="btn" onclick="forceReload()">强制刷新页面 (Ctrl+F5)</button>
+        </p>
+    </div>
+
+    <script>
+        // 模拟翻译
+        const translations = {
+            zh: { "scene.main_scene": "主场景" },
+            en: { "scene.main_scene": "Main scene" }
+        };
+
+        // 显示翻译结果
+        document.getElementById('zh-display').textContent = translations.zh["scene.main_scene"];
+        document.getElementById('en-display').textContent = translations.en["scene.main_scene"];
+
+        function clearCache() {
+            if (confirm('这将清除浏览器缓存并刷新页面。确定继续吗？')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload(true);
+            }
+        }
+
+        function checkLocale() {
+            const locale = localStorage.getItem('locale') || '未设置（默认：zh）';
+            const result = document.getElementById('locale-result');
+            result.style.display = 'block';
+            result.innerHTML = `<strong>当前语言设置：</strong> ${locale}`;
+        }
+
+        function setZh() {
+            localStorage.setItem('locale', 'zh');
+            alert('已设置为中文，即将刷新页面');
+            location.reload();
+        }
+
+        function setEn() {
+            localStorage.setItem('locale', 'en');
+            alert('已设置为英文，即将刷新页面');
+            location.reload();
+        }
+
+        function forceReload() {
+            location.reload(true);
+        }
+    </script>
+</body>
+</html>
