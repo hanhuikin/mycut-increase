@@ -15,6 +15,9 @@ import { useEditor } from "@/editor/use-editor";
 import { useLocale } from "@/locale/locale-context";
 import type { LocaleKey } from "@/locale";
 import { generateVideo, type VideoGenResult } from "@/services/ai-video/generate";
+import { AiVideoMediaPickerDialog } from "./ai-video-media-picker";
+import { AiVideoFramePickerDialog } from "./ai-video-frame-picker";
+import type { MediaAsset } from "@/media/types";
 import {
 	applyCameraMovement,
 	CAMERA_MOVEMENTS,
@@ -52,6 +55,13 @@ interface Shot {
 	/** Image-to-video storyboard: each shot carries its own start frame. */
 	imageDataUrl?: string;
 	imageName?: string;
+	/**
+	 * The library asset a video-sourced frame came from, kept only so the
+	 * frame picker can re-open on it. The applied frame itself is a fixed
+	 * dataURL and survives the asset being deleted.
+	 */
+	sourceAsset?: MediaAsset;
+	imageTimeLabel?: string;
 }
 
 /**
@@ -163,6 +173,36 @@ export function AIVideoView() {
 	);
 	const shotImageInputRef = useRef<HTMLInputElement>(null);
 
+	/**
+	 * Which target the media-library picker is choosing for: "single" for the
+	 * one reference image, or a storyboard shot id. Null when closed.
+	 */
+	const [pickerTarget, setPickerTarget] = useState<"single" | string | null>(
+		null,
+	);
+
+	/**
+	 * Which target the frame picker is scrubbing for, and the single-mode
+	 * source asset behind the applied frame (kept so 取帧 can re-open on it;
+	 * see Shot.sourceAsset for the storyboard equivalent).
+	 */
+	const [frameTarget, setFrameTarget] = useState<"single" | string | null>(
+		null,
+	);
+	const [singleSourceAsset, setSingleSourceAsset] = useState<MediaAsset | null>(
+		null,
+	);
+
+	/** Project media the library picker offers: stills and clips only. */
+	const mediaAssets = useEditor((e) => e.media.getAssets());
+	const pickerAssets = useMemo(
+		() =>
+			mediaAssets.filter(
+				(asset) => asset.type === "video" || asset.type === "image",
+			),
+		[mediaAssets],
+	);
+
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [progress, setProgress] = useState("");
 
@@ -269,6 +309,8 @@ export function AIVideoView() {
 
 		setImageDataUrl(dataUrl);
 		setImageName(file.name);
+		// An uploaded file has no library asset behind it to scrub.
+		setSingleSourceAsset(null);
 	};
 
 	/** Reads a picked start frame for one storyboard shot. */
@@ -289,13 +331,113 @@ export function AIVideoView() {
 
 		updateShot({
 			id: pendingImageShotId,
-			changes: { imageDataUrl: dataUrl, imageName: file.name },
+			changes: {
+				imageDataUrl: dataUrl,
+				imageName: file.name,
+				sourceAsset: undefined,
+			},
 		});
 	};
 
 	const openShotImagePicker = ({ id }: { id: string }) => {
 		setPendingImageShotId(id);
 		shotImageInputRef.current?.click();
+	};
+
+	/**
+	 * Applies a confirmed library pick to whichever target opened the dialog:
+	 * the single reference image or one storyboard shot. Selection is fixed at
+	 * pick time — a dataURL is stored, never an asset reference, so deleting
+	 * the asset afterwards cannot affect an already-chosen frame.
+	 */
+	const applyPickedImage = ({
+		dataUrl,
+		name,
+		target,
+	}: {
+		dataUrl: string;
+		name: string;
+		target: "single" | string;
+	}) => {
+		if (target === "single") {
+			setImageDataUrl(dataUrl);
+			setImageName(name);
+			return;
+		}
+		updateShot({
+			id: target,
+			changes: { imageDataUrl: dataUrl, imageName: name },
+		});
+	};
+
+	const handleLibraryPick = async ({
+		asset,
+		target,
+	}: {
+		asset: MediaAsset;
+		target: "single" | string;
+	}) => {
+		setPickerTarget(null);
+		if (asset.type === "video") {
+			// The cover frame is already a dataURL generated at import time.
+			if (!asset.thumbnailUrl) {
+				toast.error(t["ai_video.picker_no_preview"]);
+				return;
+			}
+			applyPickedImage({
+				dataUrl: asset.thumbnailUrl,
+				name: `${asset.name} · ${t["ai_video.picker_cover_badge"]}`,
+				target,
+			});
+			if (target === "single") {
+				setSingleSourceAsset(asset);
+			} else {
+				updateShot({ id: target, changes: { sourceAsset: asset } });
+			}
+			return;
+		}
+
+		// Image assets take the exact same validation and reading path as an
+		// uploaded file, so size/type rules stay in one place.
+		const errorKey = validateImageFile(asset.file);
+		if (errorKey) {
+			toast.error(t[errorKey]);
+			return;
+		}
+		const dataUrl = await readImageAsDataUrl({ file: asset.file });
+		if (!dataUrl) {
+			toast.error(t["ai_video.image_read_failed"]);
+			return;
+		}
+		applyPickedImage({ dataUrl, name: asset.name, target });
+		if (target === "single") {
+			setSingleSourceAsset(null);
+		} else {
+			updateShot({ id: target, changes: { sourceAsset: undefined } });
+		}
+	};
+
+	/** Applies a confirmed frame-pick to whichever target opened the dialog. */
+	const handleFramePick = ({
+		dataUrl,
+		timeLabel,
+		target,
+	}: {
+		dataUrl: string;
+		timeLabel: string;
+		target: "single" | string;
+	}) => {
+		setFrameTarget(null);
+		const sourceAsset =
+			target === "single"
+				? singleSourceAsset
+				: shots.find((shot) => shot.id === target)?.sourceAsset;
+		if (!sourceAsset) return;
+		applyPickedImage({
+			dataUrl,
+			name: `${sourceAsset.name} · ${timeLabel}`,
+			target,
+		});
 	};
 
 	const updateShot = ({
@@ -613,6 +755,13 @@ export function AIVideoView() {
 		}
 	};
 
+	const frameAsset =
+		frameTarget === null
+			? null
+			: frameTarget === "single"
+				? singleSourceAsset
+				: (shots.find((shot) => shot.id === frameTarget)?.sourceAsset ?? null);
+
 	const isGenerateDisabled =
 		isGenerating ||
 		proLocked ||
@@ -817,6 +966,24 @@ export function AIVideoView() {
 													<Button
 														variant="outline"
 														size="sm"
+														onClick={() => setPickerTarget(shot.id)}
+														disabled={isGenerating}
+													>
+														{t["ai_video.image_pick_library"]}
+													</Button>
+													{shot.sourceAsset?.type === "video" && (
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => setFrameTarget(shot.id)}
+															disabled={isGenerating}
+														>
+															{t["ai_video.frame_action"]}
+														</Button>
+													)}
+													<Button
+														variant="outline"
+														size="sm"
 														onClick={() => openShotImagePicker({ id: shot.id })}
 														disabled={isGenerating}
 													>
@@ -832,6 +999,7 @@ export function AIVideoView() {
 																changes: {
 																	imageDataUrl: undefined,
 																	imageName: undefined,
+																	sourceAsset: undefined,
 																},
 															})
 														}
@@ -841,16 +1009,27 @@ export function AIVideoView() {
 													</Button>
 												</div>
 											) : (
-												<Button
-													variant="outline"
-													size="sm"
-													className="w-full border-dashed"
-													onClick={() => openShotImagePicker({ id: shot.id })}
-													disabled={isGenerating}
-												>
-													<HugeiconsIcon icon={ImageAdd02Icon} />
-													{t["ai_video.storyboard_shot_add_image"]}
-												</Button>
+												<div className="flex gap-2">
+													<Button
+														variant="outline"
+														size="sm"
+														className="w-full border-dashed"
+														onClick={() => setPickerTarget(shot.id)}
+														disabled={isGenerating}
+													>
+														{t["ai_video.image_pick_library"]}
+													</Button>
+													<Button
+														variant="outline"
+														size="sm"
+														className="w-full border-dashed"
+														onClick={() => openShotImagePicker({ id: shot.id })}
+														disabled={isGenerating}
+													>
+														<HugeiconsIcon icon={ImageAdd02Icon} />
+														{t["ai_video.storyboard_shot_add_image"]}
+													</Button>
+												</div>
 											))}
 										<input
 											type="text"
@@ -1059,6 +1238,24 @@ export function AIVideoView() {
 												<Button
 													variant="outline"
 													size="sm"
+													onClick={() => setPickerTarget("single")}
+													disabled={isGenerating}
+												>
+													{t["ai_video.image_pick_library"]}
+												</Button>
+												{singleSourceAsset?.type === "video" && (
+													<Button
+														variant="outline"
+														size="sm"
+														onClick={() => setFrameTarget("single")}
+														disabled={isGenerating}
+													>
+														{t["ai_video.frame_action"]}
+													</Button>
+												)}
+												<Button
+													variant="outline"
+													size="sm"
 													onClick={() => imageInputRef.current?.click()}
 													disabled={isGenerating}
 												>
@@ -1071,6 +1268,7 @@ export function AIVideoView() {
 													onClick={() => {
 														setImageDataUrl(null);
 														setImageName("");
+														setSingleSourceAsset(null);
 													}}
 													disabled={isGenerating}
 												>
@@ -1079,23 +1277,42 @@ export function AIVideoView() {
 											</div>
 										</div>
 									) : (
-										<button
-											type="button"
-											onClick={() => imageInputRef.current?.click()}
-											disabled={isGenerating}
-											className="hover:border-primary hover:bg-secondary/40 flex flex-col items-center gap-2 rounded-md border border-dashed px-4 py-8 transition-colors"
-										>
-											<HugeiconsIcon
-												icon={ImageAdd02Icon}
-												className="text-muted-foreground size-8"
-											/>
-											<span className="text-muted-foreground text-sm">
-												{t["ai_video.image_upload_cta"]}
-											</span>
-											<span className="text-muted-foreground text-xs">
-												{t["ai_video.image_upload_hint"]}
-											</span>
-										</button>
+										<div className="flex gap-2">
+											<button
+												type="button"
+												onClick={() => setPickerTarget("single")}
+												disabled={isGenerating}
+												className="hover:border-primary border-primary/60 bg-primary/5 hover:bg-primary/10 flex flex-1 flex-col items-center gap-1.5 rounded-md border border-dashed px-3 py-5 transition-colors"
+											>
+												<HugeiconsIcon
+													icon={ImageAdd02Icon}
+													className="text-primary size-6"
+												/>
+												<span className="text-foreground text-xs font-medium">
+													{t["ai_video.image_pick_library"]}
+												</span>
+												<span className="text-muted-foreground text-[11px]">
+													{t["ai_video.picker_cover_badge"]}
+												</span>
+											</button>
+											<button
+												type="button"
+												onClick={() => imageInputRef.current?.click()}
+												disabled={isGenerating}
+												className="hover:border-primary hover:bg-secondary/40 flex flex-1 flex-col items-center gap-1.5 rounded-md border border-dashed px-3 py-5 transition-colors"
+											>
+												<HugeiconsIcon
+													icon={ImageAdd02Icon}
+													className="text-muted-foreground size-6"
+												/>
+												<span className="text-muted-foreground text-xs">
+													{t["ai_video.image_upload_cta"]}
+												</span>
+												<span className="text-muted-foreground text-[11px]">
+													{t["ai_video.image_upload_hint"]}
+												</span>
+											</button>
+										</div>
 									)}
 								</div>
 
@@ -1169,6 +1386,43 @@ export function AIVideoView() {
 					</div>
 				</TabsContent>
 			</Tabs>
+
+			<AiVideoMediaPickerDialog
+				open={pickerTarget !== null}
+				assets={pickerAssets}
+				maxImageBytes={MAX_IMAGE_BYTES}
+				onClose={() => setPickerTarget(null)}
+				onConfirm={({ asset }) => {
+					const target = pickerTarget;
+					if (target) void handleLibraryPick({ asset, target });
+				}}
+				onLocalUpload={() => {
+					const target = pickerTarget;
+					setPickerTarget(null);
+					if (target === "single") {
+						imageInputRef.current?.click();
+						return;
+					}
+					if (target) {
+						setPendingImageShotId(target);
+						shotImageInputRef.current?.click();
+					}
+				}}
+			/>
+
+			{frameAsset && (
+				<AiVideoFramePickerDialog
+					open
+					asset={frameAsset}
+					onClose={() => setFrameTarget(null)}
+					onConfirm={({ dataUrl, timeLabel }) => {
+						const target = frameTarget;
+						if (target) {
+							handleFramePick({ dataUrl, timeLabel, target });
+						}
+					}}
+				/>
+			)}
 
 			{insufficient && (
 				<div

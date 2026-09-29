@@ -78,6 +78,97 @@ export async function readVideoFile({
 	}
 }
 
+/**
+ * Extracts single frames from one video at arbitrary times — the AI
+ * image-to-video reference-frame picker. Unlike {@link readVideoFile} this
+ * keeps the decoder open, so scrubbing (seek + grab, over and over) does not
+ * pay container parsing each time. Call {@link dispose} when done.
+ */
+export class VideoFrameExtractor {
+	private input: Input;
+	private sink: VideoSampleSink | null;
+	readonly durationSeconds: number;
+	private width: number;
+	private height: number;
+
+	private constructor(args: {
+		input: Input;
+		sink: VideoSampleSink | null;
+		durationSeconds: number;
+		width: number;
+		height: number;
+	}) {
+		this.input = args.input;
+		this.sink = args.sink;
+		this.durationSeconds = args.durationSeconds;
+		this.width = args.width;
+		this.height = args.height;
+	}
+
+	/** Null when the file has no decodable video track. */
+	static async open({ file }: { file: File }): Promise<VideoFrameExtractor | null> {
+		const input = new Input({
+			source: new BlobSource(file),
+			formats: ALL_FORMATS,
+		});
+		try {
+			const track = await input.getPrimaryVideoTrack();
+			if (!track) {
+				input.dispose();
+				return null;
+			}
+			const duration = await input.computeDuration();
+			const sink = (await track.canDecode()) ? new VideoSampleSink(track) : null;
+			return new VideoFrameExtractor({
+				input,
+				sink,
+				durationSeconds: duration,
+				width: track.displayWidth,
+				height: track.displayHeight,
+			});
+		} catch (error) {
+			input.dispose();
+			throw error;
+		}
+	}
+
+	/** JPEG dataURL of the frame at `seconds`, long edge capped at `maxEdge`. */
+	async frameAt({
+		seconds,
+		maxEdge = 1920,
+	}: {
+		seconds: number;
+		maxEdge?: number;
+	}): Promise<string | null> {
+		if (!this.sink) {
+			return null;
+		}
+		const time = Math.min(Math.max(seconds, 0), this.durationSeconds);
+		const frame = await this.sink.getSample(time);
+		if (!frame) {
+			return null;
+		}
+		try {
+			const scale = Math.min(1, maxEdge / Math.max(this.width, this.height));
+			const canvas = document.createElement("canvas");
+			canvas.width = Math.max(1, Math.round(this.width * scale));
+			canvas.height = Math.max(1, Math.round(this.height * scale));
+			const context = canvas.getContext("2d");
+			if (!context) {
+				return null;
+			}
+			frame.draw(context, 0, 0, canvas.width, canvas.height);
+			return canvas.toDataURL("image/jpeg", 0.9);
+		} finally {
+			frame.close();
+		}
+	}
+
+	dispose(): void {
+		this.input.dispose();
+	}
+}
+
 const SAMPLE_RATE = 44100;
 const NUM_CHANNELS = 2;
 const EMPTY_TIMELINE_SILENT_DURATION_SECONDS = 0.1;

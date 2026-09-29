@@ -759,6 +759,26 @@ export const en = {
   "ai_video.motion_prompt_hint": "Leave empty to let the model decide the motion",
   "ai_video.image_only_ark":
     "Image-to-video runs on Volcano Ark only and will not fall back to other providers.",
+  "ai_video.image_pick_library": "From library",
+  "ai_video.picker_title": "Choose from library",
+  "ai_video.picker_all": "All",
+  "ai_video.picker_videos": "Video",
+  "ai_video.picker_images": "Image",
+  "ai_video.picker_empty":
+    "No media in this project yet — upload an image or drop a video first",
+  "ai_video.picker_local_fallback": "Upload locally",
+  "ai_video.picker_cover_badge": "cover frame",
+  "ai_video.picker_cover_hint":
+    "Video assets use their cover frame; you can swap it afterwards",
+  "ai_video.picker_no_preview":
+    "This video has no usable cover frame to reference",
+  "ai_video.picker_too_large": "Over the size limit",
+  "ai_video.picker_confirm": "Confirm",
+  "ai_video.frame_title": "Pick a frame",
+  "ai_video.frame_action": "Pick frame",
+  "ai_video.frame_confirm": "Use this frame",
+  "ai_video.frame_hint": "Drag the slider or tap the filmstrip to locate a frame",
+  "ai_video.frame_failed": "This video could not be decoded for frames, try another",
   "ai_video.advanced": "Advanced",
   "ai_video.camera_movement": "Camera movement",
   "ai_video.camera_auto": "Auto",
