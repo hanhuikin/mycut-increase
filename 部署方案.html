@@ -215,6 +215,12 @@ server {
         client_max_body_size 512m;   # 素材上传
     }
 }</code></pre>
+<div class="box danger" style="border:1.5px solid var(--danger); background:#ef444414;">
+  <b class="tag" style="background:var(--danger); color:#fff">运维警示</b>
+  <span style="color:var(--danger); font-weight:700">X-Forwarded-For 的语义在本版本已变更：必须在 Nginx 上覆写该头。</span><br>
+  即使用上面配置里的 <code>proxy_set_header X-Forwarded-For $remote_addr;</code>（覆写，而非默认的 append）。若保持 append 模式（<code>$proxy_add_x_forwarded_for</code>），限流 key 会取到 Nginx 前面最后一级代理的 IP（如果有的话）—— 所有限流按代理 IP 计数：攻击者可借此绕过限流，正常用户之间会互相挤兑窗口；审计日志的 ip 字段同样失真。上线前必须核对这一行配置。
+</div>
+
 <ul>
   <li><code>X-Forwarded-For</code> 必须由 LB <b>覆写</b>（<code>$remote_addr</code>），代码侧 <code>auth/request-ip.ts</code> 取该头<b>最后一项</b>作为可信 IP——即使 LB 配置失误（用了 append 模式），取最后一项仍然安全。审计 ip 字段与所有限流共用该函数。</li>
   <li>多级代理（CDN → Nginx）时注意限流 key 取到的是最外层 IP，按实际链路调整 <code>real_ip</code> 模块。</li>
