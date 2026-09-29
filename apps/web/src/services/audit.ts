@@ -17,6 +17,17 @@ export async function writeAudit({
 	detail?: string;
 	ip?: string;
 }): Promise<void> {
+	// U+FFFD means some earlier step decoded bytes with the wrong codec and the
+	// text is already lost; this once shipped to the log from a deleted code
+	// path (see the zz-test-model entry). Nothing here can repair it, but the
+	// run should say so loudly instead of filing silent garbage.
+	const REPLACEMENT_CHAR = String.fromCharCode(0xfffd);
+	if (detail.includes(REPLACEMENT_CHAR) || target.includes(REPLACEMENT_CHAR)) {
+		console.warn(
+			`[audit] replacement characters in entry "${action}" — text was corrupted before writeAudit`,
+		);
+	}
+
 	await db.insert(auditLog).values({
 		id: crypto.randomUUID(),
 		actorId,
