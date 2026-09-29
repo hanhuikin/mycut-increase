@@ -19,6 +19,9 @@ import { DEFAULT_FPS } from "@/fps/defaults";
 import { buildDefaultScene, getProjectDurationFromScenes } from "@/timeline/scenes";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { CanvasRenderer } from "@/services/renderer/canvas-renderer";
+import { renderThumbnailDataUrl } from "@/media/thumbnail";
+import type { SceneTracks } from "@/timeline/types";
+import { mediaTimeToSeconds, type MediaTime } from "@/wasm";
 import {
 	CURRENT_PROJECT_VERSION,
 	migrations,
@@ -58,6 +61,14 @@ export class ProjectManager {
 		result: null,
 	};
 	private exportCancelRequested = false;
+
+	/**
+	 * Card-thumbnail bookkeeping: the visual state the last render captured and
+	 * when. Lets autosave refresh the card without re-rendering on every save —
+	 * only when the timeline's visual state has moved on.
+	 */
+	private thumbnailSignature: string | null = null;
+	private thumbnailUpdatedAt = 0;
 
 	constructor(private editor: EditorCore) {}
 
@@ -195,6 +206,10 @@ export class ProjectManager {
 		if (!this.active) return;
 
 		try {
+			// Autosave keeps the card truthful: the exit-time render alone left
+			// projects stale (or blank) whenever the tab was closed or refreshed.
+			await this.maybeRefreshThumbnail();
+
 			const scenes = this.editor.scenes.getScenes();
 			const updatedProject = {
 				...this.active,
@@ -526,7 +541,13 @@ export class ProjectManager {
 		return nextFps;
 	}
 
-	async updateThumbnail({ thumbnail }: { thumbnail: string }): Promise<void> {
+	async updateThumbnail({
+		thumbnail,
+		markDirty = true,
+	}: {
+		thumbnail: string;
+		markDirty?: boolean;
+	}): Promise<void> {
 		if (!this.active) return;
 
 		const updatedProject: TProject = {
@@ -536,7 +557,9 @@ export class ProjectManager {
 		this.active = updatedProject;
 		this.notify();
 		this.updateMetadata(updatedProject);
-		this.editor.save.markDirty();
+		if (markDirty) {
+			this.editor.save.markDirty();
+		}
 	}
 
 	async prepareExit(): Promise<void> {
@@ -655,10 +678,51 @@ export class ProjectManager {
 		return () => this.listeners.delete(listener);
 	}
 
-	private async updateThumbnailFromTimeline(): Promise<boolean> {
+	/**
+	 * Refresh the card thumbnail when autosave runs and the timeline's visual
+	 * state has changed since the last render. Throttled so dragging a clip
+	 * (which saves every ~800 ms) doesn't render a frame per save.
+	 */
+	private async maybeRefreshThumbnail(): Promise<void> {
+		if (!this.active) return;
+
+		const tracks = this.editor.scenes.getActiveScene().tracks;
+		const signature = visualSignature({ tracks });
+		if (signature === this.thumbnailSignature) return;
+		if (
+			this.thumbnailUpdatedAt > 0 &&
+			Date.now() - this.thumbnailUpdatedAt < THUMBNAIL_MIN_INTERVAL_MS
+		) {
+			return;
+		}
+
+		const didUpdate = await this.updateThumbnailFromTimeline({
+			markDirty: false,
+		});
+		if (didUpdate) {
+			this.thumbnailSignature = signature;
+		}
+	}
+
+	private async updateThumbnailFromTimeline({
+		markDirty = true,
+	}: {
+		markDirty?: boolean;
+	} = {}): Promise<boolean> {
 		if (!this.active) return false;
 
 		const tracks = this.editor.scenes.getActiveScene().tracks;
+
+		// An empty visual timeline has nothing new to show; keep whatever the
+		// card had (a brand-new project simply keeps its placeholder icon).
+		if (!hasVisualElements({ tracks })) {
+			return false;
+		}
+
+		// Render the first frame that actually shows something: a timeline that
+		// starts with a gap (or opens audio-only) would otherwise produce a
+		// blank card at t=0.
+		const thumbTime = firstVisualTimeSeconds({ tracks }) ?? 0;
 		const mediaAssets = this.editor.media.getAssets();
 		const duration = this.editor.timeline.getTotalDuration();
 		const { canvasSize, background } = this.active.settings;
@@ -683,13 +747,26 @@ export class ProjectManager {
 
 		await renderer.renderToCanvas({
 			node: scene,
-			time: 0,
+			time: thumbTime,
 			targetCanvas: tempCanvas,
 		});
 
-		const thumbnailDataUrl = tempCanvas.toDataURL("image/png");
+		// Downscale to card size and encode as JPEG: the grid renders ~300px
+		// wide, and a full-resolution PNG per project bloated the metadata the
+		// projects page loads wholesale.
+		const thumbnailDataUrl = renderThumbnailDataUrl({
+			width: Math.min(THUMBNAIL_TARGET_WIDTH, canvasSize.width),
+			height: Math.round(
+				Math.min(THUMBNAIL_TARGET_WIDTH, canvasSize.width) /
+					(canvasSize.width / canvasSize.height),
+			),
+			draw: ({ context, width, height }) => {
+				context.drawImage(tempCanvas, 0, 0, width, height);
+			},
+		});
 
-		await this.updateThumbnail({ thumbnail: thumbnailDataUrl });
+		await this.updateThumbnail({ thumbnail: thumbnailDataUrl, markDirty });
+		this.thumbnailUpdatedAt = Date.now();
 		return true;
 	}
 
@@ -711,5 +788,56 @@ export class ProjectManager {
 		this.listeners.forEach((fn) => {
 			fn();
 		});
+	}
+}
+
+const THUMBNAIL_MIN_INTERVAL_MS = 3000;
+const THUMBNAIL_TARGET_WIDTH = 640;
+
+/** Elements the thumbnail renderer can actually draw. */
+interface VisualElementLike {
+	type: string;
+	startTime: MediaTime;
+	hidden?: boolean;
+}
+
+/** Video/image/sticker/graphic elements that would show up in a render. */
+function visualElements({ tracks }: { tracks: SceneTracks }): VisualElementLike[] {
+	const candidates: VisualElementLike[] = [...tracks.main.elements];
+	for (const track of tracks.overlay) {
+		if (track.type === "video" || track.type === "graphic") {
+			candidates.push(...track.elements);
+		}
+	}
+	return candidates.filter((element) => !element.hidden);
+}
+
+function hasVisualElements({ tracks }: { tracks: SceneTracks }): boolean {
+	return visualElements({ tracks }).length > 0;
+}
+
+/** Timeline position (seconds) of the earliest visible element. */
+function firstVisualTimeSeconds({ tracks }: { tracks: SceneTracks }): number | null {
+	const startTimes = visualElements({ tracks }).map(
+		(element) => element.startTime,
+	);
+	if (startTimes.length === 0) return null;
+	const earliest = startTimes.reduce((min, time) => (time < min ? time : min));
+	return mediaTimeToSeconds({ time: earliest });
+}
+
+/**
+ * Cheap change-detector for the visual state a thumbnail captures. String form
+ * so it can be compared after a reload; JSON-safe by construction (timeline
+ * elements carry no runtime objects), guarded anyway.
+ */
+function visualSignature({ tracks }: { tracks: SceneTracks }): string | null {
+	try {
+		return JSON.stringify({
+			main: tracks.main.elements,
+			overlay: tracks.overlay,
+		});
+	} catch {
+		return null;
 	}
 }
