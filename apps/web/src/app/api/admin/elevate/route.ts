@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth/server";
 import { getSessionUser, issueAdminGate, ADMIN_GATE_TTL_MS } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import { writeAudit } from "@/services/audit";
 
 /**
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
 	}
 
 	await issueAdminGate();
-	const ip = request.headers.get("x-forwarded-for") ?? "";
+	const ip = clientIp({ request });
 	await writeAudit({
 		actorId: user.id,
 		actorEmail: user.email,

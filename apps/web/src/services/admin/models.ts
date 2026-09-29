@@ -165,8 +165,15 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
  * This has to happen here rather than in a migration: `db:push` applies the
  * schema without running migration SQL, so a migration-only backfill would
  * silently leave existing rows empty.
+ *
+ * Once it has run in this process it cannot need to run again — the upsert only
+ * ever writes the six fixed default rows — so a flag skips the statement on
+ * every subsequent read (this runs per /api/billing/models call).
  */
+let modelsSeeded = false;
+
 export async function ensureModelsSeeded(): Promise<void> {
+	if (modelsSeeded) return;
 	await db
 		.insert(aiModels)
 		.values(DEFAULT_MODELS)
@@ -181,6 +188,7 @@ export async function ensureModelsSeeded(): Promise<void> {
 			},
 			where: sql`${aiModels.modes} = '[]'::jsonb`,
 		});
+	modelsSeeded = true;
 }
 
 function toConfig(row: typeof aiModels.$inferSelect): AdminModelConfig {

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import { parseChannelInput } from "@/services/admin/channel-input";
 import { createChannel, listChannels } from "@/services/admin/channels";
 import { protocolOptions } from "@/services/ai/protocols";
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 			protocol: parsed.input.protocol,
 			models: Object.keys(parsed.input.models),
 		}),
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	return NextResponse.json({ channel: created }, { status: 201 });

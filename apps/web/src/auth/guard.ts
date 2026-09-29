@@ -67,6 +67,10 @@ export async function issueAdminGate(): Promise<void> {
 		sameSite: "lax",
 		path: "/",
 		maxAge: ADMIN_GATE_TTL_MS / 1000,
+		// Production is served over HTTPS behind the LB; without this the gate
+		// cookie would also ride plain-http hops. Dev (http://localhost) keeps
+		// working because NODE_ENV is "development" there.
+		secure: process.env.NODE_ENV === "production",
 	});
 }
 

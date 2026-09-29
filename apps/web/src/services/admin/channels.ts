@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { type ChannelModels, channels } from "@/db/schema";
 import {
@@ -128,27 +128,41 @@ export const DEFAULT_CHANNELS: Array<{
 /**
  * Seed the defaults when there are none. Only runs on an empty table, so a
  * default channel the admin deleted stays deleted.
+ *
+ * The check-and-insert runs under an advisory lock: two instances first-booting
+ * against an empty shared database would otherwise both see "no rows" and each
+ * insert the default set — `channels` has no unique constraint that would catch
+ * the duplicate. The per-process flag then skips the lookup entirely once
+ * seeding has been verified, saving a query on every read.
  */
+let channelsSeeded = false;
+
 export async function ensureChannelsSeeded(): Promise<void> {
-	const existing = await db
-		.select({ id: channels.id })
-		.from(channels)
-		.limit(1);
-	if (existing.length > 0) return;
-	await db
-		.insert(channels)
-		.values(
-			DEFAULT_CHANNELS.map((seed) => ({
-				id: crypto.randomUUID(),
-				name: seed.name,
-				protocol: seed.protocol,
-				priority: seed.priority,
-				models: seed.models,
-				createdBy: "system",
-				updatedBy: "system",
-			})),
-		)
-		.onConflictDoNothing();
+	if (channelsSeeded) return;
+	await db.transaction(async (tx) => {
+		await tx.execute(sql`select pg_advisory_xact_lock(742019764)`);
+		const existing = await tx
+			.select({ id: channels.id })
+			.from(channels)
+			.limit(1);
+		if (existing.length === 0) {
+			await tx
+				.insert(channels)
+				.values(
+					DEFAULT_CHANNELS.map((seed) => ({
+						id: crypto.randomUUID(),
+						name: seed.name,
+						protocol: seed.protocol,
+						priority: seed.priority,
+						models: seed.models,
+						createdBy: "system",
+						updatedBy: "system",
+					})),
+				)
+				.onConflictDoNothing();
+		}
+		channelsSeeded = true;
+	});
 }
 
 export async function listChannels(): Promise<ChannelView[]> {

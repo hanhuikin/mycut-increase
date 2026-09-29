@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import { adjustCredits, getBalance } from "@/services/billing/ledger";
 import { writeAudit } from "@/services/audit";
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 		action: "adjust_credits",
 		target: body.userId,
 		detail: `${body.delta > 0 ? "+" : ""}${Math.round(body.delta)} · ${body.reason.trim()}`,
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	return NextResponse.json({ balance });

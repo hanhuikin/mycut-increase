@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import {
 	createModel,
 	getModelDetail,
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 		action: "model_create",
 		target: id,
 		detail: JSON.stringify({ label, kind }),
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	return NextResponse.json(

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import { parseChannelInput } from "@/services/admin/channel-input";
 import {
 	deleteChannel,
@@ -52,7 +53,7 @@ export async function PATCH(
 			// Never the key itself — only whether one was supplied.
 			keyReplaced: Boolean(parsed.input.apiKey.trim()),
 		}),
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	return NextResponse.json({ channel: updated });
@@ -88,7 +89,7 @@ export async function DELETE(
 			protocol: existing.protocol,
 			models: Object.keys(existing.models),
 		}),
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	return NextResponse.json({ ok: true });

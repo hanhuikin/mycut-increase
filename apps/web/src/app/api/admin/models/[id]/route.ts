@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import {
 	type EditableModelFields,
 	getModelDetail,
@@ -177,7 +178,7 @@ export async function PATCH(
 		action: "model_update",
 		target: id,
 		detail: JSON.stringify(sanitized.patch),
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	// Return the detail shape so the drawer picks up fresh route status too.

@@ -1,10 +1,11 @@
+import { clientIp } from "@/auth/request-ip";
 import { consumeRateLimit } from "@/services/redis";
 
 const WINDOW_MS = 60_000;
 const LIMIT = 100; // requests per minute
 
 export async function checkRateLimit({ request }: { request: Request }) {
-	const ip = request.headers.get("x-forwarded-for") ?? "anonymous";
+	const ip = clientIp({ request }) || "anonymous";
 
 	try {
 		const allowed = await consumeRateLimit({

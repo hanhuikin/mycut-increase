@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import { db } from "@/db";
 import { redeemCodes } from "@/db/schema";
 import { writeAudit } from "@/services/audit";
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 		action: "redeem_batch",
 		target: batchId,
 		detail: `${count} × ${credits} 点`,
-		ip: request.headers.get("x-forwarded-for") ?? "",
+		ip: clientIp({ request }),
 	});
 
 	return NextResponse.json({ batchId, codes });

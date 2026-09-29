@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { desc, eq, ilike, or } from "drizzle-orm";
 import { requireElevatedAdmin } from "@/auth/guard";
+import { clientIp } from "@/auth/request-ip";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { writeAudit } from "@/services/audit";
@@ -62,7 +63,7 @@ export async function PATCH(request: NextRequest) {
 		);
 	}
 
-	const ip = request.headers.get("x-forwarded-for") ?? "";
+	const ip = clientIp({ request });
 	let auditAction = body.action;
 	let detail = body.reason ?? "";
 
