@@ -1,0 +1,1 @@
+ALTER TABLE "app"."ai_models" DROP COLUMN "provider_route";

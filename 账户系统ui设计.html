@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyCut 账户系统 · UI 与交互设计</title>
+<style>
+  :root{
+    --bg:#0C0D10;
+    --panel:#14161B;
+    --panel-2:#181B21;
+    --line:#262A33;
+    --line-soft:#1E222A;
+    --ink:#E8EAF0;
+    --ink-2:#9BA1AD;
+    --ink-3:#6B7280;
+    --user:#6D7CFF;
+    --user-soft:#8A96FF;
+    --admin:#FFB224;
+    --admin-deep:#E89B00;
+    --ok:#3DDC97;
+    --danger:#FF5C5C;
+    --font-display:"Segoe UI Variable Display","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+    --font-body:system-ui,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    --font-mono:"Cascadia Code","Consolas","SF Mono",ui-monospace,monospace;
+    --r-lg:16px; --r-md:12px; --r-sm:8px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:24px}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:var(--font-body);font-size:14px;line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(109,124,255,.35)}
+
+  /* ---------- 布局骨架 ---------- */
+  .shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+  .rail{
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    border-right:1px solid var(--line-soft);
+    padding:28px 18px 28px 24px;
+    background:linear-gradient(180deg,#0E0F13,#0C0D10);
+  }
+  .main{padding:0 clamp(20px,5vw,72px) 120px;max-width:1120px}
+  .rail-brand{display:flex;align-items:center;gap:10px;margin-bottom:30px}
+  .rail-brand .mark{
+    width:26px;height:26px;border-radius:7px;flex:none;
+    background:conic-gradient(from 210deg,#6D7CFF,#9B6DFF,#6D7CFF);
+    position:relative;
+  }
+  .rail-brand .mark::after{
+    content:"";position:absolute;inset:7px;border-radius:3px;background:#0C0D10;
+  }
+  .rail-brand b{font-family:var(--font-display);font-size:15px;letter-spacing:.02em}
+  .rail nav a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--ink-2);text-decoration:none;font-size:13px;
+    padding:7px 10px;margin:1px -10px;border-radius:var(--r-sm);
+    transition:color .15s,background .15s;
+  }
+  .rail nav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+  .rail nav a .n{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)}
+  .rail nav a:hover .n{color:var(--user-soft)}
+
+  /* ---------- 顶部时间码标尺（签名装饰） ---------- */
+  .ruler{
+    height:34px;border-bottom:1px solid var(--line-soft);
+    background:repeating-linear-gradient(90deg,
+      transparent 0 79px, var(--line) 79px 80px),
+      repeating-linear-gradient(90deg,
+      transparent 0 15px, var(--line-soft) 15px 16px);
+    position:relative;
+  }
+  .ruler .tc{
+    position:absolute;right:0;top:0;height:100%;
+    display:flex;align-items:center;padding:0 4px 0 14px;
+    background:var(--bg);
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:.08em;
+  }
+  .ruler .ph{
+    position:absolute;left:64px;top:0;bottom:-1px;width:2px;background:var(--user);
+  }
+  .ruler .ph::before{
+    content:"";position:absolute;top:0;left:-4px;
+    border:5px solid transparent;border-top-color:var(--user);
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover{padding:72px 0 56px;border-bottom:1px solid var(--line-soft)}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;
+    color:var(--user-soft);text-transform:uppercase;
+  }
+  .cover h1{
+    font-family:var(--font-display);font-weight:700;
+    font-size:clamp(34px,5.4vw,54px);line-height:1.12;letter-spacing:-.02em;
+    margin:16px 0 14px;
+  }
+  .cover h1 .en{color:var(--ink-3);font-weight:600}
+  .cover .sub{color:var(--ink-2);font-size:15.5px;max-width:620px}
+  .cover .meta{
+    display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px;
+    font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+  }
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .legend .lg{
+    display:inline-flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:999px;
+    padding:5px 14px;font-size:12.5px;color:var(--ink-2);
+  }
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.u{background:var(--user)} .dot.a{background:var(--admin)}
+  .dot.s{background:var(--ink-3)} .dot.d{background:var(--danger)}
+  .dot.ok{background:var(--ok)}
+
+  /* ---------- 章节 ---------- */
+  .sec{padding:64px 0 8px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
+  .sec-head .no{
+    font-family:var(--font-mono);font-size:12px;color:var(--user-soft);
+    letter-spacing:.1em;
+  }
+  .sec-head h2{
+    font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-.01em;
+  }
+  .sec > .lead{color:var(--ink-2);max-width:680px;margin-bottom:28px}
+  .sec h3{
+    font-family:var(--font-display);font-size:16px;font-weight:600;
+    margin:34px 0 12px;color:var(--ink);
+  }
+  .sec h3 .tag{
+    font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);
+    letter-spacing:.14em;margin-left:10px;font-weight:400;
+  }
+  p.note{color:var(--ink-2);font-size:13px;max-width:680px;margin:8px 0 16px}
+
+  /* ---------- 通用组件 ---------- */
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-lg);padding:22px 24px;
+  }
+  .grid{display:grid;gap:14px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  table.spec{width:100%;border-collapse:collapse;font-size:13px;margin:14px 0 6px}
+  table.spec th{
+    text-align:left;font-family:var(--font-mono);font-size:10.5px;font-weight:500;
+    letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase;
+    padding:8px 14px;border-bottom:1px solid var(--line);
+  }
+  table.spec td{
+    padding:10px 14px;border-bottom:1px solid var(--line-soft);
+    color:var(--ink-2);vertical-align:top;
+  }
+  table.spec td:first-child{color:var(--ink)}
+  table.spec .m{font-family:var(--font-mono);font-size:12px;color:var(--user-soft)}
+  table.spec .m.amb{color:var(--admin)}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11.5px;border-radius:999px;padding:2px 10px;
+    border:1px solid var(--line);color:var(--ink-2);
+  }
+  .pill .dot{width:6px;height:6px}
+  .kbd{
+    font-family:var(--font-mono);font-size:11.5px;
+    background:var(--panel-2);border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:6px;padding:1px 7px;color:var(--ink-2);
+  }
+  code.k{font-family:var(--font-mono);font-size:12px;color:var(--user-soft)}
+  .callout{
+    display:flex;gap:12px;border-left:3px solid var(--user);
+    background:rgba(109,124,255,.07);border-radius:0 var(--r-md) var(--r-md) 0;
+    padding:14px 18px;margin:18px 0;font-size:13px;color:var(--ink-2);
+  }
+  .callout.amber{border-left-color:var(--admin);background:rgba(255,178,36,.06)}
+  .callout b{color:var(--ink)}
+
+  /* ---------- 浏览器框 mockup ---------- */
+  .browser{
+    border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;
+    background:var(--panel);margin:18px 0 8px;
+    box-shadow:0 24px 60px -30px rgba(0,0,0,.7);
+  }
+  .browser-bar{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel-2);border-bottom:1px solid var(--line);
+    padding:9px 14px;
+  }
+  .browser-bar .dots{display:flex;gap:6px}
+  .browser-bar .dots i{width:10px;height:10px;border-radius:50%;background:var(--line);display:block}
+  .browser-bar .url{
+    flex:1;max-width:340px;margin:0 auto;
+    background:var(--bg);border:1px solid var(--line-soft);border-radius:7px;
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+    padding:3px 12px;text-align:center;
+  }
+  .browser-body{min-height:380px}
+
+  /* ---------- 登录页 mockup ---------- */
+  .mock-login{display:grid;grid-template-columns:1fr 1fr;min-height:400px}
+  .mock-brand{
+    position:relative;overflow:hidden;padding:34px;
+    background:
+      radial-gradient(120% 90% at 85% 10%,rgba(109,124,255,.35),transparent 55%),
+      radial-gradient(90% 90% at 10% 95%,rgba(155,109,255,.22),transparent 60%),
+      #101118;
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .mock-brand .tracks{
+    position:absolute;inset:auto 0 0 0;height:96px;
+    background:
+      repeating-linear-gradient(0deg,transparent 0 23px,rgba(255,255,255,.07) 23px 24px),
+      repeating-linear-gradient(90deg,transparent 0 47px,rgba(255,255,255,.05) 47px 48px);
+    mask-image:linear-gradient(180deg,transparent,#000 70%);
+  }
+  .mock-brand .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:17px}
+  .mock-brand .logo i{width:22px;height:22px;border-radius:6px;background:conic-gradient(from 210deg,#6D7CFF,#9B6DFF,#6D7CFF);position:relative;display:block}
+  .mock-brand .logo i::after{content:"";position:absolute;inset:6px;border-radius:2.5px;background:#101118}
+  .mock-brand h4{font-family:var(--font-display);font-size:21px;line-height:1.4;font-weight:700;max-width:300px;letter-spacing:-.01em}
+  .mock-brand h4 em{font-style:normal;color:var(--user-soft)}
+  .mock-brand .foot{font-family:var(--font-mono);font-size:10.5px;color:rgba(232,234,240,.5);letter-spacing:.1em}
+  .mock-form{padding:38px 40px;display:flex;flex-direction:column;justify-content:center}
+  .mock-form h5{font-family:var(--font-display);font-size:19px;font-weight:700;margin-bottom:4px}
+  .mock-form .hint{font-size:12.5px;color:var(--ink-3);margin-bottom:22px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:6px}
+  .input{
+    position:relative;display:flex;align-items:center;
+    background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);
+    height:40px;padding:0 12px;gap:8px;
+  }
+  .input .val{font-size:13px;color:var(--ink)}
+  .input .val.ph{color:var(--ink-3)}
+  .input .tail{margin-left:auto;font-size:11px;color:var(--ink-3);font-family:var(--font-mono)}
+  .input.err{border-color:var(--danger)}
+  .field .msg{font-size:11.5px;color:var(--danger);margin-top:5px}
+  .field .msg.amb{color:var(--admin)}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    height:40px;border-radius:var(--r-sm);border:none;cursor:pointer;
+    font-size:13.5px;font-weight:600;font-family:var(--font-body);
+    width:100%;
+  }
+  .btn.primary{background:var(--user);color:#0C0D10}
+  .btn.admin{background:var(--admin);color:#231A00}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+  .btn.loading{opacity:.75}
+  .btn.loading .spin{
+    width:14px;height:14px;border-radius:50%;flex:none;
+    border:2px solid rgba(12,13,16,.3);border-top-color:#0C0D10;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .divider{
+    display:flex;align-items:center;gap:12px;margin:16px 0;
+    color:var(--ink-3);font-size:11.5px;
+  }
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .oauth{display:flex;gap:10px}
+  .oauth .btn{flex:1}
+  .oauth .mk{
+    width:20px;height:20px;border-radius:5px;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:9.5px;font-weight:700;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink-2);
+  }
+  .mock-links{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:18px;font-size:12.5px;color:var(--ink-3);
+  }
+  .mock-links a{color:var(--user-soft);text-decoration:none}
+  .mock-links a.guest{color:var(--ink-2);border-bottom:1px dashed var(--ink-3);padding-bottom:1px}
+  .row-between{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
+  .chk i{
+    width:15px;height:15px;border-radius:4px;border:1px solid var(--line);
+    background:var(--bg);display:block;position:relative;
+  }
+  .chk.on i{background:var(--user);border-color:var(--user)}
+  .chk.on i::after{
+    content:"";position:absolute;left:4.5px;top:1.5px;
+    width:4px;height:8px;border:solid #0C0D10;border-width:0 2px 2px 0;
+    transform:rotate(42deg);
+  }
+  .caps{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11px;color:var(--admin);
+  }
+  .caps::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--admin);opacity:.85}
+  .anno{
+    position:absolute;width:20px;height:20px;border-radius:50%;
+    background:var(--bg);border:1.5px solid var(--danger);color:var(--danger);
+    font-family:var(--font-mono);font-size:10.5px;
+    display:flex;align-items:center;justify-content:center;z-index:3;
+  }
+  .mockwrap{position:relative}
+  .annos{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 6px;
+  }
+  .annos div{font-size:12px;color:var(--ink-2);padding-left:26px;position:relative}
+  .annos div::before{
+    content:attr(data-n);position:absolute;left:0;top:1px;
+    width:18px;height:18px;border-radius:50%;
+    border:1.5px solid var(--danger);color:var(--danger);
+    font-family:var(--font-mono);font-size:10px;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- 强度条 ---------- */
+  .strength{display:flex;gap:5px;margin-top:8px;align-items:center}
+  .strength i{height:4px;flex:1;border-radius:2px;background:var(--line)}
+  .strength i.f1{background:var(--danger)}
+  .strength i.f2{background:var(--admin)}
+  .strength i.f3{background:var(--ok)}
+  .strength span{font-size:11px;color:var(--ink-3);flex:none;margin-left:8px}
+
+  /* ---------- TOTP ---------- */
+  .totp{display:flex;gap:9px;margin:14px 0 6px}
+  .totp i{
+    width:44px;height:54px;border-radius:var(--r-sm);
+    border:1px solid var(--line);background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:22px;font-style:normal;color:var(--ink);
+  }
+  .totp i.caret{border-color:var(--admin);box-shadow:0 0 0 3px rgba(255,178,36,.15)}
+
+  /* ---------- 用户中心 mockup ---------- */
+  .uc{padding:30px 34px;background:var(--bg)}
+  .uc-head{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+  .avatar{
+    width:52px;height:52px;border-radius:50%;flex:none;
+    background:linear-gradient(135deg,#6D7CFF,#9B6DFF);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:700;font-size:19px;color:#0C0D10;
+  }
+  .uc-head h5{font-family:var(--font-display);font-size:17px}
+  .uc-head .sub{font-size:12px;color:var(--ink-3);font-family:var(--font-mono)}
+  .uc-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+  .uc-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px}
+  .uc-card h6{
+    font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:.16em;
+    color:var(--ink-3);text-transform:uppercase;margin-bottom:12px;
+  }
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+  .kv:last-child{border:none}
+  .kv .k{color:var(--ink-2)}
+  .kv .v{color:var(--ink);font-family:var(--font-mono);font-size:11.5px}
+  .dev{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+  .dev:last-child{border:none}
+  .dev .ic{width:30px;height:30px;border-radius:7px;background:var(--panel-2);border:1px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center}
+  .dev .ic svg{width:14px;height:14px;stroke:var(--ink-2);fill:none;stroke-width:1.6}
+  .dev .nm{line-height:1.35}
+  .dev .nm small{display:block;color:var(--ink-3);font-size:11px}
+  .dev .act{margin-left:auto;font-size:11.5px;color:var(--danger)}
+  .dev .cur{font-size:10px;color:var(--ok);border:1px solid rgba(61,220,151,.4);border-radius:999px;padding:1px 8px}
+
+  /* ---------- 管理后台 mockup ---------- */
+  .admin-shell{background:var(--bg);min-height:400px;display:flex;flex-direction:column}
+  .admin-top{
+    display:flex;align-items:center;gap:14px;
+    background:var(--panel);border-bottom:1px solid var(--line);
+    padding:12px 22px;
+  }
+  .admin-top .mark{
+    width:22px;height:22px;border-radius:6px;background:conic-gradient(from 210deg,#6D7CFF,#9B6DFF,#6D7CFF);position:relative;
+  }
+  .admin-top .mark::after{content:"";position:absolute;inset:6px;border-radius:2px;background:var(--panel)}
+  .admin-top b{font-family:var(--font-display);font-size:13.5px}
+  .sess-chip{
+    margin-left:auto;display:flex;align-items:center;gap:8px;
+    font-family:var(--font-mono);font-size:11.5px;color:var(--admin);
+    border:1px solid rgba(255,178,36,.45);border-radius:999px;padding:4px 13px;
+  }
+  .sess-chip .dot{background:var(--admin);animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .admin-body{display:grid;grid-template-columns:170px 1fr;flex:1}
+  .admin-side{border-right:1px solid var(--line-soft);padding:18px 12px}
+  .admin-side a{
+    display:block;font-size:12.5px;color:var(--ink-2);
+    padding:7px 12px;border-radius:7px;text-decoration:none;margin-bottom:2px;
+  }
+  .admin-side a.on{background:rgba(255,178,36,.1);color:var(--admin)}
+  .admin-main{padding:20px 24px}
+  .admin-main .bar{display:flex;gap:10px;margin-bottom:14px}
+  .search{
+    flex:1;display:flex;align-items:center;height:34px;
+    background:var(--panel);border:1px solid var(--line);border-radius:7px;
+    padding:0 12px;font-size:12.5px;color:var(--ink-3);gap:8px;
+  }
+  .search svg{width:13px;height:13px;stroke:var(--ink-3);fill:none;stroke-width:1.8}
+  .filter{
+    height:34px;display:flex;align-items:center;padding:0 13px;
+    border:1px solid var(--line);border-radius:7px;font-size:12.5px;color:var(--ink-2);
+    background:var(--panel);
+  }
+  table.users{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.users th{
+    text-align:left;font-family:var(--font-mono);font-size:9.5px;font-weight:500;
+    letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;
+    padding:8px 10px;border-bottom:1px solid var(--line);
+  }
+  table.users td{padding:10px;border-bottom:1px solid var(--line-soft);color:var(--ink-2)}
+  table.users td.u{color:var(--ink)}
+  .role{font-size:10.5px;border-radius:999px;padding:2px 9px;font-family:var(--font-mono)}
+  .role.admin{color:var(--admin);border:1px solid rgba(255,178,36,.5)}
+  .role.user{color:var(--user-soft);border:1px solid rgba(109,124,255,.5)}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:11px}
+  .audit{font-family:var(--font-mono);font-size:11.5px;line-height:2.1;color:var(--ink-2)}
+  .audit .t{color:var(--ink-3)}
+  .audit .who{color:var(--admin)}
+  .audit .act{color:var(--ink)}
+
+  /* ---------- 时间线流程（签名元素） ---------- */
+  .tl{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:22px 22px 16px;margin:18px 0 8px;position:relative;overflow:hidden;
+  }
+  .tl-title{
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;
+    font-family:var(--font-display);font-weight:600;font-size:14px;
+  }
+  .tl-title .tc{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;margin-left:auto}
+  .tl-grid{display:grid;gap:10px;position:relative}
+  .tl-lane{display:grid;grid-template-columns:92px 1fr;gap:14px;align-items:stretch}
+  .tl-label{
+    font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);
+    letter-spacing:.08em;display:flex;align-items:center;
+    border-right:1px solid var(--line-soft);padding-right:10px;
+  }
+  .tl-label b{color:var(--ink-2);font-weight:500}
+  .tl-steps{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:12px}
+  .clip{
+    background:var(--panel-2);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;font-size:11.5px;line-height:1.45;
+    color:var(--ink-2);position:relative;min-height:52px;
+  }
+  .clip b{display:block;color:var(--ink);font-size:12px;font-weight:600;margin-bottom:2px}
+  .clip .sn{font-family:var(--font-mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.1em}
+  .clip.u{border-top:2px solid var(--user)}
+  .clip.a{border-top:2px solid var(--admin)}
+  .clip.s{border-top:2px solid var(--ink-3);border-style:dashed}
+  .clip.hollow{background:transparent;border-style:dashed}
+  .clip:not(:last-child)::after{
+    content:"";position:absolute;right:-9px;top:50%;margin-top:-4px;
+    border:4px solid transparent;border-left-color:var(--ink-3);
+  }
+  .marker-row{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:12px}
+  .marker{
+    font-size:10.5px;color:var(--danger);padding:2px 2px 0;
+    display:flex;align-items:center;gap:6px;justify-content:center;
+  }
+  .marker::before{content:"";width:7px;height:7px;background:var(--danger);
+    clip-path:polygon(50% 100%,0 0,100% 0);flex:none;margin-top:-6px}
+  .playhead{
+    position:absolute;top:56px;bottom:14px;width:2px;background:var(--danger);
+    z-index:2;
+  }
+  .playhead::before{
+    content:"";position:absolute;top:0;left:-4px;
+    border:5px solid transparent;border-top-color:var(--danger);
+  }
+  .playhead span{
+    position:absolute;top:-22px;left:-30px;
+    font-family:var(--font-mono);font-size:9.5px;color:var(--danger);letter-spacing:.1em;
+    white-space:nowrap;
+  }
+
+  /* ---------- 状态条 ---------- */
+  .states{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0;align-items:flex-end}
+  .states .st-item{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .states .st-item small{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em}
+  .states .btn{width:170px}
+
+  /* ---------- 色板 ---------- */
+  .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:16px 0}
+  .sw{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+  .sw .c{height:56px}
+  .sw .m{padding:9px 11px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-2);line-height:1.6}
+  .sw .m b{display:block;color:var(--ink);font-family:var(--font-body);font-size:12px;font-weight:600}
+
+  pre.wire{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:20px 24px;font-family:var(--font-mono);font-size:12px;line-height:1.8;
+    color:var(--ink-2);overflow-x:auto;margin:14px 0;
+  }
+  pre.wire b{color:var(--user-soft);font-weight:400}
+  pre.wire i{color:var(--admin);font-style:normal}
+
+  footer{
+    border-top:1px solid var(--line-soft);margin-top:90px;padding:28px 0 10px;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:.06em;
+  }
+
+  a.toplink{color:var(--user-soft);text-decoration:none}
+
+  /* ---------- 模型与计费组件 ---------- */
+  .tg{
+    position:relative;width:34px;height:20px;border-radius:999px;
+    background:var(--line);display:inline-block;vertical-align:middle;flex:none;
+  }
+  .tg::after{
+    content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
+    border-radius:50%;background:var(--ink-3);
+  }
+  .tg.on{background:rgba(61,220,151,.22)}
+  .tg.on::after{left:16px;background:var(--ok)}
+  .tg.on.amber{background:rgba(255,178,36,.22)}
+  .tg.on.amber::after{background:var(--admin)}
+  .bal{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:var(--font-mono);font-size:11.5px;
+    border:1px solid rgba(109,124,255,.45);color:var(--ink-2);
+    border-radius:999px;padding:4px 13px;
+  }
+  .bal b{color:var(--user-soft);font-weight:500}
+  .bal .top{color:var(--user-soft)}
+  .prem{
+    font-family:var(--font-mono);font-size:9.5px;color:var(--admin);
+    border:1px solid rgba(255,178,36,.5);border-radius:999px;padding:1px 8px;
+  }
+  .est{font-size:12px;color:var(--ink-2);margin-top:10px}
+  .est b{font-family:var(--font-mono);font-weight:500;color:var(--ink)}
+  .dlg{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:20px;max-width:380px;
+  }
+  .dlg h5{font-family:var(--font-display);font-size:16px;margin-bottom:6px}
+  .dlg p{font-size:13px;color:var(--ink-2);margin-bottom:16px}
+  .dlg p b{font-family:var(--font-mono);font-weight:500;color:var(--ink)}
+  .panel-mini{padding:26px 30px;background:var(--bg)}
+  .panel-mini .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .panel-mini .head b{font-family:var(--font-display);font-size:15px}
+  .amt-ok{color:var(--ok);font-family:var(--font-mono)}
+  .amt-neg{color:var(--ink-2);font-family:var(--font-mono)}
+  .amt-adj{color:var(--admin);font-family:var(--font-mono)}
+
+  /* ---------- 焦点可达 ---------- */
+  a:focus-visible,button:focus-visible{outline:2px solid var(--user-soft);outline-offset:2px;border-radius:6px}
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width:1080px){
+    .swatches{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:920px){
+    .shell{grid-template-columns:1fr}
+    .rail{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line-soft);padding:18px 20px}
+    .rail nav{display:flex;flex-wrap:wrap;gap:2px 6px}
+    .mock-login{grid-template-columns:1fr}
+    .mock-brand{display:none}
+    .g3,.g2{grid-template-columns:1fr}
+    .uc-grid{grid-template-columns:1fr}
+    .admin-body{grid-template-columns:1fr}
+    .admin-side{display:flex;gap:6px;border-right:none;border-bottom:1px solid var(--line-soft);overflow-x:auto}
+    .tl-lane{grid-template-columns:1fr}
+    .tl-label{border-right:none;padding:0 0 2px}
+    .tl-steps,.marker-row{grid-auto-flow:row}
+    .clip:not(:last-child)::after{display:none}
+    .playhead{display:none}
+    .annos{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ 左侧章节轨 ============ -->
+  <aside class="rail">
+    <div class="rail-brand"><span class="mark"></span><b>MyCut</b></div>
+    <nav>
+      <a href="#s1"><span class="n">01</span>设计原则</a>
+      <a href="#s2"><span class="n">02</span>账户模型</a>
+      <a href="#s3"><span class="n">03</span>信息架构</a>
+      <a href="#s4"><span class="n">04</span>界面设计</a>
+      <a href="#s5"><span class="n">05</span>模型配置与计费</a>
+      <a href="#s6"><span class="n">06</span>交互流程</a>
+      <a href="#s7"><span class="n">07</span>状态与文案</a>
+      <a href="#s8"><span class="n">08</span>双语键位</a>
+      <a href="#s9"><span class="n">09</span>可访问性</a>
+      <a href="#s10"><span class="n">10</span>技术映射</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="ruler"><span class="ph"></span><span class="tc">00:00:00:01 / AUTH</span></div>
+
+    <!-- ============ 封面 ============ -->
+    <header class="cover">
+      <div class="eyebrow">MyCut · Design Proposal</div>
+      <h1>账户系统<br><span class="en">Accounts — UI &amp; Interaction</span></h1>
+      <p class="sub">
+        为 MyCut 引入用户账户与管理员账户体系。现状是应用完全在本地运行、没有任何账户界面，
+        本提案从零定义登录、注册、找回、个人中心与管理后台的界面与交互，
+        并定义管理员侧的大模型配置、模型授权与点数计费。
+      </p>
+      <div class="legend">
+        <span class="lg"><i class="dot u"></i>靛蓝 · 用户旅程</span>
+        <span class="lg"><i class="dot a"></i>琥珀 · 管理员 / 提权</span>
+        <span class="lg"><i class="dot s"></i>灰 · 系统动作</span>
+        <span class="lg"><i class="dot d"></i>红 · 错误与标记</span>
+      </div>
+      <div class="meta">
+        <span>v1.1</span><span>2026-09-28</span><span>基于 better-auth + drizzle</span><span>深浅双主题 · 稿件以深色呈现</span>
+      </div>
+    </header>
+
+    <!-- ============ 01 设计原则 ============ -->
+    <section class="sec" id="s1">
+      <div class="sec-head"><span class="no">01</span><h2>设计原则</h2></div>
+      <p class="lead">四条原则约束后面所有界面与文案，冲突时以序号靠前者优先。</p>
+      <div class="grid g2">
+        <div class="card">
+          <h3 style="margin-top:0">登录是可选项，不是门槛</h3>
+          <p class="note" style="margin:0">MyCut 本地优先，未登录也能完整剪辑。账户的价值是云同步与多设备，
+          因此每个登录入口都保留「先以游客身份继续」，登录后本地项目可一键迁移上云、且绝不删除本地副本。</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">角色即色彩</h3>
+          <p class="note" style="margin:0">用户旅程一律靛蓝，管理员与提权一律琥珀——取自播出间里
+          提示「正在录制 / 有权限」的 tally 灯。用户不需要读文字就能分辨自己身处哪一侧。</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">错误说实话</h3>
+          <p class="note" style="margin:0">每条错误文案说明发生了什么、下一步做什么；不道歉、不含糊、
+          不指责。细节见 07 节文案表。</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">管理权限永远多一步</h3>
+          <p class="note" style="margin:0">管理员不是「另一个登录页」，而是同一身份上多出的一把锁：
+          进入管理面板必须再次验证密码 + 动态码，且会话限时。这一步没有跳过项。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 账户模型 ============ -->
+    <section class="sec" id="s2">
+      <div class="sec-head"><span class="no">02</span><h2>账户模型</h2></div>
+      <p class="lead">三种身份，能力递增；管理员不是独立账号类型，而是用户账号上的一个角色标记。</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <div class="pill" style="margin-bottom:10px"><i class="dot s"></i>未登录</div>
+          <h3 style="margin:0 0 6px;font-size:15px">游客</h3>
+          <p class="note" style="margin:0">项目仅存本机。全部剪辑功能可用，导出带水印可选（产品策略另定）。</p>
+        </div>
+        <div class="card">
+          <div class="pill" style="margin-bottom:10px"><i class="dot u"></i>user</div>
+          <h3 style="margin:0 0 6px;font-size:15px">用户</h3>
+          <p class="note" style="margin:0">云同步项目、多设备续剪、可选开启两步验证、点数消费与套餐订阅。默认角色。</p>
+        </div>
+        <div class="card" style="border-color:rgba(255,178,36,.4)">
+          <div class="pill" style="margin-bottom:10px;border-color:rgba(255,178,36,.5);color:var(--admin)"><i class="dot a"></i>admin</div>
+          <h3 style="margin:0 0 6px;font-size:15px">管理员</h3>
+          <p class="note" style="margin:0">在用户能力之上，可进入管理面板：模型配置、计费管理、用户管理、角色调整、封禁、审计。强制两步验证。</p>
+        </div>
+      </div>
+
+      <h3>权限矩阵</h3>
+      <table class="spec">
+        <tr><th>能力</th><th>游客</th><th>用户</th><th>管理员</th></tr>
+        <tr><td>本地剪辑与导出</td><td>有</td><td>有</td><td>有</td></tr>
+        <tr><td>云同步 / 多设备</td><td>—</td><td>有</td><td>有</td></tr>
+        <tr><td>两步验证（TOTP）</td><td>—</td><td>可选</td><td class="m amb">强制</td></tr>
+        <tr><td>管理面板 /admin</td><td>—</td><td>—</td><td class="m amb">需提权</td></tr>
+        <tr><td>封禁 / 角色 / 审计</td><td>—</td><td>—</td><td class="m amb">有</td></tr>
+        <tr><td>购买套餐 / 消耗点数</td><td>—</td><td>有</td><td>有</td></tr>
+        <tr><td>模型配置 / 定价 / 开关</td><td>—</td><td>—</td><td class="m amb">有</td></tr>
+        <tr><td>人工调整用户点数</td><td>—</td><td>—</td><td class="m amb">有 · 留审计</td></tr>
+      </table>
+
+      <h3>会话与登录方式</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">会话策略</h6>
+          <div class="kv"><span class="k">用户会话</span><span class="v">30 天滑动过期</span></div>
+          <div class="kv"><span class="k">管理员提权</span><span class="v">30 分钟 · 无操作即失效</span></div>
+          <div class="kv"><span class="k">新设备登录</span><span class="v">邮件通知</span></div>
+          <div class="kv"><span class="k">恢复码</span><span class="v">10 个 · 开启 2FA 时生成</span></div>
+        </div>
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">登录方式</h6>
+          <div class="kv"><span class="k">邮箱 + 密码</span><span class="v">v1 支持</span></div>
+          <div class="kv"><span class="k">GitHub / Google</span><span class="v">v1 支持</span></div>
+          <div class="kv"><span class="k">Magic Link</span><span class="v">预留，v2</span></div>
+          <div class="kv"><span class="k">TOTP 动态码</span><span class="v">用户可选 · 管理员强制</span></div>
+        </div>
+      </div>
+
+      <h3>计费制度（点数）</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">点数与套餐</h6>
+          <div class="kv"><span class="k">计费单位</span><span class="v">点 · 1 点 ≈ $0.01</span></div>
+          <div class="kv"><span class="k">免费计划</span><span class="v">注册赠 500 点 · 一次性</span></div>
+          <div class="kv"><span class="k">专业计划</span><span class="v">¥39 / 月 · 每月 5,000 点</span></div>
+          <div class="kv"><span class="k">充值通道</span><span class="v">v1 兑换码 · v2 支付渠道</span></div>
+        </div>
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">定价示例（管理员可调）</h6>
+          <div class="kv"><span class="k">Seedance 720p</span><span class="v">10 点/秒 · 5 秒 = 50 点</span></div>
+          <div class="kv"><span class="k">Seedance 1080p</span><span class="v">25 点/秒</span></div>
+          <div class="kv"><span class="k">AI 工具</span><span class="v">抠像 30 点/次 · 擦除 50 点/次</span></div>
+          <div class="kv"><span class="k">本地转写</span><span class="v">不计费（浏览器 WebGPU 运行）</span></div>
+        </div>
+      </div>
+      <div class="callout">
+        <b>计费三原则：</b>先冻结后结算——生成前按预估冻结，成功按实际用量结算、差额退回，失败全额退回；
+        账本只追加——余额永远可由流水重放得出，不做原地加减；
+        管理员调整必须留痕——写审计并强制填写原因。
+      </div>
+    </section>
+
+    <!-- ============ 03 信息架构 ============ -->
+    <section class="sec" id="s3">
+      <div class="sec-head"><span class="no">03</span><h2>信息架构</h2></div>
+      <p class="lead">账户页面挂在应用外壳之外（无编辑器侧栏），管理面板独立于 /admin 命名空间并加提权门。</p>
+      <pre class="wire">
+/                       首页（未登录：CTA 为「开始创作」；已登录：追加「继续上次剪辑」）
+├─ /login               <b>登录</b>        公开 · 已登录则跳转
+├─ /signup              <b>注册</b>        公开 · 已登录则跳转
+├─ /forgot              忘记密码      公开
+├─ /reset?token=…       重置密码      一次性令牌
+├─ /settings/account    <b>个人中心</b>    需登录（用户）
+└─ /admin               <i>管理命名空间 · 全部需要「提权后的会话」</i>
+   ├─ /admin/enter      <i>提权验证（密码 + 动态码）</i>
+   ├─ /admin/users      <i>用户列表 / 搜索 / 筛选</i>
+   ├─ /admin/users/:id  <i>用户详情 / 封禁 / 角色调整</i>
+   └─ /admin/audit      <i>审计日志</i></pre>
+      <p class="note">游客与登录态共用编辑器；差异只在「素材库顶部是否出现云同步状态」与首页入口文案，编辑器内部不因登录弹任何窗。</p>
+    </section>
+
+    <!-- ============ 04 界面设计 ============ -->
+    <section class="sec" id="s4">
+      <div class="sec-head"><span class="no">04</span><h2>界面设计</h2></div>
+      <p class="lead">以下为高保真线框（HTML 直绘）。桌面优先，宽度 &lt; 920px 时全部退化为单列、品牌面板隐藏。</p>
+
+      <!-- 4.1 登录 -->
+      <h3>4.1 登录页<span class="tag">/LOGIN</span></h3>
+      <p class="note">左右分栏：左侧品牌区只在 ≥920px 显示；右侧表单始终单列。<span class="anno" style="position:static;display:inline-flex;vertical-align:middle;margin:0 4px">2</span>号「游客入口」是本页与一般产品的最大差异，来自原则 01。</p>
+      <div class="mockwrap">
+        <span class="anno" style="right:26%;top:150px" data-no="1">1</span>
+        <span class="anno" style="right:8%;bottom:64px" data-no="2">2</span>
+        <span class="anno" style="left:44%;top:242px" data-no="3">3</span>
+        <div class="browser">
+          <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">mycut.app/login</span></div>
+          <div class="browser-body">
+            <div class="mock-login">
+              <div class="mock-brand">
+                <div class="logo"><i></i>MyCut</div>
+                <h4>项目在本地，<br>账户让它们<em>跟着你走</em>。</h4>
+                <div class="foot">TIMELINE · TRACKS · KEYFRAMES</div>
+                <div class="tracks"></div>
+              </div>
+              <div class="mock-form">
+                <h5>登录 MyCut</h5>
+                <div class="hint">没有账户？<a href="#" class="toplink" style="font-size:12.5px">创建一个</a>，10 秒即可。</div>
+                <div class="field">
+                  <label>邮箱</label>
+                  <div class="input"><span class="val">lin@example.com</span></div>
+                </div>
+                <div class="field">
+                  <div class="row-between" style="margin-bottom:6px">
+                    <label style="margin:0">密码</label>
+                    <span class="caps">大写锁定已开启</span>
+                  </div>
+                  <div class="input"><span class="val">••••••••••••</span><span class="tail">显示</span></div>
+                </div>
+                <div class="row-between" style="margin:2px 0 16px">
+                  <span class="chk on"><i></i>30 天内记住我</span>
+                  <a href="#" class="toplink" style="font-size:12.5px">忘记密码？</a>
+                </div>
+                <button class="btn primary">登录</button>
+                <div class="divider">或使用以下方式</div>
+                <div class="oauth">
+                  <button class="btn ghost"><span class="mk">GH</span>GitHub</button>
+                  <button class="btn ghost"><span class="mk">G</span>Google</button>
+                </div>
+                <div class="mock-links">
+                  <span>注册即同意<a href="#" class="toplink" style="font-size:12.5px">服务条款</a>与<a href="#" class="toplink" style="font-size:12.5px">隐私政策</a></span>
+                  <a href="#" class="guest">先以游客身份继续</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="annos">
+        <div data-n="1">大写锁定检测：仅在密码框聚焦且 CapsLock 开启时出现，琥珀色，不阻塞输入。</div>
+        <div data-n="2">「先以游客身份继续」置于视觉末端但不弱化为灰色链接——它是一条平等路径，不是救济入口。</div>
+        <div data-n="3">OAuth 按钮的出错与成功态与密码登录一致（见 07 节），回调中转页显示提供商名与取消按钮。</div>
+      </div>
+
+      <!-- 4.2 注册 -->
+      <h3>4.2 注册与密码强度<span class="tag">/SIGNUP</span></h3>
+      <p class="note">结构与登录页相同，仅表单区不同：多一个「确认密码」，密码框下方实时给强度条与一句可执行的建议，而不是规则清单。</p>
+      <div class="browser">
+        <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">mycut.app/signup</span></div>
+        <div class="browser-body" style="padding:34px 40px;max-width:520px">
+          <div class="field">
+            <label>邮箱</label>
+            <div class="input"><span class="val ph">you@example.com</span></div>
+          </div>
+          <div class="field">
+            <label>密码</label>
+            <div class="input"><span class="val">••••••••••</span><span class="tail">显示</span></div>
+            <div class="strength"><i class="f2"></i><i class="f2"></i><i></i><span>中等 · 再加一个符号会更强</span></div>
+          </div>
+          <div class="field">
+            <label>确认密码</label>
+            <div class="input"><span class="val">••••••••••</span></div>
+          </div>
+          <div class="chk on" style="margin:4px 0 16px"><i></i>我已阅读并同意服务条款与隐私政策</div>
+          <button class="btn primary">创建账户</button>
+          <div class="mock-links"><span>已有账户？</span><a href="#" class="toplink">去登录</a></div>
+        </div>
+      </div>
+      <p class="note">密码要求：≥ 10 位。强度条按长度与字符种类实时评估；提示语只说「下一步做什么」，不罗列规则。注册接口对接已泄露密码库（HIBP k-匿名查询），命中时提示「该密码出现在公开泄露记录中，请换一个」。</p>
+
+      <!-- 4.3 忘记密码 -->
+      <h3>4.3 忘记密码<span class="tag">/FORGOT</span></h3>
+      <div class="grid g2">
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">表单态</h6>
+          <div class="field"><label>邮箱</label><div class="input"><span class="val ph">you@example.com</span></div></div>
+          <button class="btn primary" style="margin-top:6px">发送重置链接</button>
+        </div>
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">提交后（无论邮箱是否存在）</h6>
+          <p style="font-size:13.5px">如果该邮箱已注册，重置链接已发送。</p>
+          <p class="note" style="margin:8px 0 0">请在 30 分钟内完成重置。没收到？<a href="#" class="toplink" style="font-size:12.5px">重新发送</a>（60 秒冷却）。</p>
+        </div>
+      </div>
+      <div class="callout"><b>防枚举：</b>提交后的文案固定不变——不透露邮箱是否已注册，避免被用来探测账户存在性。</div>
+
+      <!-- 4.4 管理员提权 -->
+      <h3>4.4 管理员提权<span class="tag">/ADMIN/ENTER</span></h3>
+      <p class="note">已登录的用户点击「管理后台」进入此页。琥珀色是本页唯一的强调色：从这一步起，界面进入「管理员语义」。</p>
+      <div class="browser">
+        <div class="browser-bar" style="border-bottom-color:rgba(255,178,36,.35)"><span class="dots"><i></i><i></i><i></i></span><span class="url" style="color:var(--admin)">mycut.app/admin/enter</span></div>
+        <div class="browser-body" style="padding:34px 40px;max-width:480px">
+          <div class="pill" style="border-color:rgba(255,178,36,.5);color:var(--admin);margin-bottom:14px"><i class="dot a"></i>管理员验证</div>
+          <h5 style="font-family:var(--font-display);font-size:18px;margin-bottom:4px">确认是本人操作</h5>
+          <div class="hint" style="font-size:12.5px;color:var(--ink-3);margin-bottom:18px">管理面板包含敏感操作，需要再次验证身份。</div>
+          <div class="field">
+            <label>账户密码</label>
+            <div class="input"><span class="val">••••••••••••</span><span class="tail">显示</span></div>
+          </div>
+          <div class="field">
+            <label>动态码（TOTP）</label>
+            <div class="totp"><i>8</i><i>2</i><i>4</i><i class="caret"></i><i></i><i></i></div>
+            <div class="msg" style="color:var(--ink-3);margin-top:6px">输入身份验证器 App 中的 6 位数字，支持直接粘贴。丢失设备？<a href="#" class="toplink" style="font-size:11.5px">使用恢复码</a></div>
+          </div>
+          <button class="btn admin" style="margin-top:14px">进入管理面板</button>
+          <div class="mock-links"><span>验证通过后 30 分钟内有效</span><a href="#" class="toplink">取消</a></div>
+        </div>
+      </div>
+      <div class="callout amber"><b>交互细节：</b>6 格输入自动前进、退格回退、整段粘贴自动分配；连续错 3 次锁定 5 分钟并显示倒计时；锁定期间「进入」按钮禁用且文案变为「请等待 4:59 后再试」。</div>
+
+      <!-- 4.5 个人中心 -->
+      <h3>4.5 个人中心<span class="tag">/SETTINGS/ACCOUNT</span></h3>
+      <div class="browser">
+        <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">mycut.app/settings/account</span></div>
+        <div class="browser-body">
+          <div class="uc">
+            <div class="uc-head">
+              <div class="avatar">林</div>
+              <div>
+                <h5>林一 <span class="pill" style="margin-left:8px"><i class="dot u"></i>用户</span></h5>
+                <div class="sub">lin@example.com · 2026-08-12 加入</div>
+              </div>
+              <button class="btn ghost" style="width:auto;height:34px;padding:0 16px;margin-left:auto">编辑资料</button>
+            </div>
+            <div class="uc-grid">
+              <div>
+                <div class="uc-card" style="margin-bottom:14px">
+                  <h6>云同步</h6>
+                  <div class="kv"><span class="k">已同步项目</span><span class="v">6 个</span></div>
+                  <div class="kv"><span class="k">上次同步</span><span class="v">2 分钟前</span></div>
+                  <div class="kv"><span class="k">存储用量</span><span class="v">1.8 GB / 10 GB</span></div>
+                </div>
+                <div class="uc-card">
+                  <h6>安全</h6>
+                  <div class="kv"><span class="k">两步验证</span><span class="v">未开启 · <span style="color:var(--user-soft)">开启</span></span></div>
+                  <div class="kv"><span class="k">密码</span><span class="v">上次修改 3 个月前 · <span style="color:var(--user-soft)">修改</span></span></div>
+                  <div class="kv"><span class="k">登录提醒</span><span class="v">新设备邮件通知 · 已开启</span></div>
+                </div>
+              </div>
+              <div class="uc-card">
+                <h6>登录的设备</h6>
+                <div class="dev">
+                  <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg></span>
+                  <span class="nm">Windows · Chrome<small>当前设备 · 北京 · 正在使用</small></span>
+                  <span class="cur">当前</span>
+                </div>
+                <div class="dev">
+                  <span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/></svg></span>
+                  <span class="nm">iPhone 15 · Safari<small>上海 · 3 天前活跃</small></span>
+                  <a href="#" class="act" style="text-decoration:none">下线</a>
+                </div>
+                <div class="dev">
+                  <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg></span>
+                  <span class="nm">MacBook · Edge<small>杭州 · 3 周前活跃</small></span>
+                  <a href="#" class="act" style="text-decoration:none">下线</a>
+                </div>
+                <div style="margin-top:14px;font-size:12px"><a href="#" style="color:var(--danger);text-decoration:none">下线其他所有设备</a></div>
+              </div>
+            </div>
+            <div class="uc-card" style="margin-top:14px;border-color:rgba(255,92,92,.35)">
+              <h6 style="color:var(--danger)">危险区</h6>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+                <span style="font-size:12.5px;color:var(--ink-2)">删除账户将移除云端项目，本机项目不受影响。</span>
+                <button class="btn ghost" style="width:auto;height:34px;padding:0 16px;color:var(--danger);border-color:rgba(255,92,92,.4)">删除账户</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="note">删除账户沿用产品已有的「输入确认词」模式（与项目删除一致）：点击后要求输入账户邮箱才能执行，二次弹窗文案明确「此操作无法撤销」。</p>
+
+      <!-- 4.6 管理后台 -->
+      <h3>4.6 管理后台<span class="tag">/ADMIN/USERS</span></h3>
+      <p class="note">顶栏右侧的会话倒计时是本面板最重要的元素：管理员永远知道自己的权限还剩多久。剩余 5 分钟时琥珀色开始呼吸闪烁。</p>
+      <div class="browser">
+        <div class="browser-bar" style="border-bottom-color:rgba(255,178,36,.35)"><span class="dots"><i></i><i></i><i></i></span><span class="url" style="color:var(--admin)">mycut.app/admin/users</span></div>
+        <div class="browser-body">
+          <div class="admin-shell">
+            <div class="admin-top">
+              <span class="mark"></span><b>MyCut 管理面板</b>
+              <span class="sess-chip"><i class="dot"></i>管理员会话 24:31</span>
+            </div>
+            <div class="admin-body">
+              <div class="admin-side">
+                <a href="#" class="on">用户管理</a>
+                <a href="#">审计日志</a>
+                <a href="#">返回编辑器</a>
+              </div>
+              <div class="admin-main">
+                <div class="bar">
+                  <span class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>搜索邮箱或昵称…</span>
+                  <span class="filter">角色：全部</span>
+                  <span class="filter">状态：全部</span>
+                </div>
+                <table class="users">
+                  <tr><th>用户</th><th>注册时间</th><th>项目数</th><th>角色</th><th>状态</th><th></th></tr>
+                  <tr>
+                    <td class="u">lin@example.com</td><td>2026-08-12</td><td>6</td>
+                    <td><span class="role user">user</span></td>
+                    <td><span class="st"><i class="dot ok"></i>正常</span></td>
+                    <td style="text-align:right;color:var(--ink-3)">详情</td>
+                  </tr>
+                  <tr>
+                    <td class="u">dev@mycut.app</td><td>2026-07-01</td><td>12</td>
+                    <td><span class="role admin">admin</span></td>
+                    <td><span class="st"><i class="dot ok"></i>正常</span></td>
+                    <td style="text-align:right;color:var(--ink-3)">详情</td>
+                  </tr>
+                  <tr>
+                    <td class="u">spam@example.com</td><td>2026-09-02</td><td>0</td>
+                    <td><span class="role user">user</span></td>
+                    <td><span class="st"><i class="dot d"></i>已封禁</span></td>
+                    <td style="text-align:right;color:var(--user-soft)">解封</td>
+                  </tr>
+                  <tr>
+                    <td class="u">new@example.com</td><td>2026-09-27</td><td>1</td>
+                    <td><span class="role user">user</span></td>
+                    <td><span class="st"><i class="dot ok"></i>正常</span></td>
+                    <td style="text-align:right;color:var(--ink-3)">详情</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:14px">
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">封禁流程（用户详情页内）</h6>
+          <p class="note" style="margin:0">点击「封禁账户」→ 弹窗要求<b style="color:var(--ink)">输入该用户的完整邮箱</b>方可执行（与产品删除项目的确认模式一致）→ 执行后该用户会话全部失效、审计落一条记录。</p>
+        </div>
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">审计日志（/admin/audit）</h6>
+          <div class="audit">
+            <div><span class="t">09-28 14:02:11</span> · <span class="who">dev@</span> <span class="act">封禁</span> spam@example.com</div>
+            <div><span class="t">09-28 13:47:56</span> · <span class="who">dev@</span> <span class="act">提权</span> 进入管理面板</div>
+            <div><span class="t">09-28 11:20:03</span> · <span class="who">dev@</span> <span class="act">调整角色</span> lin@ → user</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 05 模型配置与计费 ============ -->
+    <section class="sec" id="s5">
+      <div class="sec-head"><span class="no">05</span><h2>模型配置与计费</h2></div>
+      <p class="lead">
+        管理员决定三件事——有哪些模型、谁能用、怎么扣费；用户侧只感知三件事——能用什么、这一步花多少、还剩多少。
+        计费采用预付费点数：先冻结、后结算、失败退回。
+      </p>
+
+      <h3>5.1 模型配置<span class="tag">/ADMIN/MODELS</span></h3>
+      <p class="note">模型注册表是管理员侧的单一事实来源：开关、定价、提供商路由、每日上限都在这里改，改动热生效、立即反映到用户面板。</p>
+      <div class="browser">
+        <div class="browser-bar" style="border-bottom-color:rgba(255,178,36,.35)"><span class="dots"><i></i><i></i><i></i></span><span class="url" style="color:var(--admin)">mycut.app/admin/models</span></div>
+        <div class="browser-body">
+          <div class="admin-shell">
+            <div class="admin-top">
+              <span class="mark"></span><b>MyCut 管理面板</b>
+              <span class="sess-chip"><i class="dot"></i>管理员会话 24:31</span>
+            </div>
+            <div class="admin-body">
+              <div class="admin-side">
+                <a href="#">用户管理</a>
+                <a href="#" class="on">模型配置</a>
+                <a href="#">计费管理</a>
+                <a href="#">审计日志</a>
+              </div>
+              <div class="admin-main">
+                <div class="bar">
+                  <span class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>搜索模型…</span>
+                  <span class="filter">类型：全部</span>
+                  <button class="btn admin" style="width:auto;height:34px;padding:0 15px;font-size:12.5px">新增模型</button>
+                </div>
+                <table class="users">
+                  <tr><th>模型</th><th>类型</th><th>定价</th><th>路由</th><th>每日上限</th><th>状态</th><th></th></tr>
+                  <tr>
+                    <td class="u">Seedance 2.0</td><td>视频</td>
+                    <td style="font-family:var(--font-mono);font-size:11.5px">10 点/秒(720p) · 25 点/秒(1080p)</td>
+                    <td>方舟 → Atlas</td><td>2,000 秒/日</td>
+                    <td><span class="tg on amber"></span></td>
+                    <td style="text-align:right;color:var(--ink-3)">编辑</td>
+                  </tr>
+                  <tr>
+                    <td class="u">Seedance 2.0 Turbo</td><td>视频</td>
+                    <td style="font-family:var(--font-mono);font-size:11.5px">5 点/秒</td>
+                    <td>方舟</td><td>1,000 秒/日</td>
+                    <td><span class="tg on amber"></span></td>
+                    <td style="text-align:right;color:var(--ink-3)">编辑</td>
+                  </tr>
+                  <tr>
+                    <td class="u">AI 抠像</td><td>工具</td>
+                    <td style="font-family:var(--font-mono);font-size:11.5px">30 点/次</td>
+                    <td>fal</td><td>500 次/日</td>
+                    <td><span class="tg on amber"></span></td>
+                    <td style="text-align:right;color:var(--ink-3)">编辑</td>
+                  </tr>
+                  <tr>
+                    <td class="u">AI 擦除</td><td>工具</td>
+                    <td style="font-family:var(--font-mono);font-size:11.5px">50 点/次</td>
+                    <td>fal</td><td>500 次/日</td>
+                    <td><span class="tg on amber"></span></td>
+                    <td style="text-align:right;color:var(--ink-3)">编辑</td>
+                  </tr>
+                  <tr>
+                    <td class="u">MusicGen 音频</td><td>音频</td>
+                    <td style="font-family:var(--font-mono);font-size:11.5px">20 点/次</td>
+                    <td>fal</td><td>—</td>
+                    <td><span class="tg"></span> <span style="font-size:11px;color:var(--ink-3)">已停用</span></td>
+                    <td style="text-align:right;color:var(--ink-3)">编辑</td>
+                  </tr>
+                  <tr>
+                    <td class="u">Whisper 转写</td><td>本地</td>
+                    <td style="font-family:var(--font-mono);font-size:11.5px">不计费</td>
+                    <td>浏览器 WebGPU</td><td>—</td>
+                    <td><span class="pill"><i class="dot ok"></i>本地</span></td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="callout amber">
+        <b>停用即下架：</b>开关关闭后用户面板立即隐藏该模型；进行中的任务正常完成、正常结算，不受影响。
+        模型记录只增不删——「下线」保留历史计费口径，不破坏旧账本。
+        「编辑定价」只对新任务生效，已在冻结中的任务按冻结时的价格结算。
+      </div>
+
+      <h3>5.2 计费管理<span class="tag">/ADMIN/BILLING</span></h3>
+      <div class="grid g2">
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">套餐与充值通道</h6>
+          <div class="kv"><span class="k">免费计划</span><span class="v">注册赠 500 点 · 一次性</span></div>
+          <div class="kv"><span class="k">专业计划</span><span class="v">¥39 / 月 · 每月 5,000 点</span></div>
+          <div class="kv"><span class="k">兑换码</span><span class="v">v1 充值通道 · 批量生成 / 核销</span></div>
+          <div class="kv"><span class="k">支付渠道</span><span class="v">v2 接入（微信 / 支付宝 / Stripe）</span></div>
+        </div>
+        <div class="card">
+          <h6 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin-bottom:10px">人工调整（强制留痕）</h6>
+          <div class="field"><label>用户</label><div class="input" style="height:34px"><span class="val" style="font-size:12px">lin@example.com</span></div></div>
+          <div class="field"><label>调整</label><div class="input" style="height:34px"><span class="val" style="font-family:var(--font-mono);font-size:12px;color:var(--ok)">+ 1,000 点</span><span class="tail">调整</span></div></div>
+          <div class="field"><label>原因（必填，写入审计）</label><div class="input" style="height:34px"><span class="val" style="font-size:12px;color:var(--ink-2)">客诉补偿—同步失败</span></div></div>
+          <button class="btn admin" style="height:34px;font-size:12.5px">确认调整</button>
+        </div>
+      </div>
+      <h3>点数流水（按用户查看）</h3>
+      <table class="spec">
+        <tr><th>时间</th><th>用户</th><th>变动</th><th>余额</th><th>说明</th></tr>
+        <tr><td class="m">09-28 14:10</td><td>lin@</td><td class="amt-ok">+5</td><td class="m">1,240</td><td>结算 · Seedance 5 秒(720p)，冻结 50 实耗 45</td></tr>
+        <tr><td class="m">09-28 14:09</td><td>lin@</td><td class="amt-neg">-50</td><td class="m">1,235</td><td>冻结 · 生成任务 t_9f2c</td></tr>
+        <tr><td class="m">09-28 13:58</td><td>lin@</td><td class="amt-ok">+50</td><td class="m">1,285</td><td>退回 · 任务 t_8a1d 生成失败，全额退回</td></tr>
+        <tr><td class="m">09-28 12:00</td><td>lin@</td><td class="amt-adj">+1,000</td><td class="m">1,235</td><td>人工调整 · 客诉补偿（dev@ 执行）</td></tr>
+      </table>
+      <div class="callout">
+        <b>账本只追加：</b>每行流水带变动前后的余额快照与幂等键；余额永远等于「初始赠点 + 全部流水之和」，
+        可随时重放校验。人工调整、退款、套餐发放走同一本账，不设任何例外入口。
+      </div>
+
+      <h3>5.3 用户侧触点<span class="tag">AI 面板</span></h3>
+      <p class="note">用户不接触「计费」概念，只看到点数。三个触点：面板顶部的余额、模型下拉的专业标记、生成按钮下的本次预估。</p>
+      <div class="browser">
+        <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">mycut.app/editor · AI 视频面板</span></div>
+        <div class="browser-body">
+          <div class="panel-mini">
+            <div class="head">
+              <b>AI 视频</b>
+              <span class="bal"><i class="dot u"></i>余额 <b>1,240</b> 点<span class="top">· 充值</span></span>
+            </div>
+            <div class="field">
+              <label>模型</label>
+              <div class="input"><span class="val">Seedance 2.0</span><span class="prem">专业</span></div>
+            </div>
+            <div class="field">
+              <label>分辨率</label>
+              <div class="input"><span class="val">720p（10 点/秒）</span></div>
+            </div>
+            <button class="btn primary">生成视频</button>
+            <div class="est">本次预估 <b>50</b> 点（720p · 5 秒）· 生成前冻结，按实际用量结算，失败全额退回</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:14px">
+        <div>
+          <div class="dlg">
+            <h5>点数不足</h5>
+            <p>本次预估 <b>120</b> 点，当前余额 <b>80</b> 点。</p>
+            <div style="display:flex;gap:10px">
+              <button class="btn primary">去充值</button>
+              <button class="btn ghost">取消</button>
+            </div>
+            <p style="margin:12px 0 0;font-size:11.5px;color:var(--ink-3)">v1 可使用兑换码，v2 接入支付渠道。</p>
+          </div>
+          <p class="note" style="margin-top:10px">余额不足不弹全局错误——拦截发生在「点生成」的瞬间，预估与余额都给具体数，按钮直接变「去充值」。</p>
+        </div>
+        <div>
+          <div class="callout" style="margin:0">
+            <b>可见不可选：</b>专业模型在下拉中可见但带「专业」标记，选中时生成按钮变为「升级专业版可用」并禁用。
+            直接隐藏会让「为什么我找不到这个模型」无处回答；可见不可选让升级有理由。
+            管理员可在用户详情中对单个用户放开某个专业模型（例外授权），该用户看到的就是可选状态。
+          </div>
+        </div>
+      </div>
+
+      <h3>5.4 计费流程</h3>
+      <div class="tl">
+        <div class="tl-title">流程 C · 生成计费 <span class="tc">SEQ 03 · 4 CLIPS</span></div>
+        <div class="tl-grid">
+          <div class="playhead" style="left:30%"><span>FREEZE</span></div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>V1</b>&nbsp;用户</span>
+            <div class="tl-steps">
+              <div class="clip u"><span class="sn">01</span><b>选模型 · 看预估</b>按钮下方实时显示本次点数</div>
+              <div class="clip u"><span class="sn">02</span><b>点「生成」</b>余额不足则按钮变「去充值」</div>
+              <div class="clip u"><span class="sn">03</span><b>完成 · 扣款</b>按实际用量结算，差额自动退回</div>
+              <div class="clip u"><span class="sn">04</span><b>失败 · 退回</b>toast 告知「已退回 N 点」</div>
+            </div>
+          </div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>A1</b>&nbsp;系统</span>
+            <div class="tl-steps">
+              <div class="clip s"><span class="sn">A</span><b>冻结预估</b>余额够才建任务 · 幂等键 = 任务 ID</div>
+              <div class="clip s"><span class="sn">B</span><b>执行生成</b>提供商链路 · 轮询状态</div>
+              <div class="clip s"><span class="sn">C</span><b>结算记账</b>实耗入 usage + ledger · 差额退回</div>
+              <div class="clip s"><span class="sn">D</span><b>失败退回</b>全额退回 · 与冻结同一幂等键</div>
+            </div>
+          </div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>M</b>&nbsp;错误标记</span>
+            <div class="tl-steps">
+              <div class="marker">余额不足 · 拦截</div>
+              <div style="grid-column:span 2"></div>
+              <div class="marker">任务失败 · 已退回 N 点</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="callout">
+        <b>幂等：</b>同一生成任务只结算一次——幂等键 = 任务 ID；页面刷新、轮询重试、服务重启都不会重复扣费或重复退回。
+        退款走同一本账本，可审计、可重放。
+      </div>
+    </section>
+
+    <!-- ============ 06 交互流程 ============ -->
+    <section class="sec" id="s6">
+      <div class="sec-head"><span class="no">06</span><h2>交互流程</h2></div>
+      <p class="lead">流程按剪辑工程的方式绘制：每条轨道是一个角色，片段是界面状态，系统动作放在 A1 轨，错误是轨道下方的红色标记。播放头停在关键验证步。</p>
+
+      <div class="tl">
+        <div class="tl-title">流程 A · 用户登录 <span class="tc">SEQ 01 · 6 CLIPS</span></div>
+        <div class="tl-grid">
+          <div class="tl-lane">
+            <span class="tl-label"><b>V1</b>&nbsp;用户</span>
+            <div class="tl-steps">
+              <div class="clip u"><span class="sn">01</span><b>打开 /login</b>或从首页「登录」进入</div>
+              <div class="clip u"><span class="sn">02</span><b>输入凭据</b>邮箱 · 密码 · 大写锁定提示</div>
+              <div class="clip u"><span class="sn">03</span><b>提交</b>按钮进入加载态</div>
+              <div class="clip u"><span class="sn">04</span><b>看到结果</b>成功 → 05；失败 → 内联错误</div>
+              <div class="clip u"><span class="sn">05</span><b>进入应用</b>跳回来源页或 /projects</div>
+              <div class="clip u hollow"><span class="sn">06</span><b>迁移提示</b>检测到本地项目时一次性询问</div>
+            </div>
+          </div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>A1</b>&nbsp;系统</span>
+            <div class="tl-steps">
+              <div class="clip s hollow"></div>
+              <div class="clip s hollow"></div>
+              <div class="clip s"><span class="sn">A</span><b>校验 + 限流</b>凭据校验 · 频率检查 · 泄露库比对（注册）</div>
+              <div class="clip s hollow"></div>
+              <div class="clip s"><span class="sn">B</span><b>下发会话</b>httpOnly cookie · 新设备邮件通知</div>
+              <div class="clip s hollow"></div>
+            </div>
+          </div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>M</b>&nbsp;错误标记</span>
+            <div class="tl-steps">
+              <div style="grid-column:span 2"></div>
+              <div class="marker">429 · 倒计时锁定</div>
+              <div class="marker">401 · 邮箱或密码不正确</div>
+              <div style="grid-column:span 2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tl" style="border-color:rgba(255,178,36,.35)">
+        <div class="tl-title" style="color:var(--admin)">流程 B · 管理员提权 <span class="tc">SEQ 02 · 5 CLIPS</span></div>
+        <div class="tl-grid">
+          <div class="playhead" style="left:52%"><span>STEP-UP</span></div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>V1</b>&nbsp;用户</span>
+            <div class="tl-steps">
+              <div class="clip u"><span class="sn">01</span><b>已登录</b>普通用户会话中</div>
+              <div class="clip u"><span class="sn">02</span><b>请求 /admin</b>任意管理入口</div>
+              <div class="clip u" style="border-top-color:var(--admin)"><span class="sn">03</span><b>提权验证</b>密码 + 6 位动态码</div>
+              <div class="clip u" style="border-top-color:var(--admin)"><span class="sn">04</span><b>管理面板</b>顶栏显示剩余时间</div>
+              <div class="clip u" style="border-top-color:var(--admin)"><span class="sn">05</span><b>会话到期</b>无操作 30 分钟自动退出</div>
+            </div>
+          </div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>A1</b>&nbsp;系统</span>
+            <div class="tl-steps">
+              <div class="clip s hollow"></div>
+              <div class="clip s"><span class="sn">A</span><b>角色检查</b>非 admin 角色 → 403 页</div>
+              <div class="clip s"><span class="sn">B</span><b>验证 2FA</b>密码 + TOTP · 错 3 次锁 5 分钟</div>
+              <div class="clip s"><span class="sn">C</span><b>写审计</b>记录提权时间 · IP · 设备</div>
+              <div class="clip s"><span class="sn">D</span><b>回收权限</b>到期后写审计 · 需重新提权</div>
+            </div>
+          </div>
+          <div class="tl-lane">
+            <span class="tl-label"><b>M</b>&nbsp;错误标记</span>
+            <div class="tl-steps">
+              <div></div>
+              <div class="marker">403 · 非管理员</div>
+              <div class="marker">TOTP 错 · 剩 N 次 / 锁定 5 分钟</div>
+              <div style="grid-column:span 2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout"><b>游客迁移（流程 A 第 06 步）：</b>首次登录成功后，若检测到本机存在未同步项目，显示一次性对话框——
+      「将本机的 <b>3</b> 个项目保存到云端？」〔保存到云端〕〔暂不〕；两个选择都不删除本地副本，且不再重复询问（「暂不」记录在本地）。</div>
+    </section>
+
+    <!-- ============ 07 状态与文案 ============ -->
+    <section class="sec" id="s7">
+      <div class="sec-head"><span class="no">07</span><h2>状态与文案</h2></div>
+      <p class="lead">按钮四态；错误文案逐条给出场景与理由。文案即界面的一部分，与像素同等对待。</p>
+
+      <h3>按钮状态</h3>
+      <div class="states">
+        <div class="st-item"><button class="btn primary">登录</button><small>DEFAULT</small></div>
+        <div class="st-item"><button class="btn primary loading"><span class="spin"></span>登录中…</button><small>LOADING</small></div>
+        <div class="st-item"><button class="btn primary" disabled style="opacity:.4;cursor:not-allowed">请等待 1:47 后再试</button><small>LOCKED</small></div>
+        <div class="st-item"><button class="btn primary" disabled style="opacity:.4;cursor:not-allowed">登录</button><small>DISABLED</small></div>
+      </div>
+      <p class="note">提交后按钮立即进入加载态并禁用，防重复提交；锁定态直接把倒计时写在按钮上——用户不需要找提示在哪。</p>
+
+      <h3>错误文案表</h3>
+      <table class="spec">
+        <tr><th style="width:34%">场景</th><th style="width:36%">文案（主 / 副）</th><th>理由</th></tr>
+        <tr><td>密码错误</td><td>「邮箱或密码不正确」</td><td>不透露哪一半错了，防枚举；表单内联展示，邮箱框不清空</td></tr>
+        <tr><td>触发限流</td><td>「尝试次数过多」/「请等待 1:47 后再试」</td><td>倒计时实时走，结束自动恢复按钮</td></tr>
+        <tr><td>动态码错误</td><td>「验证码不正确」/「还剩 2 次尝试」</td><td>告知剩余机会，清空已输的 6 格</td></tr>
+        <tr><td>动态码锁定</td><td>「尝试次数过多」/「请等待 4:59 后再试」</td><td>与限流同一句式，学习成本为零</td></tr>
+        <tr><td>账户被停用</td><td>「该账户已被停用」/「如有疑问，联系支持」</td><td>陈述事实与出路，不解释处罚细节</td></tr>
+        <tr><td>网络失败</td><td>「网络连接失败」/「请检查网络后重试」</td><td>可重试，按钮恢复可用</td></tr>
+        <tr><td>泄露密码命中</td><td>「该密码出现在公开泄露记录中」/「请换一个新密码」</td><td>只出现在注册 / 改密，不出现在登录</td></tr>
+        <tr><td>OAuth 取消</td><td>「已取消 GitHub 登录」/「可重试或改用密码登录」</td><td>轻提示（toast），不阻塞表单</td></tr>
+        <tr><td>余额不足</td><td>「点数不足」/「本次预估 120 点，余额 80 点」</td><td>在「点生成」瞬间拦截；预估与余额都给具体数，按钮变「去充值」</td></tr>
+        <tr><td>生成失败（已退款）</td><td>「生成失败」/「已退回 50 点」</td><td>轻提示；退款即时到账、无需申请，杜绝「找我客服退款」</td></tr>
+        <tr><td>模型已下线</td><td>「该模型已下线」/「请选择其他模型」</td><td>仅当任务执行中模型被停用时出现；面板下拉中已同步移除</td></tr>
+      </table>
+      <div class="callout"><b>语气约定：</b>错误不道歉（没有「抱歉」「糟糕」）、不用感叹号、不出现错误码原文（码只进日志与审计）。</div>
+    </section>
+
+    <!-- ============ 08 双语键位 ============ -->
+    <section class="sec" id="s8">
+      <div class="sec-head"><span class="no">08</span><h2>双语键位</h2></div>
+      <p class="lead">全部文案进 <code class="k">locale/zh.ts</code> 与 <code class="k">locale/en.ts</code>，走现有 <code class="k">useLocale</code> 体系。以下为核心键样例，实施时按此命名法补全。</p>
+      <table class="spec">
+        <tr><th>Key</th><th>zh</th><th>en</th></tr>
+        <tr><td class="m">auth.login.title</td><td>登录 MyCut</td><td>Sign in to MyCut</td></tr>
+        <tr><td class="m">auth.login.email</td><td>邮箱</td><td>Email</td></tr>
+        <tr><td class="m">auth.login.password</td><td>密码</td><td>Password</td></tr>
+        <tr><td class="m">auth.login.submit</td><td>登录</td><td>Sign in</td></tr>
+        <tr><td class="m">auth.login.guest_continue</td><td>先以游客身份继续</td><td>Continue as guest</td></tr>
+        <tr><td class="m">auth.error.bad_credentials</td><td>邮箱或密码不正确</td><td>Email or password is incorrect</td></tr>
+        <tr><td class="m">auth.error.rate_limited</td><td>尝试次数过多</td><td>Too many attempts</td></tr>
+        <tr><td class="m">auth.error.rate_limited_wait</td><td>请等待 {time} 后再试</td><td>Try again in {time}</td></tr>
+        <tr><td class="m">auth.admin.enter_title</td><td>确认是本人操作</td><td>Confirm it's you</td></tr>
+        <tr><td class="m">auth.admin.session_left</td><td>管理员会话 {time}</td><td>Admin session {time}</td></tr>
+        <tr><td class="m">auth.migrate.title</td><td>将本机的 {count} 个项目保存到云端？</td><td>Save {count} local projects to the cloud?</td></tr>
+        <tr><td class="m">auth.capslock_on</td><td>大写锁定已开启</td><td>Caps Lock is on</td></tr>
+        <tr><td class="m">billing.balance</td><td>余额 {count} 点</td><td>{count} credits left</td></tr>
+        <tr><td class="m">billing.estimate</td><td>本次预估 {count} 点</td><td>Estimated: {count} credits</td></tr>
+        <tr><td class="m">billing.insufficient</td><td>点数不足</td><td>Not enough credits</td></tr>
+        <tr><td class="m">billing.insufficient_body</td><td>本次预估 {estimate} 点，当前余额 {balance} 点</td><td>This costs {estimate} credits; your balance is {balance}.</td></tr>
+        <tr><td class="m">billing.refunded</td><td>已退回 {count} 点</td><td>Refunded {count} credits</td></tr>
+        <tr><td class="m">model.pro_badge</td><td>专业</td><td>Pro</td></tr>
+      </table>
+      <p class="note">插值统一用 <code class="k">{placeholder}</code> + <code class="k">.replace()</code>，与项目现有做法一致。</p>
+    </section>
+
+    <!-- ============ 09 可访问性 ============ -->
+    <section class="sec" id="s9">
+      <div class="sec-head"><span class="no">09</span><h2>可访问性</h2></div>
+      <div class="grid g2">
+        <div class="card">
+          <h3 style="margin-top:0;font-size:15px">对比度（深色稿实测）</h3>
+          <div class="kv"><span class="k">正文 #E8EAF0 / 底 #0C0D10</span><span class="v">16.1 : 1</span></div>
+          <div class="kv"><span class="k">次级 #9BA1AD / 底</span><span class="v">7.4 : 1</span></div>
+          <div class="kv"><span class="k">靛蓝 #6D7CFF / 底</span><span class="v">5.5 : 1 · AA</span></div>
+          <div class="kv"><span class="k">按钮字 #0C0D10 / 靛蓝底</span><span class="v">5.5 : 1 · AA</span></div>
+          <div class="kv"><span class="k">琥珀 #FFB224 / 底</span><span class="v">10.7 : 1</span></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;font-size:15px">行为规范</h3>
+          <p class="note" style="margin:0">
+            焦点环 2px 靛蓝、offset 2px，永不去除；错误用 <code class="k">aria-live="assertive"</code> 播报；
+            触控目标 ≥ 44px；<code class="k">Enter</code> 提交、<code class="k">Esc</code> 关弹窗；
+           TOTP 支持整段粘贴；<code class="k">prefers-reduced-motion</code> 下关闭全部动效。
+            浅色主题以同一套 token 映射（底 #FAFAFC / 面板 #FFF / 靛蓝加深至 #4F5EEB 保 AA）。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10 技术映射 ============ -->
+    <section class="sec" id="s10">
+      <div class="sec-head"><span class="no">10</span><h2>技术映射</h2></div>
+      <p class="lead">项目已引入 better-auth（<code class="k">src/auth/server.ts</code>，drizzle + Upstash 辅助存储），设计在此基础上落地，不引入新框架。</p>
+      <table class="spec">
+        <tr><th>设计项</th><th>实现载体</th></tr>
+        <tr><td>邮箱密码 / OAuth（GH、Google）</td><td class="m">better-auth 邮箱凭据 + socialProviders</td></tr>
+        <tr><td>角色 user / admin</td><td class="m">users.role 字段（drizzle 迁移）+ better-auth admin 插件</td></tr>
+        <tr><td>管理员提权会话（30 分钟）</td><td class="m">admin 插件的 impersonation/admin 短会话机制</td></tr>
+        <tr><td>TOTP / 恢复码</td><td class="m">better-auth twoFactor 插件（TOTP + backupCodes）</td></tr>
+        <tr><td>限流（登录尝试）</td><td class="m">复用现有 Upstash 限流器，按 IP + 邮箱双键</td></tr>
+        <tr><td>泄露密码检查</td><td class="m">注册 / 改密时 HIBP k-匿名范围查询</td></tr>
+        <tr><td>审计日志</td><td class="m">audit_log 表（actor / action / target / ip / created_at）</td></tr>
+        <tr><td>新设备提醒</td><td class="m">better-auth 邮件钩子</td></tr>
+        <tr><td>模型开关 / 定价 / 路由</td><td class="m">models 表 + 后台 CRUD · 改动热生效</td></tr>
+        <tr><td>模型授权（例外放开）</td><td class="m">user_model_grants（用户 × 模型 白名单）</td></tr>
+        <tr><td>点数账本</td><td class="m">credit_ledger 只追加 · 余额快照 · 幂等键</td></tr>
+        <tr><td>两段式结算</td><td class="m">冻结 → 结算 / 退回（usage_records 关联任务 ID）</td></tr>
+        <tr><td>充值通道</td><td class="m">v1 兑换码（生成 / 核销写同一账本）· v2 支付 SDK</td></tr>
+        <tr><td>本地模型不计费</td><td class="m">转写在浏览器 WebGPU 运行，无服务端成本</td></tr>
+      </table>
+      <p class="note">实施顺序建议：邮箱密码登录 + 会话 → OAuth → 个人中心 → 角色与提权 → TOTP → 审计 → 模型配置与点数计费（兑换码 + 两段式结算先行，支付渠道 v2 再接）。每步都可独立上线，游客模式始终可用，无「大爆炸切换」。</p>
+    </section>
+
+    <footer>
+      <span>MYCUT · 账户系统 UI 与交互设计</span>
+      <span>V1.1 · 2026-09-28 · 深浅双主题</span>
+    </footer>
+  </main>
+</div>
+</body>
+</html>

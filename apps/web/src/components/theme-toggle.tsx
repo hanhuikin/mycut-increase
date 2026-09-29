@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
 import { useLocale } from "@/locale/locale-context";
@@ -18,8 +19,17 @@ export function ThemeToggle({
 	iconClassName,
 	onToggle,
 }: ThemeToggleProps) {
-	const { theme, setTheme } = useTheme();
+	const { resolvedTheme, setTheme } = useTheme();
 	const { t } = useLocale();
+	// The active theme lives in localStorage / the OS preference, so the server
+	// cannot know it. Until mount, render a label that reads the same either way.
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	const isDark = resolvedTheme === "dark";
 
 	return (
 		<Button
@@ -27,7 +37,7 @@ export function ThemeToggle({
 			variant="ghost"
 			className={cn("size-8", className)}
 			onClick={(e) => {
-				setTheme(theme === "dark" ? "light" : "dark");
+				setTheme(isDark ? "light" : "dark");
 				onToggle?.(e);
 			}}
 		>
@@ -36,7 +46,11 @@ export function ThemeToggle({
 				className={cn("!size-[1.1rem]", iconClassName)}
 			/>
 			<span className="sr-only">
-				{theme === "dark" ? t["theme.light"] : t["theme.dark"]}
+				{mounted
+					? isDark
+						? t["theme.light"]
+						: t["theme.dark"]
+					: t["theme.toggle"]}
 			</span>
 		</Button>
 	);

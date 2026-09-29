@@ -18,12 +18,19 @@ const webEnvSchema = z.object({
 	),
 
 	BETTER_AUTH_SECRET: z.string(),
-	UPSTASH_REDIS_REST_URL: z.url(),
-	UPSTASH_REDIS_REST_TOKEN: z.string(),
+	REDIS_URL: z.string().refine(
+		(value) => value.startsWith("redis://") || value.startsWith("rediss://"),
+		"REDIS_URL must be a redis:// or rediss:// URL",
+	),
 	MARBLE_WORKSPACE_KEY: z.string(),
 	FREESOUND_CLIENT_ID: z.string(),
 	FREESOUND_API_KEY: z.string(),
 	ARK_API_KEY: z.string().optional(),
+	/** 32 bytes of hex; encrypts provider keys stored in the database. */
+	MODEL_CREDENTIALS_KEY: z
+		.string()
+		.regex(/^[0-9a-fA-F]{64}$/, "must be 32 bytes of hex (64 hex chars)")
+		.optional(),
 });
 
 export type WebEnv = z.infer<typeof webEnvSchema>;

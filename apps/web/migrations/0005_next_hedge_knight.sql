@@ -1,0 +1,1 @@
+ALTER TABLE "app"."ai_models" ADD COLUMN "route_base_urls" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -62,7 +62,7 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 				if (isNotFound) {
 					try {
 						const newProjectId = await editor.project.createNewProject({
-							name: "Untitled Project",
+							name: translationsRef.current["common.new_project"],
 						});
 						router.replace(`/editor/${newProjectId}`);
 					} catch (_createErr) {

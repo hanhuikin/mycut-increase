@@ -239,6 +239,7 @@ export function AIToolsView() {
             name: result.file!.name,
             file: result.file!,
             type: "image",
+            url: URL.createObjectURL(result.file!),
           },
         });
 
@@ -269,6 +270,7 @@ export function AIToolsView() {
             name: result.file!.name,
             file: result.file!,
             type: "image",
+            url: URL.createObjectURL(result.file!),
           },
         });
 

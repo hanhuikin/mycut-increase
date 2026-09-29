@@ -180,7 +180,9 @@ export class ProjectManager {
 				}
 			}
 		} catch (error) {
-			console.error("Failed to load project:", error);
+			// Callers own the error UX (the editor provider recovers a missing
+			// project by creating a fresh one); logging here would surface an
+			// expected, already-handled condition in the dev error overlay.
 			throw error;
 		} finally {
 			this.isLoading = false;

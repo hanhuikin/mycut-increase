@@ -69,7 +69,7 @@ export function Onboarding() {
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
 							<Description
-								description={`Join our [Discord](${SOCIAL_LINKS.discord}), chat with cool people and share feedback to help make OpenCut the best editor ever.`}
+								description={`Join our [Discord](${SOCIAL_LINKS.discord}), chat with cool people and share feedback to help make MyCut the best editor ever.`}
 							/>
 						</div>
 						<NextButton onClick={handleClose}>

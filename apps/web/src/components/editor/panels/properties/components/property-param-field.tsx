@@ -24,6 +24,7 @@ import {
 import { usePropertyDraft } from "../hooks/use-property-draft";
 import { KeyframeToggle } from "./keyframe-toggle";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocale } from "@/locale/locale-context";
 
 export function PropertyParamField({
 	param,
@@ -42,15 +43,21 @@ export function PropertyParamField({
 		onToggle: () => void;
 	};
 }) {
+	const { t } = useLocale();
+	const label = param.labelKey ? t[param.labelKey] : param.label;
+
 	return (
 		<SectionField
-			label={param.label}
+			label={label}
 			beforeLabel={
 				keyframe && param.keyframable !== false ? (
 					<KeyframeToggle
 						isActive={keyframe.isActive}
 						isDisabled={keyframe.isDisabled}
-						title={`Toggle ${param.label.toLowerCase()} keyframe`}
+						title={t["properties.toggle_keyframe"].replace(
+							"{param}",
+							label.toLowerCase(),
+						)}
 						onToggle={keyframe.onToggle}
 					/>
 				) : undefined
@@ -77,6 +84,8 @@ function ParamInput({
 	onPreview: (value: ParamValue) => void;
 	onCommit: () => void;
 }) {
+	const { t } = useLocale();
+
 	if (param.type === "number") {
 		return (
 			<NumberParamField
@@ -113,11 +122,14 @@ function ParamInput({
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					{param.options.map((option) => (
-						<SelectItem key={option.value} value={option.value}>
-							{option.label}
-						</SelectItem>
-					))}
+					{param.options.map((option) => {
+						const optionLabelKey = param.optionLabelKeys?.[option.value];
+						return (
+							<SelectItem key={option.value} value={option.value}>
+								{optionLabelKey ? t[optionLabelKey] : option.label}
+							</SelectItem>
+						);
+					})}
 				</SelectContent>
 			</Select>
 		);
@@ -180,9 +192,7 @@ function NumberParamField({
 		);
 
 	const previewFromDisplay = (displayVal: number) => {
-		const clamped = clampDisplayValue(
-			snapToStep({ value: displayVal, step }),
-		);
+		const clamped = clampDisplayValue(snapToStep({ value: displayVal, step }));
 		onPreview(clamped / displayMultiplier);
 	};
 

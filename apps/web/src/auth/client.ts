@@ -1,6 +1,12 @@
-import { createAuthClient } from "better-auth/react";
-import { webEnv } from "@/env/web";
+"use client";
 
-export const { signIn, signUp, useSession } = createAuthClient({
-	baseURL: webEnv.NEXT_PUBLIC_SITE_URL,
+import { createAuthClient } from "better-auth/react";
+import { adminClient, twoFactorClient } from "better-auth/client/plugins";
+
+export const authClient = createAuthClient({
+	plugins: [adminClient(), twoFactorClient()],
 });
+
+export function useAuthSession() {
+	return authClient.useSession();
+}

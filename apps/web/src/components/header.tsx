@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Languages } from "lucide-react";
 import Image from "next/image";
 import { ThemeToggle } from "./theme-toggle";
 import {
@@ -10,9 +10,9 @@ import {
 	Download01Icon,
 	GithubIcon,
 	LinkSquare02Icon,
-	LanguageSkillIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { AccountArea } from "./account-area";
 import { DEFAULT_LOGO_URL } from "@/site/brand";
 import { SOCIAL_LINKS } from "@/site/social";
 import {
@@ -98,9 +98,10 @@ export function Header() {
 						onClick={toggleLocale}
 						title={t["common.switch_language"]}
 					>
-						<HugeiconsIcon icon={LanguageSkillIcon} className="size-4" />
+						<Languages className="!size-[1.1rem]" strokeWidth={1.5} />
 					</Button>
 					<ThemeToggle />
+					<AccountArea />
 				</div>
 			</div>
 		</header>

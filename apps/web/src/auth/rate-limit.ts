@@ -1,25 +1,18 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-import { webEnv } from "@/env/web";
+import { consumeRateLimit } from "@/services/redis";
 
-const redis = new Redis({
-	url: webEnv.UPSTASH_REDIS_REST_URL,
-	token: webEnv.UPSTASH_REDIS_REST_TOKEN,
-});
-
-export const baseRateLimit = new Ratelimit({
-	redis,
-	limiter: Ratelimit.slidingWindow(100, "1 m"), // 100 requests per minute
-	analytics: true,
-	prefix: "rate-limit",
-});
+const WINDOW_MS = 60_000;
+const LIMIT = 100; // requests per minute
 
 export async function checkRateLimit({ request }: { request: Request }) {
 	const ip = request.headers.get("x-forwarded-for") ?? "anonymous";
 
 	try {
-		const { success } = await baseRateLimit.limit(ip);
-		return { success, limited: !success };
+		const allowed = await consumeRateLimit({
+			key: ip,
+			limit: LIMIT,
+			windowMs: WINDOW_MS,
+		});
+		return { success: allowed, limited: !allowed };
 	} catch (error) {
 		// Fail open: an unreachable limiter must not take the route down with it.
 		// Trade-off: requests go unthrottled while the backend is unavailable.

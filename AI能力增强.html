@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 视频面板 - UI 设计稿</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: hsl(0, 0%, 96%);
+      padding: 40px 20px;
+      color: hsl(0, 0%, 13%);
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: hsl(0, 0%, 11%);
+    }
+    .meta {
+      font-size: 14px;
+      color: hsl(0, 0%, 50%);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .design-block {
+      background: white;
+      border-radius: 8px;
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .design-block h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: hsl(0, 0%, 11%);
+      border-bottom: 1px solid hsl(0, 0%, 91%);
+      padding-bottom: 12px;
+    }
+    .mockup-wrapper {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .mockup {
+      flex: 1;
+      background: hsl(210, 20%, 98%);
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .mockup-header {
+      background: hsl(0, 0%, 98%);
+      border-bottom: 1px solid hsl(0, 0%, 87%);
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 12px;
+    }
+    .mockup-title {
+      font-size: 14px;
+      color: hsl(0, 0%, 48%);
+    }
+    .mockup-content {
+      padding: 12px;
+    }
+
+    /* Tab 样式 (underline variant) */
+    .tabs-list {
+      display: flex;
+      border-bottom: 1px solid hsl(0, 0%, 87%);
+      gap: 0;
+      padding: 0 12px;
+      background: hsl(210, 20%, 98%);
+    }
+    .tab-trigger {
+      padding: 8px 12px;
+      font-size: 14px;
+      color: hsl(0, 0%, 48%);
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      margin-bottom: -1px;
+      font-weight: 500;
+    }
+    .tab-trigger.active {
+      color: hsl(200, 90%, 52%);
+      border-bottom-color: hsl(200, 90%, 52%);
+    }
+    .tab-content {
+      padding: 16px 12px;
+    }
+
+    /* Form 元素 */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: hsl(0, 0%, 13%);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 14px;
+      background: hsl(0, 0%, 93%);
+      color: hsl(0, 0%, 13%);
+    }
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .form-select {
+      height: 36px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+    }
+    .form-hint {
+      font-size: 12px;
+      color: hsl(0, 0%, 50%);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .checkbox {
+      width: 16px;
+      height: 16px;
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 3px;
+    }
+    .checkbox-label {
+      font-size: 14px;
+      color: hsl(0, 0%, 13%);
+    }
+
+    /* Collapsible 高级配置 */
+    .collapsible {
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 6px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+    .collapsible-trigger {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: hsl(0, 0%, 96%);
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: hsl(0, 0%, 13%);
+    }
+    .collapsible-trigger:hover {
+      background: hsl(0, 0%, 93%);
+    }
+    .collapsible-content {
+      padding: 16px 12px;
+      background: hsl(210, 20%, 98%);
+      border-top: 1px solid hsl(0, 0%, 87%);
+    }
+    .collapsible-content .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Button */
+    .btn-primary {
+      width: 100%;
+      height: 36px;
+      background: hsl(200, 90%, 52%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+    .btn-primary:hover {
+      background: hsl(200, 90%, 48%);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* 图片上传区 */
+    .upload-area {
+      border: 2px dashed hsl(0, 0%, 87%);
+      border-radius: 6px;
+      padding: 32px 16px;
+      text-align: center;
+      background: hsl(0, 0%, 98%);
+      cursor: pointer;
+    }
+    .upload-area:hover {
+      border-color: hsl(200, 90%, 52%);
+      background: hsl(204, 100%, 97%);
+    }
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      opacity: 0.4;
+    }
+    .upload-text {
+      font-size: 14px;
+      color: hsl(0, 0%, 48%);
+    }
+
+    /* 分镜列表 */
+    .storyboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .storyboard-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: hsl(0, 0%, 98%);
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 6px;
+      align-items: flex-start;
+    }
+    .storyboard-index {
+      min-width: 28px;
+      height: 28px;
+      background: hsl(204, 100%, 95%);
+      color: hsl(200, 98%, 37%);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .storyboard-content {
+      flex: 1;
+    }
+    .storyboard-input {
+      width: 100%;
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+      background: white;
+    }
+    .storyboard-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-small {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid hsl(0, 0%, 87%);
+      background: white;
+      cursor: pointer;
+      color: hsl(0, 0%, 13%);
+    }
+    .btn-small:hover {
+      background: hsl(0, 0%, 96%);
+    }
+    .btn-add {
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+      border: 1px dashed hsl(0, 0%, 87%);
+      background: transparent;
+      cursor: pointer;
+      border-radius: 6px;
+      color: hsl(0, 0%, 48%);
+      margin-top: 8px;
+    }
+    .btn-add:hover {
+      border-color: hsl(200, 90%, 52%);
+      color: hsl(200, 90%, 52%);
+      background: hsl(204, 100%, 97%);
+    }
+
+    /* Dark mode */
+    .dark-mode-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid hsl(0, 0%, 87%);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    body.dark {
+      background: hsl(0, 0%, 5%);
+      color: hsl(0, 0%, 85%);
+    }
+    body.dark .design-block {
+      background: hsl(0, 0%, 10%);
+      border: 1px solid hsl(0, 0%, 18%);
+    }
+    body.dark h1, body.dark h2 {
+      color: hsl(0, 0%, 87%);
+    }
+    body.dark .meta {
+      color: hsl(0, 0%, 50%);
+    }
+    body.dark .mockup {
+      background: hsl(0, 0%, 10%);
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .mockup-header {
+      background: hsl(0, 0%, 10%);
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .mockup-title {
+      color: hsl(0, 0%, 48%);
+    }
+    body.dark .tabs-list {
+      background: hsl(0, 0%, 10%);
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .tab-trigger {
+      color: hsl(0, 0%, 48%);
+    }
+    body.dark .tab-trigger.active {
+      color: hsl(200, 90%, 52%);
+    }
+    body.dark .form-input,
+    body.dark .form-textarea,
+    body.dark .form-select {
+      background: hsl(0, 0%, 22%);
+      border-color: hsl(0, 0%, 18%);
+      color: hsl(0, 0%, 85%);
+    }
+    body.dark .form-label,
+    body.dark .checkbox-label {
+      color: hsl(0, 0%, 85%);
+    }
+    body.dark .collapsible {
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .collapsible-trigger {
+      background: hsl(0, 0%, 15%);
+      color: hsl(0, 0%, 85%);
+    }
+    body.dark .collapsible-trigger:hover {
+      background: hsl(0, 0%, 18%);
+    }
+    body.dark .collapsible-content {
+      background: hsl(0, 0%, 10%);
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .upload-area {
+      background: hsl(0, 0%, 15%);
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .upload-area:hover {
+      border-color: hsl(200, 90%, 52%);
+      background: hsl(204, 67%, 9%);
+    }
+    body.dark .storyboard-item {
+      background: hsl(0, 0%, 15%);
+      border-color: hsl(0, 0%, 18%);
+    }
+    body.dark .storyboard-index {
+      background: hsl(204, 67%, 9%);
+      color: hsl(200, 98%, 63%);
+    }
+    body.dark .storyboard-input {
+      background: hsl(0, 0%, 22%);
+      border-color: hsl(0, 0%, 18%);
+      color: hsl(0, 0%, 85%);
+    }
+    body.dark .btn-small {
+      background: hsl(0, 0%, 15%);
+      border-color: hsl(0, 0%, 18%);
+      color: hsl(0, 0%, 85%);
+    }
+    body.dark .btn-small:hover {
+      background: hsl(0, 0%, 18%);
+    }
+    body.dark .btn-add {
+      border-color: hsl(0, 0%, 18%);
+      color: hsl(0, 0%, 48%);
+    }
+    body.dark .btn-add:hover {
+      border-color: hsl(200, 90%, 52%);
+      color: hsl(200, 90%, 52%);
+      background: hsl(204, 67%, 9%);
+    }
+    body.dark .dark-mode-toggle {
+      background: hsl(0, 0%, 10%);
+      border-color: hsl(0, 0%, 18%);
+      color: hsl(0, 0%, 85%);
+    }
+  </style>
+</head>
+<body>
+  <button class="dark-mode-toggle" onclick="document.body.classList.toggle('dark')">切换深色模式</button>
+
+  <div class="container">
+    <h1>AI 视频面板 - UI 设计稿</h1>
+    <div class="meta">
+      <strong>设计需求:</strong><br>
+      • 支持文生视频 + 图生视频,用 Tab 切换<br>
+      • 新增「模型选择」下拉框<br>
+      • 新增「高级配置」折叠区,包含「分镜生视频」功能<br>
+      • 保持现有设计系统规范(面板布局、Tabs underline 变体、表单样式、间距)<br>
+      <strong>设计系统:</strong> 使用 panel 主题变量 + Radix UI Tabs(underline) + 现有 Select/Label/Button 组件
+    </div>
+
+    <!-- 设计稿 1: 文生视频 Tab -->
+    <div class="design-block">
+      <h2>1. 文生视频 Tab (默认)</h2>
+      <div class="mockup">
+        <div class="mockup-header">
+          <span class="mockup-title">AI 视频</span>
+        </div>
+        <div class="tabs-list">
+          <button class="tab-trigger active">文生视频</button>
+          <button class="tab-trigger">图生视频</button>
+        </div>
+        <div class="tab-content">
+          <!-- 模型选择 (新增) -->
+          <div class="form-group">
+            <label class="form-label">模型</label>
+            <select class="form-select">
+              <option>Seedance 2.0 (字节跳动)</option>
+              <option>Kling 1.6 (快手)</option>
+              <option>CogVideoX (智谱 AI)</option>
+              <option>Gen-3 Alpha (Runway)</option>
+            </select>
+            <div class="form-hint">不同模型的生成速度和效果有差异,默认使用 Seedance 2.0</div>
+          </div>
+
+          <!-- Prompt -->
+          <div class="form-group">
+            <label class="form-label">视频描述</label>
+            <textarea class="form-textarea" placeholder="描述你想生成的视频内容,越详细效果越好...&#10;&#10;示例:一只橘猫在花园里追逐蝴蝶,阳光透过树叶洒下斑驳的光影,镜头缓缓推进"></textarea>
+          </div>
+
+          <!-- Duration -->
+          <div class="form-group">
+            <label class="form-label">时长</label>
+            <select class="form-select">
+              <option>自动(模型决定)</option>
+              <option>4 秒</option>
+              <option>5 秒</option>
+              <option>8 秒</option>
+              <option>10 秒</option>
+              <option>12 秒</option>
+              <option>15 秒</option>
+            </select>
+          </div>
+
+          <!-- Resolution -->
+          <div class="form-group">
+            <label class="form-label">分辨率</label>
+            <select class="form-select">
+              <option>720p (~$0.10/秒)</option>
+              <option>1080p (~$0.25/秒)</option>
+            </select>
+          </div>
+
+          <!-- Aspect Ratio -->
+          <div class="form-group">
+            <label class="form-label">画面比例</label>
+            <select class="form-select">
+              <option>16:9 (横屏)</option>
+              <option>9:16 (竖屏)</option>
+              <option>1:1 (方形)</option>
+              <option>4:3</option>
+              <option>3:4</option>
+              <option>21:9 (宽屏)</option>
+              <option>自适应</option>
+            </select>
+          </div>
+
+          <!-- Audio -->
+          <div class="checkbox-group">
+            <input type="checkbox" class="checkbox" id="audio">
+            <label for="audio" class="checkbox-label">生成同步音频(对话/音效/背景音乐)</label>
+          </div>
+
+          <!-- 高级配置 (新增) -->
+          <div class="collapsible">
+            <button class="collapsible-trigger">
+              <span>高级配置</span>
+              <span>▼</span>
+            </button>
+            <div class="collapsible-content" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">运动强度</label>
+                <select class="form-select">
+                  <option>自动</option>
+                  <option>低 (缓慢移动)</option>
+                  <option>中 (正常移动)</option>
+                  <option>高 (快速移动)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">摄像机运动</label>
+                <select class="form-select">
+                  <option>自动</option>
+                  <option>固定 (无运动)</option>
+                  <option>推进 (Zoom in)</option>
+                  <option>拉远 (Zoom out)</option>
+                  <option>左移 (Pan left)</option>
+                  <option>右移 (Pan right)</option>
+                </select>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" class="checkbox" id="loop">
+                <label for="loop" class="checkbox-label">生成无缝循环视频</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generate Button -->
+          <button class="btn-primary">生成视频</button>
+
+          <!-- Provider Hint -->
+          <div class="form-hint" style="margin-top: 12px;">
+            主:火山方舟 → 备:Atlas Cloud → WaveSpeedAI。默认720p约$0.50/5秒。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设计稿 2: 图生视频 Tab -->
+    <div class="design-block">
+      <h2>2. 图生视频 Tab</h2>
+      <div class="mockup">
+        <div class="mockup-header">
+          <span class="mockup-title">AI 视频</span>
+        </div>
+        <div class="tabs-list">
+          <button class="tab-trigger">文生视频</button>
+          <button class="tab-trigger active">图生视频</button>
+        </div>
+        <div class="tab-content">
+          <!-- 模型选择 -->
+          <div class="form-group">
+            <label class="form-label">模型</label>
+            <select class="form-select">
+              <option>Seedance 2.0 Image-to-Video</option>
+              <option>Kling 1.6 I2V</option>
+              <option>Stable Video Diffusion</option>
+            </select>
+          </div>
+
+          <!-- 图片上传 -->
+          <div class="form-group">
+            <label class="form-label">起始图片</label>
+            <div class="upload-area">
+              <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <div class="upload-text">点击上传或拖放图片 (JPG, PNG, WebP)</div>
+              <div class="form-hint">推荐分辨率 1280x720 或更高,最大 10MB</div>
+            </div>
+          </div>
+
+          <!-- Prompt (可选) -->
+          <div class="form-group">
+            <label class="form-label">运动描述 (可选)</label>
+            <textarea class="form-textarea" rows="3" placeholder="描述画面中物体的运动方式&#10;&#10;示例:相机缓缓向右平移,树叶随风摇曳"></textarea>
+            <div class="form-hint">留空则让模型自动决定运动,填写可以引导特定动作</div>
+          </div>
+
+          <!-- Duration -->
+          <div class="form-group">
+            <label class="form-label">时长</label>
+            <select class="form-select">
+              <option>4 秒</option>
+              <option>5 秒</option>
+              <option>8 秒</option>
+            </select>
+          </div>
+
+          <!-- Motion Strength -->
+          <div class="form-group">
+            <label class="form-label">运动强度</label>
+            <select class="form-select">
+              <option>自动</option>
+              <option>低 (轻微运动)</option>
+              <option>中 (正常运动)</option>
+              <option>高 (剧烈运动)</option>
+            </select>
+            <div class="form-hint">控制画面变化幅度,低强度适合静态场景添加微动</div>
+          </div>
+
+          <!-- Generate Button -->
+          <button class="btn-primary">生成视频</button>
+
+          <div class="form-hint" style="margin-top: 12px;">
+            图生视频价格约为文生视频的 1.5 倍,生成时间 2-5 分钟
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设计稿 3: 高级配置 - 分镜生视频 (展开状态) -->
+    <div class="design-block">
+      <h2>3. 高级配置 - 分镜生视频 (展开)</h2>
+      <div class="mockup">
+        <div class="mockup-header">
+          <span class="mockup-title">AI 视频</span>
+        </div>
+        <div class="tabs-list">
+          <button class="tab-trigger active">文生视频</button>
+          <button class="tab-trigger">图生视频</button>
+        </div>
+        <div class="tab-content">
+          <!-- 模型选择 -->
+          <div class="form-group">
+            <label class="form-label">模型</label>
+            <select class="form-select">
+              <option>Seedance 2.0 (字节跳动)</option>
+            </select>
+          </div>
+
+          <!-- 高级配置 - 展开状态 -->
+          <div class="collapsible">
+            <button class="collapsible-trigger">
+              <span>高级配置</span>
+              <span>▲</span>
+            </button>
+            <div class="collapsible-content">
+              <!-- 分镜模式开关 -->
+              <div class="checkbox-group" style="margin-bottom: 16px;">
+                <input type="checkbox" class="checkbox" id="storyboard" checked>
+                <label for="storyboard" class="checkbox-label"><strong>分镜生视频</strong></label>
+              </div>
+              <div class="form-hint" style="margin-bottom: 16px;">
+                将长视频拆分为多个镜头分别生成,最后自动拼接。适合复杂叙事和场景切换。
+              </div>
+
+              <!-- 分镜列表 -->
+              <div class="storyboard-list">
+                <div class="storyboard-item">
+                  <div class="storyboard-index">1</div>
+                  <div class="storyboard-content">
+                    <input type="text" class="storyboard-input" value="远景:森林中的小木屋,清晨阳光,雾气缭绕" />
+                    <div class="storyboard-actions">
+                      <select class="btn-small" style="border: none; padding: 4px 8px;">
+                        <option>5 秒</option>
+                        <option>4 秒</option>
+                        <option>8 秒</option>
+                      </select>
+                      <button class="btn-small">删除</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="storyboard-item">
+                  <div class="storyboard-index">2</div>
+                  <div class="storyboard-content">
+                    <input type="text" class="storyboard-input" value="中景:推开木门,室内温暖的壁炉" />
+                    <div class="storyboard-actions">
+                      <select class="btn-small" style="border: none; padding: 4px 8px;">
+                        <option>4 秒</option>
+                        <option>5 秒</option>
+                        <option>8 秒</option>
+                      </select>
+                      <button class="btn-small">删除</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="storyboard-item">
+                  <div class="storyboard-index">3</div>
+                  <div class="storyboard-content">
+                    <input type="text" class="storyboard-input" value="特写:书桌上冒着热气的咖啡杯" />
+                    <div class="storyboard-actions">
+                      <select class="btn-small" style="border: none; padding: 4px 8px;">
+                        <option>4 秒</option>
+                        <option>5 秒</option>
+                        <option>8 秒</option>
+                      </select>
+                      <button class="btn-small">删除</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn-add">+ 添加镜头</button>
+
+              <!-- 转场效果 -->
+              <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label">镜头转场</label>
+                <select class="form-select">
+                  <option>直接切换 (Cut)</option>
+                  <option>淡入淡出 (Fade)</option>
+                  <option>交叉溶解 (Cross Dissolve)</option>
+                </select>
+              </div>
+
+              <!-- 全局参数 -->
+              <div class="form-group">
+                <label class="form-label">全局分辨率</label>
+                <select class="form-select">
+                  <option>720p (~$0.10/秒)</option>
+                  <option>1080p (~$0.25/秒)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">全局比例</label>
+                <select class="form-select">
+                  <option>16:9 (横屏)</option>
+                  <option>9:16 (竖屏)</option>
+                  <option>1:1 (方形)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generate Button -->
+          <button class="btn-primary">生成视频 (3 个镜头,总计 13 秒)</button>
+
+          <div class="form-hint" style="margin-top: 12px;">
+            分镜模式会按顺序生成每个镜头,预计总耗时 6-15 分钟,费用约 $1.30
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交互说明 -->
+    <div class="design-block">
+      <h2>交互说明与技术细节</h2>
+      <div style="line-height: 1.8; color: hsl(0, 0%, 13%);">
+        <p style="margin-bottom: 16px;"><strong>组件对应关系:</strong></p>
+        <ul style="margin-left: 20px; margin-bottom: 20px;">
+          <li>Tab 切换: <code>Tabs</code> + <code>TabsList</code> + <code>TabsTrigger</code> (variant="underline")</li>
+          <li>下拉框: <code>Select</code> + <code>SelectTrigger</code> + <code>SelectContent</code> (现有 select.tsx)</li>
+          <li>折叠区: <code>Collapsible</code> + <code>CollapsibleTrigger</code> + <code>CollapsibleContent</code> (Radix UI)</li>
+          <li>表单项: <code>Label</code> + <code>textarea</code> / <code>select</code> (保持现有样式)</li>
+          <li>按钮: <code>Button</code> (className="w-full")</li>
+        </ul>
+
+        <p style="margin-bottom: 16px;"><strong>实现调整 - 模型清单:</strong></p>
+        <ul style="margin-left: 20px; margin-bottom: 20px;">
+          <li>上方 mockup 里列出的 Kling 1.6 / CogVideoX / Gen-3 Alpha / Stable Video Diffusion <strong>未实现</strong>:现有 provider 链(火山方舟 → Atlas → WaveSpeed → fal)只接了字节 Seedance 系列,填入其他模型 id 会在提交任务时直接被接口拒绝(400),表现为用户点了生成却失败</li>
+          <li>实际提供两个:<code>Seedance 2.0</code>(文生+图生,支持同步音频,最长 15 秒)和 <code>Seedance 2.0 Turbo</code>(仅文生,无音频,最长 10 秒)</li>
+          <li>模型的能力差异会驱动 UI:切到 Turbo 后音频开关自动隐藏、时长选项自动截到 10 秒;切到图生视频 Tab 后 Turbo 从下拉框中消失</li>
+          <li>接入新模型只需在 <code>services/ai-video/models.ts</code> 的 <code>VIDEO_MODELS</code> 里加一项并补两个 locale key,UI 无需改动</li>
+        </ul>
+
+        <p style="margin-bottom: 16px;"><strong>状态管理:</strong></p>
+        <ul style="margin-left: 20px; margin-bottom: 20px;">
+          <li><code>activeTab: "text-to-video" | "image-to-video"</code></li>
+          <li><code>selectedModel: string</code> (模型下拉框,根据 Tab 切换时更新可选项)</li>
+          <li><code>advancedOpen: boolean</code> (高级配置折叠状态)</li>
+          <li><code>storyboardEnabled: boolean</code> (分镜模式开关)</li>
+          <li><code>shots: Array&lt;{id, prompt, duration}&gt;</code> (分镜列表,最少 2 个)</li>
+        </ul>
+
+        <p style="margin-bottom: 16px;"><strong>分镜生成逻辑:</strong></p>
+        <ul style="margin-left: 20px; margin-bottom: 20px;">
+          <li>勾选「分镜生视频」后,单个 prompt 输入框隐藏,展示分镜列表</li>
+          <li>每个分镜独立调用 <code>generateVideo()</code>,按顺序生成</li>
+          <li><strong>实现调整:</strong>项目未引入 FFmpeg(仅有 mediabunny),故不做二次编码拼接。改为每个镜头生成后按累计时长依次插入时间轴 video 轨,首尾相接。好处是无损、无需重编码,且每个镜头在时间轴上仍是独立可编辑的片段</li>
+          <li>转场不在本面板内生成:镜头落到时间轴后,用现有「转场」面板在片段之间添加,复用编辑器已有能力</li>
+          <li>按钮文案动态更新:「生成视频 (N 个镜头,总计 X 秒)」</li>
+          <li>进度提示:「生成第 1/3 个镜头 (森林小木屋)...」</li>
+        </ul>
+
+        <p style="margin-bottom: 16px;"><strong>样式规范:</strong></p>
+        <ul style="margin-left: 20px;">
+          <li>间距: <code>gap-4</code> (16px) 用于主表单项, <code>gap-1.5</code> (6px) 用于 label-input</li>
+          <li>圆角: <code>rounded-md</code> (6px) 用于输入框/按钮, <code>rounded-sm</code> (3px) 用于小元素</li>
+          <li>边框: <code>border</code> (hsl(0, 0%, 87%)) 亮色, <code>border</code> (hsl(0, 0%, 18%)) 暗色</li>
+          <li>字号: 标签 <code>text-sm</code> (14px), 提示 <code>text-xs</code> (12px), 输入框 <code>text-sm</code></li>
+          <li>配色: 主色 <code>primary</code> (hsl(200, 90%, 52%)), 次要 <code>secondary</code> 高亮区</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 折叠区交互演示
+    document.querySelectorAll('.collapsible-trigger').forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        const content = trigger.nextElementSibling;
+        const arrow = trigger.querySelector('span:last-child');
+        if (content.style.display === 'none') {
+          content.style.display = 'block';
+          arrow.textContent = '▲';
+        } else {
+          content.style.display = 'none';
+          arrow.textContent = '▼';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

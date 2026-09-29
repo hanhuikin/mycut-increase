@@ -88,6 +88,17 @@
   --ring: hsl(0, 0%, 50%);
   --caution: hsl(38, 92%, 60%);
   --caution-foreground: hsl(0, 0%, 10%);
+  /*
+    Chart steps re-derived for this dark surface. The light steps sit outside
+    the dark lightness band and fall under 3:1 contrast here, so these are
+    separate values rather than an automatic flip. Checked for lightness band,
+    chroma floor, colour-vision separation and contrast against hsl(0 0% 5%).
+  */
+  --chart-1: hsl(220 78% 59%);
+  --chart-2: hsl(160 80% 33%);
+  --chart-3: hsl(30 90% 39%);
+  --chart-4: hsl(280 81% 57%);
+  --chart-5: hsl(340 77% 52%);
   --sidebar-background: hsl(0 0% 8%);
   --sidebar-foreground: hsl(0 0% 95%);
   --sidebar-primary: hsl(0 0% 95%);
@@ -286,4 +297,27 @@
   &::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
   }
+}
+
+/*
+  Admin panel type scale.
+
+  The editor is a dense surface and its scale is deliberately small; the admin
+  panel is read at arm's length, so it runs one step larger. Admin pages use
+  explicit sizes for their own text — the rules below only lift what the shared
+  primitives bring along (Button and Table ship `text-sm`, Input ships
+  `text-xs`/`text-base`), so buttons, inputs and tables grow with everything else.
+
+  Scoped with a <body> marker set by the admin layout rather than to the layout's
+  own subtree: Radix portals dialogs, sheets, menus and toasts to <body>, so
+  subtree scoping would leave every overlay at the editor's size.
+*/
+body.admin-surface .text-xs {
+  font-size: 0.844rem; /* 13.5px */
+}
+body.admin-surface .text-sm {
+  font-size: 0.9375rem; /* 15px */
+}
+body.admin-surface .text-base {
+  font-size: 1rem; /* 16px */
 }
