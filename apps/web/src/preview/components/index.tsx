@@ -206,7 +206,13 @@ function PreviewCanvas({
 		lastFrameRef.current = frame;
 		renderer
 			.render({ node: renderTree, time: renderTime })
-			.then(() => {
+			.catch((error: unknown) => {
+				// Surface decoder/compositor failures: an unlogged rejection
+				// would silently wedge the loop below (renderingRef stays
+				// true and every subsequent frame is skipped).
+				console.error("[preview] render failed", error);
+			})
+			.finally(() => {
 				renderingRef.current = false;
 			});
 	}, [renderer, renderTree, editor.playback, editor.timeline]);
