@@ -505,6 +505,7 @@ export function Timeline() {
 					<ScrollArea
 						className="flex-1"
 						ref={tracksScrollRef}
+						data-timeline-viewport
 						onScroll={() => {
 							syncFollowers();
 							saveScrollPosition();

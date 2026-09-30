@@ -24,6 +24,7 @@ import {
 } from "@/timeline";
 import { getTrackHeight } from "./track-layout";
 import { getTimelineElementClassName, TIMELINE_TRACK_THEME } from "./theme";
+import { useElementFilmstrip } from "@/timeline/filmstrip";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -78,7 +79,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { uppercase } from "@/utils/string";
-import { useMemo, type ComponentProps, type ReactNode } from "react";
+import { useMemo, useRef, type ComponentProps, type ReactNode } from "react";
 import type { SelectedKeyframeRef, ElementKeyframe } from "@/animation/types";
 import { cn } from "@/utils/ui";
 import { usePropertiesStore } from "@/components/editor/panels/properties/stores/properties-store";
@@ -1100,12 +1101,31 @@ function TiledMediaContent({
 	track: TimelineTrack;
 }) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
+	const pixelsPerSecond = useContext(PixelsPerSecondContext);
 
 	const mediaAsset = mediaAssets.find((asset) => asset.id === element.mediaId);
 	const imageUrl =
 		element.type === "video"
 			? mediaAsset?.thumbnailUrl
 			: (mediaAsset?.thumbnailUrl ?? mediaAsset?.url);
+	const trackHeight = getTrackHeight({ type: track.type });
+	const tileWidth = trackHeight * THUMBNAIL_ASPECT_RATIO;
+
+	// Real filmstrip for video clips: the poster tile below stays as the
+	// loading placeholder, decoded frames overwrite it as they land. Hook
+	// runs unconditionally (before the early return below); images pass no
+	// file, which disables the hook.
+	const filmstripLayerRef = useRef<HTMLDivElement | null>(null);
+	const filmstripSlots = useElementFilmstrip({
+		mediaId: element.mediaId,
+		file: element.type === "video" ? mediaAsset?.file : undefined,
+		durationTicks: element.duration,
+		trimStartTicks: element.trimStart,
+		rate: element.type === "video" ? (element.retime?.rate ?? 1) : 1,
+		pixelsPerSecond: pixelsPerSecond ?? 0,
+		slotWidthPx: tileWidth,
+		containerRef: filmstripLayerRef,
+	});
 
 	if (!imageUrl) {
 		return (
@@ -1115,12 +1135,12 @@ function TiledMediaContent({
 		);
 	}
 
-	const trackHeight = getTrackHeight({ type: track.type });
-	const tileWidth = trackHeight * THUMBNAIL_ASPECT_RATIO;
+	const isVideo = element.type === "video";
 
 	return (
 		<>
 			<div
+				ref={filmstripLayerRef}
 				className="absolute inset-0"
 				style={{
 					backgroundColor: "var(--muted)",
@@ -1131,6 +1151,24 @@ function TiledMediaContent({
 					pointerEvents: "none",
 				}}
 			/>
+			{isVideo && filmstripSlots.size > 0 && (
+				<div className="pointer-events-none absolute inset-0 overflow-hidden">
+					{[...filmstripSlots].map(([slotIndex, url]) => (
+						<div
+							key={slotIndex}
+							className="absolute top-0"
+							style={{
+								left: `${slotIndex * tileWidth}px`,
+								width: `${tileWidth}px`,
+								height: `${trackHeight}px`,
+								backgroundImage: `url(${url})`,
+								backgroundSize: "cover",
+								backgroundPosition: "center",
+							}}
+						/>
+					))}
+				</div>
+			)}
 			<MediaElementHeader
 				name={mediaAsset?.name}
 				leading={
