@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
+	DialogBody,
 	DialogContent,
 	DialogFooter,
 	DialogHeader,
@@ -12,6 +13,12 @@ import {
 import { VideoFrameExtractor } from "@/media/mediabunny";
 import type { MediaAsset } from "@/media/types";
 import { useLocale } from "@/locale/locale-context";
+import {
+	FramePickerStrip,
+	STRIP_MAX_SLOTS,
+	STRIP_THUMB_MAX_EDGE,
+	type FrameStripWindow,
+} from "./frame-picker-strip";
 
 const formatClock = ({ seconds }: { seconds: number }): string => {
 	const total = Math.max(0, seconds);
@@ -47,7 +54,7 @@ export function AiVideoFramePickerDialog({
 				if (!next) onClose();
 			}}
 		>
-			<DialogContent className="max-w-xl">
+			<DialogContent className="flex max-h-[85vh] max-w-4xl flex-col">
 				<DialogHeader>
 					<DialogTitle>
 						{t["ai_video.frame_title"]} · {asset.name}
@@ -76,18 +83,26 @@ function FramePickerBody({
 }) {
 	const { t } = useLocale();
 	const extractorRef = useRef<VideoFrameExtractor | null>(null);
+	const stripGenerationRef = useRef(0);
 	const [duration, setDuration] = useState(0);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-	const [strip, setStrip] = useState<string[]>([]);
+	const [slots, setSlots] = useState<Map<number, string>>(new Map());
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState(false);
+	const [stripWindow, setStripWindow] = useState<FrameStripWindow | null>(
+		null,
+	);
+
+	const fps = asset.fps && asset.fps > 0 ? asset.fps : 30;
 
 	useEffect(() => {
 		let cancelled = false;
 		void (async () => {
 			try {
-				const extractor = await VideoFrameExtractor.open({ file: asset.file });
+				const extractor = await VideoFrameExtractor.open({
+					file: asset.file,
+				});
 				if (cancelled) {
 					extractor?.dispose();
 					return;
@@ -98,17 +113,6 @@ function FramePickerBody({
 				}
 				extractorRef.current = extractor;
 				setDuration(extractor.durationSeconds);
-				const stamps = [0.1, 0.3, 0.5, 0.7, 0.9].map(
-					(fraction) => extractor.durationSeconds * fraction,
-				);
-				const frames = await Promise.all(
-					stamps.map((seconds) => extractor.frameAt({ seconds })),
-				);
-				if (cancelled) {
-					extractor.dispose();
-					return;
-				}
-				setStrip(frames.map((frame) => frame ?? ""));
 				const first = await extractor.frameAt({ seconds: 0 });
 				if (cancelled) {
 					extractor.dispose();
@@ -121,6 +125,7 @@ function FramePickerBody({
 		})();
 		return () => {
 			cancelled = true;
+			stripGenerationRef.current += 1;
 			extractorRef.current?.dispose();
 			extractorRef.current = null;
 		};
@@ -130,7 +135,7 @@ function FramePickerBody({
 		const extractor = extractorRef.current;
 		if (!extractor) return;
 		let cancelled = false;
-		// Debounced seek: the slider fires continuously; only the settled value
+		// Debounced seek: dragging fires continuously; only the settled value
 		// gets decoded.
 		const timer = setTimeout(() => {
 			void (async () => {
@@ -146,14 +151,83 @@ function FramePickerBody({
 		};
 	}, [currentTime]);
 
-	const seek = ({ seconds }: { seconds: number }) => {
+	// Filmstrip generation: the strip reports its visible slot window; decode
+	// it in one batch, debounced so drags, flings and zoom bursts settle
+	// first. Bumping stripGenerationRef kills in-flight batches.
+	const { firstSlot = 0, lastSlot = -1, slotSeconds = 0 } = stripWindow ?? {};
+
+	useEffect(() => {
+		const extractor = extractorRef.current;
+		if (!extractor || slotSeconds <= 0 || lastSlot < firstSlot) return;
+		const generation = ++stripGenerationRef.current;
+		const timer = setTimeout(() => {
+			void (async () => {
+				const indices: number[] = [];
+				const times: number[] = [];
+				for (
+					let index = firstSlot;
+					index <= lastSlot && indices.length < STRIP_MAX_SLOTS;
+					index += 1
+				) {
+					indices.push(index);
+					times.push((index + 0.5) * slotSeconds);
+				}
+				// Prune entries far outside the window so the map stays small.
+				setSlots((prev) => {
+					const next = new Map<number, string>();
+					for (const [index, url] of prev) {
+						if (index >= firstSlot - 40 && index <= lastSlot + 40) {
+							next.set(index, url);
+						}
+					}
+					return next;
+				});
+				await extractor.framesAt({
+					seconds: times,
+					maxEdge: STRIP_THUMB_MAX_EDGE,
+					shouldContinue: () =>
+						stripGenerationRef.current === generation,
+					onFrame: (position, dataUrl) => {
+						const index = indices[position];
+						if (!dataUrl || index === undefined) return;
+						if (stripGenerationRef.current !== generation) return;
+						setSlots((prev) => {
+							const next = new Map(prev);
+							next.set(index, dataUrl);
+							return next;
+						});
+					},
+				});
+			})();
+		}, 150);
+		return () => clearTimeout(timer);
+	}, [firstSlot, lastSlot, slotSeconds]);
+
+	const handleWindowChange = useCallback((next: FrameStripWindow) => {
+		setStripWindow((prev) =>
+			prev &&
+			prev.firstSlot === next.firstSlot &&
+			prev.lastSlot === next.lastSlot &&
+			prev.slotSeconds === next.slotSeconds
+				? prev
+				: next,
+		);
+	}, []);
+
+	// Seek snaps to the frame grid so the time label always matches the
+	// decoded frame.
+	const seek = (seconds: number) => {
 		setBusy(true);
-		setCurrentTime(Math.min(Math.max(seconds, 0), duration || 0));
+		const snapped = Math.round(seconds * fps) / fps;
+		setCurrentTime(Math.min(Math.max(snapped, 0), duration || 0));
 	};
 
 	const confirm = () => {
 		if (!previewUrl) return;
-		onConfirm({ dataUrl: previewUrl, timeLabel: formatClock({ seconds: currentTime }) });
+		onConfirm({
+			dataUrl: previewUrl,
+			timeLabel: formatClock({ seconds: currentTime }),
+		});
 	};
 
 	return (
@@ -163,65 +237,34 @@ function FramePickerBody({
 					{t["ai_video.frame_failed"]}
 				</div>
 			) : (
-				<>
-					<div className="bg-secondary relative aspect-video overflow-hidden rounded-md">
+				<DialogBody className="min-h-0 flex-1 gap-3 overflow-hidden">
+					<div className="bg-secondary relative aspect-video max-h-full min-h-0 w-full shrink overflow-hidden rounded-md">
 						{previewUrl && (
 							// eslint-disable-next-line @next/next/no-img-element
 							<img
 								src={previewUrl}
 								alt={asset.name}
-								className={`size-full object-contain transition-opacity ${busy ? "opacity-60" : ""}`}
+								className="size-full object-contain"
 							/>
 						)}
-					</div>
-					<div className="text-muted-foreground mt-1 font-mono text-[11.5px]">
-						{formatClock({ seconds: currentTime })} /{" "}
-						{formatClock({ seconds: duration })}
-					</div>
-
-					<input
-						type="range"
-						min={0}
-						max={duration || 0}
-						step={0.1}
-						value={currentTime}
-						disabled={failed || duration === 0}
-						onChange={(event) => seek({ seconds: Number(event.target.value) })}
-						className="mt-1 w-full cursor-pointer accent-[var(--primary)]"
-					/>
-
-					{strip.length > 0 && (
-						<div className="mt-1 flex gap-1">
-							{strip.map((frame, index) =>
-								frame ? (
-									<button
-										key={index}
-										type="button"
-										onClick={() =>
-											seek({
-												seconds: ((index + 0.5) / strip.length) * duration,
-											})
-										}
-										className="focus-visible:ring-primary/60 overflow-hidden rounded outline-none focus-visible:ring-2"
-									>
-										{/* eslint-disable-next-line @next/next/no-img-element */}
-										<img
-											src={frame}
-											alt=""
-											className="h-9 w-full min-w-0 object-cover"
-										/>
-									</button>
-								) : (
-									<div key={index} className="bg-secondary h-9 flex-1 rounded" />
-								),
-							)}
+						<div className="absolute top-3 left-3 rounded bg-black/60 px-2 py-1 font-mono text-[11.5px] tabular-nums text-white">
+							{formatClock({ seconds: currentTime })} /{" "}
+							{formatClock({ seconds: duration })}
 						</div>
-					)}
-
-					<p className="text-muted-foreground mt-1 text-[11.5px]">
+					</div>
+					<FramePickerStrip
+						duration={duration}
+						currentTime={currentTime}
+						fps={fps}
+						slots={slots}
+						disabled={duration <= 0}
+						onSeek={seek}
+						onWindowChange={handleWindowChange}
+					/>
+					<p className="text-muted-foreground text-[11.5px]">
 						{t["ai_video.frame_hint"]}
 					</p>
-				</>
+				</DialogBody>
 			)}
 
 			<DialogFooter>
@@ -239,3 +282,4 @@ function FramePickerBody({
 		</>
 	);
 }
+

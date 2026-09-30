@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-09-28T08:02:42.539Z",
+  "timestamp": "2026-09-30T07:29:52.658Z",
   "summary": {
-    "total": 2838,
-    "high": 1063,
-    "medium": 1775
+    "total": 2892,
+    "high": 1091,
+    "medium": 1801
   },
   "issues": [
     {
@@ -170,7 +170,7 @@
     },
     {
       "file": "app\\admin\\enter\\page.tsx",
-      "line": 34,
+      "line": 35,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Content-Type",
@@ -179,12 +179,30 @@
     },
     {
       "file": "app\\admin\\models\\model-drawer.tsx",
-      "line": 203,
+      "line": 231,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Content-Type",
       "description": "可能的硬编码英文文本（需人工确认）",
       "lineContent": "headers: { \"Content-Type\": \"application/json\" },"
+    },
+    {
+      "file": "app\\admin\\models\\model-drawer.tsx",
+      "line": 296,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Content-Type",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "headers: { \"Content-Type\": \"application/json\" },"
+    },
+    {
+      "file": "app\\admin\\models\\model-drawer.tsx",
+      "line": 766,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Enter",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "if (event.key === \"Enter\") event.currentTarget.blur();"
     },
     {
       "file": "app\\admin\\models\\page.tsx",
@@ -215,7 +233,7 @@
     },
     {
       "file": "app\\api\\ai\\generate\\route.ts",
-      "line": 106,
+      "line": 193,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未知错误",
@@ -224,7 +242,7 @@
     },
     {
       "file": "app\\api\\ai\\poll\\route.ts",
-      "line": 72,
+      "line": 102,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未知错误",
@@ -962,7 +980,7 @@
     },
     {
       "file": "components\\editor\\editor-header.tsx",
-      "line": 221,
+      "line": 205,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enter",
@@ -971,7 +989,7 @@
     },
     {
       "file": "components\\editor\\editor-header.tsx",
-      "line": 224,
+      "line": 208,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Escape",
@@ -1007,7 +1025,7 @@
     },
     {
       "file": "components\\editor\\panels\\assets\\views\\ai-tools.tsx",
-      "line": 280,
+      "line": 282,
       "severity": "high",
       "pattern": "中文字符",
       "text": "AI 工具处理失败:",
@@ -1016,7 +1034,7 @@
     },
     {
       "file": "components\\editor\\panels\\assets\\views\\ai-video.tsx",
-      "line": 383,
+      "line": 510,
       "severity": "high",
       "pattern": "中文字符",
       "text": "读取视频缩略图失败，将使用占位符:",
@@ -1025,7 +1043,7 @@
     },
     {
       "file": "components\\editor\\panels\\assets\\views\\ai-video.tsx",
-      "line": 615,
+      "line": 747,
       "severity": "high",
       "pattern": "中文字符",
       "text": "视频生成失败:",
@@ -1187,7 +1205,7 @@
     },
     {
       "file": "core\\managers\\project-manager.ts",
-      "line": 394,
+      "line": 409,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Projects not found",
@@ -1196,7 +1214,7 @@
     },
     {
       "file": "core\\managers\\project-manager.ts",
-      "line": 399,
+      "line": 414,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Some projects could not be found",
@@ -6212,13 +6230,148 @@
       "line": 762,
       "severity": "medium",
       "pattern": "用户可见英文",
+      "text": "From library",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.image_pick_library\": \"From library\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 763,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Choose from library",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_title\": \"Choose from library\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 764,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "All",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_all\": \"All\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 765,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Video",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_videos\": \"Video\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 766,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Image",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_images\": \"Image\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 769,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Upload locally",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_local_fallback\": \"Upload locally\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 774,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "This video has no usable cover frame to reference",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"This video has no usable cover frame to reference\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 775,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Over the size limit",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_too_large\": \"Over the size limit\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 776,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Confirm",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.picker_confirm\": \"Confirm\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 777,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Pick a frame",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.frame_title\": \"Pick a frame\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 778,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Pick frame",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.frame_action\": \"Pick frame\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 779,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Use this frame",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.frame_confirm\": \"Use this frame\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 781,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "This video could not be decoded for frames, try another",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.frame_failed\": \"This video could not be decoded for frames, try another\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 782,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Zoom in",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.frame_zoom_in\": \"Zoom in\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 783,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Zoom out",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"ai_video.frame_zoom_out\": \"Zoom out\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 784,
+      "severity": "medium",
+      "pattern": "用户可见英文",
       "text": "Advanced",
       "description": "可能的硬编码英文文本（需人工确认）",
       "lineContent": "\"ai_video.advanced\": \"Advanced\","
     },
     {
       "file": "locale\\en.ts",
-      "line": 763,
+      "line": 785,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Camera movement",
@@ -6227,7 +6380,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 764,
+      "line": 786,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Auto",
@@ -6236,7 +6389,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 766,
+      "line": 788,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Zoom in",
@@ -6245,7 +6398,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 767,
+      "line": 789,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Zoom out",
@@ -6254,7 +6407,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 768,
+      "line": 790,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pan left",
@@ -6263,7 +6416,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 769,
+      "line": 791,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pan right",
@@ -6272,7 +6425,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 772,
+      "line": 794,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Storyboard to video",
@@ -6281,7 +6434,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 774,
+      "line": 796,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Split a longer video into shots generated one by one, then inserted into the timeline in order. Each shot stays individually editable.",
@@ -6290,7 +6443,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 775,
+      "line": 797,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Describe this shot",
@@ -6299,7 +6452,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 776,
+      "line": 798,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Add shot",
@@ -6308,7 +6461,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 777,
+      "line": 799,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Remove",
@@ -6317,7 +6470,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 781,
+      "line": 803,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Add image",
@@ -6326,7 +6479,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 782,
+      "line": 804,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Replace",
@@ -6335,7 +6488,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 783,
+      "line": 805,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Remove",
@@ -6344,7 +6497,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 789,
+      "line": 811,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Every shot failed to generate",
@@ -6353,7 +6506,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 791,
+      "line": 813,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Add transitions between shots from the Transitions panel once generation finishes.",
@@ -6362,7 +6515,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 792,
+      "line": 814,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Added to the media library and inserted into the timeline",
@@ -6371,7 +6524,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 797,
+      "line": 819,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Animate the scene naturally, keeping the original composition and style",
@@ -6380,7 +6533,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 801,
+      "line": 823,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Please paint over the area you want to erase first",
@@ -6389,7 +6542,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 802,
+      "line": 824,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Could not generate the mask image",
@@ -6398,7 +6551,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 804,
+      "line": 826,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Clear",
@@ -6407,7 +6560,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 806,
+      "line": 828,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Paint over the image with the red brush to mark the area to erase",
@@ -6416,7 +6569,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 807,
+      "line": 829,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Preview",
@@ -6425,7 +6578,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 812,
+      "line": 834,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Something went wrong!",
@@ -6434,7 +6587,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 813,
+      "line": 835,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Try again",
@@ -6443,7 +6596,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 816,
+      "line": 838,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Position X",
@@ -6452,7 +6605,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 817,
+      "line": 839,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Position Y",
@@ -6461,7 +6614,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 818,
+      "line": 840,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Scale X",
@@ -6470,7 +6623,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 819,
+      "line": 841,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Scale Y",
@@ -6479,7 +6632,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 820,
+      "line": 842,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Opacity",
@@ -6488,7 +6641,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 821,
+      "line": 843,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Volume",
@@ -6497,7 +6650,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 827,
+      "line": 849,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Muted",
@@ -6506,7 +6659,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 828,
+      "line": 850,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Font size",
@@ -6515,7 +6668,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 829,
+      "line": 851,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Text align",
@@ -6524,7 +6677,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 830,
+      "line": 852,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Left",
@@ -6533,7 +6686,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 831,
+      "line": 853,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Center",
@@ -6542,7 +6695,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 832,
+      "line": 854,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Right",
@@ -6551,7 +6704,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 833,
+      "line": 855,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Font weight",
@@ -6560,7 +6713,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 834,
+      "line": 856,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Normal",
@@ -6569,7 +6722,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 835,
+      "line": 857,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Bold",
@@ -6578,7 +6731,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 836,
+      "line": 858,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Font style",
@@ -6587,7 +6740,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 837,
+      "line": 859,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Normal",
@@ -6596,7 +6749,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 838,
+      "line": 860,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Italic",
@@ -6605,7 +6758,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 839,
+      "line": 861,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Text decoration",
@@ -6614,7 +6767,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 840,
+      "line": 862,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "None",
@@ -6623,7 +6776,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 841,
+      "line": 863,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Underline",
@@ -6632,7 +6785,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 842,
+      "line": 864,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Line through",
@@ -6641,7 +6794,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 843,
+      "line": 865,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Background enabled",
@@ -6650,7 +6803,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 844,
+      "line": 866,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Background radius",
@@ -6659,7 +6812,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 845,
+      "line": 867,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Blend mode",
@@ -6668,7 +6821,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 846,
+      "line": 868,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Normal",
@@ -6677,7 +6830,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 847,
+      "line": 869,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Darken",
@@ -6686,7 +6839,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 848,
+      "line": 870,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Multiply",
@@ -6695,7 +6848,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 849,
+      "line": 871,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Color burn",
@@ -6704,7 +6857,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 850,
+      "line": 872,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Lighten",
@@ -6713,7 +6866,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 851,
+      "line": 873,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Screen",
@@ -6722,7 +6875,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 852,
+      "line": 874,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Plus lighter",
@@ -6731,7 +6884,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 853,
+      "line": 875,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Color dodge",
@@ -6740,7 +6893,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 854,
+      "line": 876,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Overlay",
@@ -6749,7 +6902,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 855,
+      "line": 877,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Soft light",
@@ -6758,7 +6911,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 856,
+      "line": 878,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Hard light",
@@ -6767,7 +6920,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 857,
+      "line": 879,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Difference",
@@ -6776,7 +6929,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 858,
+      "line": 880,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Exclusion",
@@ -6785,7 +6938,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 859,
+      "line": 881,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Hue",
@@ -6794,7 +6947,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 860,
+      "line": 882,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Saturation",
@@ -6803,7 +6956,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 861,
+      "line": 883,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Color",
@@ -6812,7 +6965,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 862,
+      "line": 884,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Luminosity",
@@ -6821,7 +6974,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 870,
+      "line": 892,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Delete scenes",
@@ -6830,7 +6983,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 873,
+      "line": 895,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Projects not found",
@@ -6839,7 +6992,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 874,
+      "line": 896,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Some projects could not be found",
@@ -6848,7 +7001,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 877,
+      "line": 899,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Resources",
@@ -6857,7 +7010,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 878,
+      "line": 900,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Company",
@@ -6866,7 +7019,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 881,
+      "line": 903,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Download all",
@@ -6875,7 +7028,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 882,
+      "line": 904,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Effect",
@@ -6884,7 +7037,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 885,
+      "line": 907,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sign in to MyCut",
@@ -6893,7 +7046,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 887,
+      "line": 909,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Create one",
@@ -6902,7 +7055,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 889,
+      "line": 911,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Your projects live locally.",
@@ -6911,7 +7064,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 891,
+      "line": 913,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Create your MyCut account",
@@ -6920,7 +7073,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 892,
+      "line": 914,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Email",
@@ -6929,7 +7082,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 893,
+      "line": 915,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Password",
@@ -6938,7 +7091,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 894,
+      "line": 916,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Confirm password",
@@ -6947,7 +7100,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 895,
+      "line": 917,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Name",
@@ -6956,7 +7109,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 896,
+      "line": 918,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Shown on your creations",
@@ -6965,7 +7118,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 897,
+      "line": 919,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sign in",
@@ -6974,7 +7127,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 898,
+      "line": 920,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Create account",
@@ -6983,7 +7136,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 899,
+      "line": 921,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Send reset link",
@@ -6992,7 +7145,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 900,
+      "line": 922,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Reset password",
@@ -7001,7 +7154,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 902,
+      "line": 924,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Remember me for 30 days",
@@ -7010,7 +7163,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 903,
+      "line": 925,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Forgot password?",
@@ -7019,7 +7172,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 904,
+      "line": 926,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Already have an account?",
@@ -7028,7 +7181,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 905,
+      "line": 927,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sign in",
@@ -7037,16 +7190,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 908,
-      "severity": "medium",
-      "pattern": "用户可见英文",
-      "text": "Continue as guest",
-      "description": "可能的硬编码英文文本（需人工确认）",
-      "lineContent": "\"auth.login.guest\": \"Continue as guest\","
-    },
-    {
-      "file": "locale\\en.ts",
-      "line": 909,
+      "line": 930,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Caps Lock is on",
@@ -7055,7 +7199,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 910,
+      "line": 931,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Forgot password",
@@ -7064,7 +7208,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 912,
+      "line": 933,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "The link expires in 30 minutes.",
@@ -7073,7 +7217,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 913,
+      "line": 934,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Didn",
@@ -7082,7 +7226,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 914,
+      "line": 935,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Resend",
@@ -7091,7 +7235,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 915,
+      "line": 936,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Reset password",
@@ -7100,7 +7244,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 916,
+      "line": 937,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "New password",
@@ -7109,7 +7253,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 918,
+      "line": 939,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Email or password is incorrect",
@@ -7118,7 +7262,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 919,
+      "line": 940,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "That email is already registered",
@@ -7127,7 +7271,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 920,
+      "line": 941,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Password must be at least 10 characters",
@@ -7136,7 +7280,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 921,
+      "line": 942,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Passwords do not match",
@@ -7145,7 +7289,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 922,
+      "line": 943,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enter a valid email address",
@@ -7154,7 +7298,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 923,
+      "line": 944,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Please accept the Terms and Privacy Policy first",
@@ -7163,7 +7307,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 924,
+      "line": 945,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "This password appears in public breach records, choose another",
@@ -7172,7 +7316,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 925,
+      "line": 946,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Reset link is invalid or expired",
@@ -7181,7 +7325,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 926,
+      "line": 947,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Something went wrong, try again",
@@ -7190,7 +7334,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 927,
+      "line": 948,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Network connection failed",
@@ -7199,7 +7343,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 928,
+      "line": 949,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Too many attempts, please wait and try again",
@@ -7208,7 +7352,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 931,
+      "line": 952,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Admin verification",
@@ -7217,7 +7361,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 932,
+      "line": 953,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Confirm it",
@@ -7226,7 +7370,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 935,
+      "line": 956,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Account password",
@@ -7235,7 +7379,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 939,
+      "line": 960,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enter admin panel",
@@ -7244,7 +7388,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 941,
+      "line": 962,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Cancel",
@@ -7253,7 +7397,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 944,
+      "line": 965,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "All actions",
@@ -7262,7 +7406,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 946,
+      "line": 967,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Previous",
@@ -7271,7 +7415,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 947,
+      "line": 968,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Next",
@@ -7280,7 +7424,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 948,
+      "line": 969,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Elevated",
@@ -7289,7 +7433,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 949,
+      "line": 970,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Banned",
@@ -7298,7 +7442,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 950,
+      "line": 971,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Unbanned",
@@ -7307,7 +7451,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 951,
+      "line": 972,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Role changed",
@@ -7316,7 +7460,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 952,
+      "line": 973,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Plan changed",
@@ -7325,7 +7469,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 953,
+      "line": 974,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Credits adjusted",
@@ -7334,7 +7478,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 954,
+      "line": 975,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Model edited",
@@ -7343,7 +7487,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 955,
+      "line": 976,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Key updated",
@@ -7352,7 +7496,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 956,
+      "line": 977,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Route key written",
@@ -7361,7 +7505,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 957,
+      "line": 978,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Route override cleared",
@@ -7370,7 +7514,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 958,
+      "line": 979,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Codes generated",
@@ -7379,7 +7523,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 959,
+      "line": 980,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Model created",
@@ -7388,7 +7532,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 960,
+      "line": 981,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Provider endpoint updated",
@@ -7397,7 +7541,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 961,
+      "line": 982,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Channel created",
@@ -7406,7 +7550,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 962,
+      "line": 983,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Channel updated",
@@ -7415,7 +7559,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 963,
+      "line": 984,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Channel deleted",
@@ -7424,7 +7568,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 964,
+      "line": 985,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Dashboard",
@@ -7433,7 +7577,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 965,
+      "line": 986,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Last 24 hours",
@@ -7442,7 +7586,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 966,
+      "line": 987,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Last 7 days",
@@ -7451,7 +7595,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 967,
+      "line": 988,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Last 30 days",
@@ -7460,7 +7604,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 968,
+      "line": 989,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Calls",
@@ -7469,7 +7613,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 969,
+      "line": 990,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Points spent",
@@ -7478,7 +7622,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 970,
+      "line": 991,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Seconds generated",
@@ -7487,7 +7631,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 971,
+      "line": 992,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Avg RPM",
@@ -7496,7 +7640,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 972,
+      "line": 993,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Average calls per minute over the range",
@@ -7505,7 +7649,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 973,
+      "line": 994,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Success rate",
@@ -7514,7 +7658,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 974,
+      "line": 995,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Active users",
@@ -7523,7 +7667,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 975,
+      "line": 996,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Failed",
@@ -7532,7 +7676,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 976,
+      "line": 997,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Points granted",
@@ -7541,7 +7685,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 977,
+      "line": 998,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Spend by model",
@@ -7550,7 +7694,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 978,
+      "line": 999,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Call volume",
@@ -7559,7 +7703,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 979,
+      "line": 1000,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Calls within the selected range",
@@ -7568,7 +7712,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 980,
+      "line": 1001,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Unattributed",
@@ -7577,7 +7721,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 981,
+      "line": 1002,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Other",
@@ -7586,7 +7730,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 982,
+      "line": 1003,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Model",
@@ -7595,7 +7739,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 983,
+      "line": 1004,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Calls",
@@ -7604,7 +7748,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 984,
+      "line": 1005,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Spent",
@@ -7613,7 +7757,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 985,
+      "line": 1006,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Seconds",
@@ -7622,7 +7766,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 988,
+      "line": 1009,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Hourly",
@@ -7631,7 +7775,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 989,
+      "line": 1010,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Daily",
@@ -7640,7 +7784,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 990,
+      "line": 1011,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Numbers are listed in the table below",
@@ -7649,7 +7793,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 991,
+      "line": 1012,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Ban this user?",
@@ -7658,7 +7802,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 993,
+      "line": 1014,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "They will be unable to sign in and existing sessions end immediately.",
@@ -7667,7 +7811,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 994,
+      "line": 1015,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Change this user",
@@ -7676,7 +7820,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 996,
+      "line": 1017,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "The role decides which endpoints they can reach. Takes effect immediately.",
@@ -7685,7 +7829,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 997,
+      "line": 1018,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Change this user",
@@ -7694,7 +7838,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 999,
+      "line": 1020,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "The plan decides which models they can use. Takes effect immediately.",
@@ -7703,7 +7847,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1000,
+      "line": 1021,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Confirm",
@@ -7712,7 +7856,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1001,
+      "line": 1022,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Cancel",
@@ -7721,7 +7865,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1002,
+      "line": 1023,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Users",
@@ -7730,7 +7874,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1003,
+      "line": 1024,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Models",
@@ -7739,7 +7883,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1004,
+      "line": 1025,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Billing",
@@ -7748,7 +7892,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1005,
+      "line": 1026,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Audit log",
@@ -7757,7 +7901,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1006,
+      "line": 1027,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Back to editor",
@@ -7766,7 +7910,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1008,
+      "line": 1029,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Please sign in first",
@@ -7775,7 +7919,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1009,
+      "line": 1030,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Admin access required",
@@ -7784,7 +7928,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1010,
+      "line": 1031,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Verify yourself first to open the admin panel",
@@ -7793,7 +7937,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1011,
+      "line": 1032,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Failed to load",
@@ -7802,7 +7946,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1013,
+      "line": 1034,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Try again",
@@ -7811,7 +7955,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1015,
+      "line": 1036,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "User",
@@ -7820,7 +7964,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1016,
+      "line": 1037,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Joined",
@@ -7829,7 +7973,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1017,
+      "line": 1038,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Role",
@@ -7838,7 +7982,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1018,
+      "line": 1039,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Status",
@@ -7847,7 +7991,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1019,
+      "line": 1040,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Actions",
@@ -7856,7 +8000,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1022,
+      "line": 1043,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pro",
@@ -7865,7 +8009,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1023,
+      "line": 1044,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Free",
@@ -7874,7 +8018,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1024,
+      "line": 1045,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Active",
@@ -7883,7 +8027,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1025,
+      "line": 1046,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Banned",
@@ -7892,7 +8036,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1026,
+      "line": 1047,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Ban",
@@ -7901,7 +8045,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1027,
+      "line": 1048,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Unban",
@@ -7910,7 +8054,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1029,
+      "line": 1050,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Make admin",
@@ -7919,7 +8063,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1030,
+      "line": 1051,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Make user",
@@ -7928,7 +8072,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1031,
+      "line": 1052,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Set Pro",
@@ -7937,7 +8081,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1032,
+      "line": 1053,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Set Free",
@@ -7946,7 +8090,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1033,
+      "line": 1054,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Adjust credits",
@@ -7955,7 +8099,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1034,
+      "line": 1055,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "You cannot do this to your own account",
@@ -7964,7 +8108,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1036,
+      "line": 1057,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Model",
@@ -7973,7 +8117,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1037,
+      "line": 1058,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Type",
@@ -7982,7 +8126,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1038,
+      "line": 1059,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pricing",
@@ -7991,7 +8135,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1039,
+      "line": 1060,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Status",
@@ -8000,7 +8144,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1040,
+      "line": 1061,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Video",
@@ -8009,7 +8153,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1041,
+      "line": 1062,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Tool",
@@ -8018,7 +8162,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1042,
+      "line": 1063,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Audio",
@@ -8027,7 +8171,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1043,
+      "line": 1064,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Local",
@@ -8036,7 +8180,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1047,
+      "line": 1068,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pro",
@@ -8045,7 +8189,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1048,
+      "line": 1069,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enabled",
@@ -8054,7 +8198,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1049,
+      "line": 1070,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Disabled",
@@ -8063,7 +8207,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1053,
+      "line": 1074,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Save",
@@ -8072,7 +8216,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1054,
+      "line": 1075,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Edit",
@@ -8081,7 +8225,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1055,
+      "line": 1076,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Saved",
@@ -8090,7 +8234,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1056,
+      "line": 1077,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Save failed",
@@ -8099,7 +8243,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1057,
+      "line": 1078,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Display name",
@@ -8108,7 +8252,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1058,
+      "line": 1079,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Generation modes",
@@ -8117,7 +8261,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1059,
+      "line": 1080,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Text to video",
@@ -8126,7 +8270,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1060,
+      "line": 1081,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Image to video",
@@ -8135,7 +8279,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1061,
+      "line": 1082,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Supports synced audio",
@@ -8144,7 +8288,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1063,
+      "line": 1084,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sort order",
@@ -8153,7 +8297,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1064,
+      "line": 1085,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Daily limit",
@@ -8162,7 +8306,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1065,
+      "line": 1086,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Unlimited",
@@ -8171,7 +8315,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1066,
+      "line": 1087,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Copy",
@@ -8180,7 +8324,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1067,
+      "line": 1088,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Name locale key",
@@ -8189,7 +8333,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1068,
+      "line": 1089,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Description locale key",
@@ -8198,7 +8342,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1071,
+      "line": 1092,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Provider routing",
@@ -8207,7 +8351,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1074,
+      "line": 1095,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Volcano Ark",
@@ -8216,7 +8360,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1075,
+      "line": 1096,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Atlas Cloud",
@@ -8225,7 +8369,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1078,
+      "line": 1099,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Channels",
@@ -8234,7 +8378,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1079,
+      "line": 1100,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Served by these channels, tried in priority order",
@@ -8243,7 +8387,70 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1081,
+      "line": 1101,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Upstream model",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_upstream\": \"Upstream model\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1102,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Upstream model updated",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_upstream_saved\": \"Upstream model updated\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1103,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Add channel",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_add\": \"Add channel\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1104,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Channel added",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_added\": \"Channel added\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1105,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Select channel",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_pick\": \"Select channel\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1106,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Remove",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_remove\": \"Remove\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1107,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Channel removed",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"admin.models.channel_removed\": \"Channel removed\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1109,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Ready",
@@ -8252,7 +8459,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1082,
+      "line": 1110,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Manage channels",
@@ -8261,7 +8468,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1083,
+      "line": 1111,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Channels",
@@ -8270,7 +8477,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1086,
+      "line": 1114,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "New channel",
@@ -8279,7 +8486,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1088,
+      "line": 1116,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Priority",
@@ -8288,7 +8495,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1089,
+      "line": 1117,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Models",
@@ -8297,7 +8504,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1090,
+      "line": 1118,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Name",
@@ -8306,7 +8513,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1091,
+      "line": 1119,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Type",
@@ -8315,7 +8522,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1094,
+      "line": 1122,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Priority",
@@ -8324,7 +8531,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1095,
+      "line": 1123,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enabled",
@@ -8333,7 +8540,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1096,
+      "line": 1124,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Blank uses the built-in host",
@@ -8342,7 +8549,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1098,
+      "line": 1126,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Leave blank to keep the current key",
@@ -8351,7 +8558,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1101,
+      "line": 1129,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Which models this channel serves, and what it calls each one upstream",
@@ -8360,7 +8567,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1102,
+      "line": 1130,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Add model",
@@ -8369,7 +8576,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1105,
+      "line": 1133,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Upstream model name",
@@ -8378,7 +8585,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1107,
+      "line": 1135,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Ready",
@@ -8387,7 +8594,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1108,
+      "line": 1136,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Delete",
@@ -8396,7 +8603,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1109,
+      "line": 1137,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Delete this channel?",
@@ -8405,7 +8612,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1111,
+      "line": 1139,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Models that only this channel served will stop working. This cannot be undone.",
@@ -8414,7 +8621,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1112,
+      "line": 1140,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Saved",
@@ -8423,7 +8630,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1113,
+      "line": 1141,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Created",
@@ -8432,7 +8639,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1114,
+      "line": 1142,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Deleted",
@@ -8441,7 +8648,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1115,
+      "line": 1143,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Edit",
@@ -8450,7 +8657,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1116,
+      "line": 1144,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Name is required",
@@ -8459,7 +8666,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1117,
+      "line": 1145,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Unknown protocol type",
@@ -8468,7 +8675,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1119,
+      "line": 1147,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Map at least one model",
@@ -8477,7 +8684,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1120,
+      "line": 1148,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "The mapping names a model that does not exist",
@@ -8486,7 +8693,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1121,
+      "line": 1149,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Model ID",
@@ -8495,7 +8702,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1122,
+      "line": 1150,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Endpoint",
@@ -8504,7 +8711,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1123,
+      "line": 1151,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Blank uses the built-in host",
@@ -8513,7 +8720,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1124,
+      "line": 1152,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Endpoint updated",
@@ -8522,7 +8729,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1128,
+      "line": 1156,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Add model",
@@ -8531,7 +8738,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1129,
+      "line": 1157,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Add model",
@@ -8540,7 +8747,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1132,
+      "line": 1160,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Create",
@@ -8549,7 +8756,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1133,
+      "line": 1161,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Cancel",
@@ -8558,7 +8765,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1134,
+      "line": 1162,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Created",
@@ -8567,7 +8774,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1136,
+      "line": 1164,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Use lowercase letters, digits, dot, underscore or dash, starting with a letter or digit",
@@ -8576,7 +8783,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1137,
+      "line": 1165,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "That ID is already taken",
@@ -8585,7 +8792,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1140,
+      "line": 1168,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Routes",
@@ -8594,7 +8801,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1144,
+      "line": 1172,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Show all",
@@ -8603,7 +8810,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1145,
+      "line": 1173,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Only missing keys",
@@ -8612,7 +8819,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1147,
+      "line": 1175,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Tried in order",
@@ -8621,7 +8828,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1150,
+      "line": 1178,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Capabilities",
@@ -8630,7 +8837,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1151,
+      "line": 1179,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Key",
@@ -8639,7 +8846,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1152,
+      "line": 1180,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Not configured",
@@ -8648,7 +8855,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1157,
+      "line": 1185,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Set",
@@ -8657,7 +8864,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1158,
+      "line": 1186,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Override",
@@ -8666,7 +8873,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1159,
+      "line": 1187,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Edit shared",
@@ -8675,7 +8882,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1160,
+      "line": 1188,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Clear override",
@@ -8684,7 +8891,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1161,
+      "line": 1189,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Write",
@@ -8693,7 +8900,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1162,
+      "line": 1190,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Cancel",
@@ -8702,7 +8909,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1163,
+      "line": 1191,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Key updated",
@@ -8711,7 +8918,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1164,
+      "line": 1192,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Reverted to the shared key",
@@ -8720,7 +8927,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1166,
+      "line": 1194,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Discard",
@@ -8729,7 +8936,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1167,
+      "line": 1195,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Discard unsaved changes?",
@@ -8738,7 +8945,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1168,
+      "line": 1196,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "These changes won",
@@ -8747,7 +8954,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1169,
+      "line": 1197,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Discard changes",
@@ -8756,7 +8963,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1170,
+      "line": 1198,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Keep editing",
@@ -8765,7 +8972,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1172,
+      "line": 1200,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "User email",
@@ -8774,7 +8981,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1175,
+      "line": 1203,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Apply adjustment",
@@ -8783,7 +8990,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1178,
+      "line": 1206,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Count",
@@ -8792,7 +8999,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1179,
+      "line": 1207,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Credits each",
@@ -8801,7 +9008,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1180,
+      "line": 1208,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Generate",
@@ -8810,7 +9017,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1181,
+      "line": 1209,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Generated codes",
@@ -8819,7 +9026,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1182,
+      "line": 1210,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Copy all",
@@ -8828,7 +9035,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1183,
+      "line": 1211,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Copied",
@@ -8837,7 +9044,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1184,
+      "line": 1212,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Time",
@@ -8846,7 +9053,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1185,
+      "line": 1213,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Actor",
@@ -8855,7 +9062,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1186,
+      "line": 1214,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Action",
@@ -8864,7 +9071,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1187,
+      "line": 1215,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Target",
@@ -8873,7 +9080,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1188,
+      "line": 1216,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Detail",
@@ -8882,7 +9089,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1192,
+      "line": 1220,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Top up",
@@ -8891,16 +9098,16 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1196,
+      "line": 1224,
       "severity": "medium",
       "pattern": "用户可见英文",
-      "text": "Frozen before generation, settled on actual usage, fully refunded on failure",
+      "text": "Frozen before generation, fully refunded on failure",
       "description": "可能的硬编码英文文本（需人工确认）",
-      "lineContent": "\"Frozen before generation, settled on actual usage, fully refunded on failure\","
+      "lineContent": "\"Frozen before generation, fully refunded on failure\","
     },
     {
       "file": "locale\\en.ts",
-      "line": 1197,
+      "line": 1225,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Not enough credits",
@@ -8909,7 +9116,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1200,
+      "line": 1228,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Top up",
@@ -8918,7 +9125,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1201,
+      "line": 1229,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Redeem a code",
@@ -8927,7 +9134,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1202,
+      "line": 1230,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enter code, e.g. MC-XXXX-XXXX",
@@ -8936,7 +9143,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1203,
+      "line": 1231,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Redeem",
@@ -8945,7 +9152,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1205,
+      "line": 1233,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Code is invalid or already used",
@@ -8954,7 +9161,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1207,
+      "line": 1235,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pro",
@@ -8963,7 +9170,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1208,
+      "line": 1236,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Pro plan required",
@@ -8972,7 +9179,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1209,
+      "line": 1237,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "This model was taken offline, pick another",
@@ -8981,7 +9188,34 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1212,
+      "line": 1238,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "This model requires a Pro plan",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"billing.error.pro_required\": \"This model requires a Pro plan\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1239,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Daily limit reached for this model",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"billing.error.daily_limit\": \"Daily limit reached for this model\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1240,
+      "severity": "medium",
+      "pattern": "用户可见英文",
+      "text": "Sign in to generate",
+      "description": "可能的硬编码英文文本（需人工确认）",
+      "lineContent": "\"billing.error.unauthenticated\": \"Sign in to generate\","
+    },
+    {
+      "file": "locale\\en.ts",
+      "line": 1243,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sign in",
@@ -8990,7 +9224,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1213,
+      "line": 1244,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Account",
@@ -8999,7 +9233,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1214,
+      "line": 1245,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Admin panel",
@@ -9008,7 +9242,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1215,
+      "line": 1246,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sign out",
@@ -9017,7 +9251,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1218,
+      "line": 1249,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Account",
@@ -9026,7 +9260,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1220,
+      "line": 1251,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Credits",
@@ -9035,7 +9269,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1221,
+      "line": 1252,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Security",
@@ -9044,7 +9278,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1222,
+      "line": 1253,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Signed-in devices",
@@ -9053,7 +9287,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1223,
+      "line": 1254,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Danger zone",
@@ -9062,7 +9296,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1226,
+      "line": 1257,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Delete account",
@@ -9071,7 +9305,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1227,
+      "line": 1258,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Current balance",
@@ -9080,7 +9314,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1228,
+      "line": 1259,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Recent transactions",
@@ -9089,7 +9323,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1229,
+      "line": 1260,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Frozen",
@@ -9098,7 +9332,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1230,
+      "line": 1261,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Settled",
@@ -9107,7 +9341,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1231,
+      "line": 1262,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Refund",
@@ -9116,7 +9350,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1232,
+      "line": 1263,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Signup bonus",
@@ -9125,7 +9359,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1233,
+      "line": 1264,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Redeemed",
@@ -9134,7 +9368,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1234,
+      "line": 1265,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Manual adjustment",
@@ -9143,7 +9377,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1235,
+      "line": 1266,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Two-step verification",
@@ -9152,7 +9386,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1237,
+      "line": 1268,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Off",
@@ -9161,7 +9395,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1238,
+      "line": 1269,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Enable",
@@ -9170,7 +9404,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1239,
+      "line": 1270,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Disable",
@@ -9179,7 +9413,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1241,
+      "line": 1272,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Confirm with password",
@@ -9188,7 +9422,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1242,
+      "line": 1273,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Password",
@@ -9197,7 +9431,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1243,
+      "line": 1274,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Change password",
@@ -9206,7 +9440,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1244,
+      "line": 1275,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Current password",
@@ -9215,7 +9449,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1245,
+      "line": 1276,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "New password",
@@ -9224,7 +9458,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1246,
+      "line": 1277,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Password changed",
@@ -9233,7 +9467,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1247,
+      "line": 1278,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Sign out other devices",
@@ -9242,7 +9476,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1248,
+      "line": 1279,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Revoke",
@@ -9251,7 +9485,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1249,
+      "line": 1280,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Current",
@@ -9260,7 +9494,7 @@
     },
     {
       "file": "locale\\en.ts",
-      "line": 1250,
+      "line": 1281,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Two-step verification is off",
@@ -14618,13 +14852,184 @@
       "line": 737,
       "severity": "high",
       "pattern": "中文字符",
+      "text": "从素材选择",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.image_pick_library\": \"从素材选择\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 738,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "从素材选择",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_title\": \"从素材选择\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 739,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "全部",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_all\": \"全部\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 740,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "视频",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_videos\": \"视频\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 741,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "图片",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_images\": \"图片\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 742,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "项目还没有素材，可先上传图片或拖入视频",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_empty\": \"项目还没有素材，可先上传图片或拖入视频\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 743,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "本地上传",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_local_fallback\": \"本地上传\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 744,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "封面帧",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_cover_badge\": \"封面帧\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 745,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "视频素材默认取封面帧，确认后可再更换",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_cover_hint\": \"视频素材默认取封面帧，确认后可再更换\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 746,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "该视频缺少可用的封面帧，无法作参考图",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_no_preview\": \"该视频缺少可用的封面帧，无法作参考图\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 747,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "超过大小限制",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_too_large\": \"超过大小限制\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 748,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "确认",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.picker_confirm\": \"确认\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 749,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "选择帧",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_title\": \"选择帧\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 750,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "取帧",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_action\": \"取帧\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 751,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "使用此帧",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_confirm\": \"使用此帧\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 752,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "拖动播放头或胶片条定位，Ctrl+滚轮缩放时间轴可精确定位，确认使用当前帧",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_hint\": \"拖动播放头或胶片条定位，Ctrl+滚轮缩放时间轴可精确定位，确认使用当前帧\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 753,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "该视频无法解码取帧，请换一个素材",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_failed\": \"该视频无法解码取帧，请换一个素材\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 754,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "放大时间轴",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_zoom_in\": \"放大时间轴\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 755,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "缩小时间轴",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"ai_video.frame_zoom_out\": \"缩小时间轴\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 756,
+      "severity": "high",
+      "pattern": "中文字符",
       "text": "高级配置",
       "description": "发现硬编码的中文文本",
       "lineContent": "\"ai_video.advanced\": \"高级配置\","
     },
     {
       "file": "locale\\zh.ts",
-      "line": 738,
+      "line": 757,
       "severity": "high",
       "pattern": "中文字符",
       "text": "摄像机运动",
@@ -14633,7 +15038,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 739,
+      "line": 758,
       "severity": "high",
       "pattern": "中文字符",
       "text": "自动",
@@ -14642,7 +15047,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 740,
+      "line": 759,
       "severity": "high",
       "pattern": "中文字符",
       "text": "固定（无运动）",
@@ -14651,7 +15056,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 741,
+      "line": 760,
       "severity": "high",
       "pattern": "中文字符",
       "text": "推进",
@@ -14660,7 +15065,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 742,
+      "line": 761,
       "severity": "high",
       "pattern": "中文字符",
       "text": "拉远",
@@ -14669,7 +15074,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 743,
+      "line": 762,
       "severity": "high",
       "pattern": "中文字符",
       "text": "左移",
@@ -14678,7 +15083,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 744,
+      "line": 763,
       "severity": "high",
       "pattern": "中文字符",
       "text": "右移",
@@ -14687,7 +15092,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 745,
+      "line": 764,
       "severity": "high",
       "pattern": "中文字符",
       "text": "通过提示词引导镜头运动，实际效果由模型决定。",
@@ -14696,7 +15101,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 746,
+      "line": 765,
       "severity": "high",
       "pattern": "中文字符",
       "text": "分镜生视频",
@@ -14705,7 +15110,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 748,
+      "line": 767,
       "severity": "high",
       "pattern": "中文字符",
       "text": "把长视频拆成多个镜头依次生成，完成后按顺序插入时间轴，每个镜头仍可单独编辑。",
@@ -14714,7 +15119,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 749,
+      "line": 768,
       "severity": "high",
       "pattern": "中文字符",
       "text": "描述这个镜头的画面",
@@ -14723,7 +15128,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 750,
+      "line": 769,
       "severity": "high",
       "pattern": "中文字符",
       "text": "添加镜头",
@@ -14732,7 +15137,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 751,
+      "line": 770,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除",
@@ -14741,7 +15146,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 752,
+      "line": 771,
       "severity": "high",
       "pattern": "中文字符",
       "text": "至少需要保留一个镜头",
@@ -14750,7 +15155,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 753,
+      "line": 772,
       "severity": "high",
       "pattern": "中文字符",
       "text": "第 {index} 个镜头还没有填写描述",
@@ -14759,7 +15164,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 754,
+      "line": 773,
       "severity": "high",
       "pattern": "中文字符",
       "text": "第 {index} 个镜头还没有上传起始图片",
@@ -14768,7 +15173,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 755,
+      "line": 774,
       "severity": "high",
       "pattern": "中文字符",
       "text": "添加图片",
@@ -14777,7 +15182,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 756,
+      "line": 775,
       "severity": "high",
       "pattern": "中文字符",
       "text": "更换",
@@ -14786,7 +15191,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 757,
+      "line": 776,
       "severity": "high",
       "pattern": "中文字符",
       "text": "移除",
@@ -14795,7 +15200,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 758,
+      "line": 777,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成视频（{count} 个镜头，共 {duration} 秒）",
@@ -14804,7 +15209,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 759,
+      "line": 778,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成第 {current}/{total} 个镜头...",
@@ -14813,7 +15218,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 760,
+      "line": 779,
       "severity": "high",
       "pattern": "中文字符",
       "text": "第 {index} 个镜头生成失败：{error}",
@@ -14822,7 +15227,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 761,
+      "line": 780,
       "severity": "high",
       "pattern": "中文字符",
       "text": "完成 {success}/{total} 个镜头，其余失败",
@@ -14831,7 +15236,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 762,
+      "line": 781,
       "severity": "high",
       "pattern": "中文字符",
       "text": "所有镜头都生成失败",
@@ -14840,7 +15245,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 764,
+      "line": 783,
       "severity": "high",
       "pattern": "中文字符",
       "text": "镜头之间的转场可在生成完成后用「转场」面板添加。",
@@ -14849,7 +15254,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 765,
+      "line": 784,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已加入素材库并插入时间轴",
@@ -14858,7 +15263,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 766,
+      "line": 785,
       "severity": "high",
       "pattern": "中文字符",
       "text": "AI视频",
@@ -14867,7 +15272,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 767,
+      "line": 786,
       "severity": "high",
       "pattern": "中文字符",
       "text": "AI分镜{index}",
@@ -14876,7 +15281,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 769,
+      "line": 788,
       "severity": "high",
       "pattern": "中文字符",
       "text": "让画面自然地动起来，保持原有构图和风格",
@@ -14885,7 +15290,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 772,
+      "line": 791,
       "severity": "high",
       "pattern": "中文字符",
       "text": "请先在图片上涂鸦标记要擦除的区域",
@@ -14894,7 +15299,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 773,
+      "line": 792,
       "severity": "high",
       "pattern": "中文字符",
       "text": "无法生成遮罩图",
@@ -14903,7 +15308,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 774,
+      "line": 793,
       "severity": "high",
       "pattern": "中文字符",
       "text": "画笔大小：",
@@ -14912,7 +15317,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 775,
+      "line": 794,
       "severity": "high",
       "pattern": "中文字符",
       "text": "清除",
@@ -14921,7 +15326,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 776,
+      "line": 795,
       "severity": "high",
       "pattern": "中文字符",
       "text": "用红色画笔在图片上涂抹，标记要擦除的区域",
@@ -14930,7 +15335,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 777,
+      "line": 796,
       "severity": "high",
       "pattern": "中文字符",
       "text": "预览",
@@ -14939,7 +15344,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 779,
+      "line": 798,
       "severity": "high",
       "pattern": "中文字符",
       "text": "通过 fal.ai 调用 AI 模型。抠像约 3-5 秒；擦除需先在图片上涂鸦标记区域，约 10-20 秒。结果自动加入素材库。",
@@ -14948,7 +15353,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 782,
+      "line": 801,
       "severity": "high",
       "pattern": "中文字符",
       "text": "出错了！",
@@ -14957,7 +15362,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 783,
+      "line": 802,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重试",
@@ -14966,7 +15371,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 786,
+      "line": 805,
       "severity": "high",
       "pattern": "中文字符",
       "text": "位置 X",
@@ -14975,7 +15380,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 787,
+      "line": 806,
       "severity": "high",
       "pattern": "中文字符",
       "text": "位置 Y",
@@ -14984,7 +15389,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 788,
+      "line": 807,
       "severity": "high",
       "pattern": "中文字符",
       "text": "缩放 X",
@@ -14993,7 +15398,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 789,
+      "line": 808,
       "severity": "high",
       "pattern": "中文字符",
       "text": "缩放 Y",
@@ -15002,7 +15407,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 790,
+      "line": 809,
       "severity": "high",
       "pattern": "中文字符",
       "text": "不透明度",
@@ -15011,7 +15416,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 791,
+      "line": 810,
       "severity": "high",
       "pattern": "中文字符",
       "text": "音量",
@@ -15020,7 +15425,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 792,
+      "line": 811,
       "severity": "high",
       "pattern": "中文字符",
       "text": "背景颜色",
@@ -15029,7 +15434,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 793,
+      "line": 812,
       "severity": "high",
       "pattern": "中文字符",
       "text": "背景内边距 X",
@@ -15038,7 +15443,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 794,
+      "line": 813,
       "severity": "high",
       "pattern": "中文字符",
       "text": "背景内边距 Y",
@@ -15047,7 +15452,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 795,
+      "line": 814,
       "severity": "high",
       "pattern": "中文字符",
       "text": "背景偏移 X",
@@ -15056,7 +15461,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 796,
+      "line": 815,
       "severity": "high",
       "pattern": "中文字符",
       "text": "背景偏移 Y",
@@ -15065,7 +15470,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 797,
+      "line": 816,
       "severity": "high",
       "pattern": "中文字符",
       "text": "静音",
@@ -15074,7 +15479,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 798,
+      "line": 817,
       "severity": "high",
       "pattern": "中文字符",
       "text": "字号",
@@ -15083,7 +15488,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 799,
+      "line": 818,
       "severity": "high",
       "pattern": "中文字符",
       "text": "文字对齐",
@@ -15092,7 +15497,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 800,
+      "line": 819,
       "severity": "high",
       "pattern": "中文字符",
       "text": "左对齐",
@@ -15101,7 +15506,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 801,
+      "line": 820,
       "severity": "high",
       "pattern": "中文字符",
       "text": "居中",
@@ -15110,7 +15515,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 802,
+      "line": 821,
       "severity": "high",
       "pattern": "中文字符",
       "text": "右对齐",
@@ -15119,7 +15524,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 803,
+      "line": 822,
       "severity": "high",
       "pattern": "中文字符",
       "text": "字重",
@@ -15128,7 +15533,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 804,
+      "line": 823,
       "severity": "high",
       "pattern": "中文字符",
       "text": "常规",
@@ -15137,7 +15542,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 805,
+      "line": 824,
       "severity": "high",
       "pattern": "中文字符",
       "text": "加粗",
@@ -15146,7 +15551,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 806,
+      "line": 825,
       "severity": "high",
       "pattern": "中文字符",
       "text": "字体样式",
@@ -15155,7 +15560,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 807,
+      "line": 826,
       "severity": "high",
       "pattern": "中文字符",
       "text": "常规",
@@ -15164,7 +15569,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 808,
+      "line": 827,
       "severity": "high",
       "pattern": "中文字符",
       "text": "斜体",
@@ -15173,7 +15578,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 809,
+      "line": 828,
       "severity": "high",
       "pattern": "中文字符",
       "text": "文字装饰",
@@ -15182,7 +15587,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 810,
+      "line": 829,
       "severity": "high",
       "pattern": "中文字符",
       "text": "无",
@@ -15191,7 +15596,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 811,
+      "line": 830,
       "severity": "high",
       "pattern": "中文字符",
       "text": "下划线",
@@ -15200,7 +15605,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 812,
+      "line": 831,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除线",
@@ -15209,7 +15614,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 813,
+      "line": 832,
       "severity": "high",
       "pattern": "中文字符",
       "text": "启用背景",
@@ -15218,7 +15623,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 814,
+      "line": 833,
       "severity": "high",
       "pattern": "中文字符",
       "text": "背景圆角",
@@ -15227,7 +15632,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 815,
+      "line": 834,
       "severity": "high",
       "pattern": "中文字符",
       "text": "混合模式",
@@ -15236,7 +15641,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 816,
+      "line": 835,
       "severity": "high",
       "pattern": "中文字符",
       "text": "正常",
@@ -15245,7 +15650,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 817,
+      "line": 836,
       "severity": "high",
       "pattern": "中文字符",
       "text": "变暗",
@@ -15254,7 +15659,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 818,
+      "line": 837,
       "severity": "high",
       "pattern": "中文字符",
       "text": "正片叠底",
@@ -15263,7 +15668,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 819,
+      "line": 838,
       "severity": "high",
       "pattern": "中文字符",
       "text": "颜色加深",
@@ -15272,7 +15677,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 820,
+      "line": 839,
       "severity": "high",
       "pattern": "中文字符",
       "text": "变亮",
@@ -15281,7 +15686,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 821,
+      "line": 840,
       "severity": "high",
       "pattern": "中文字符",
       "text": "滤色",
@@ -15290,7 +15695,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 822,
+      "line": 841,
       "severity": "high",
       "pattern": "中文字符",
       "text": "线性减淡（添加）",
@@ -15299,7 +15704,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 823,
+      "line": 842,
       "severity": "high",
       "pattern": "中文字符",
       "text": "颜色减淡",
@@ -15308,7 +15713,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 824,
+      "line": 843,
       "severity": "high",
       "pattern": "中文字符",
       "text": "叠加",
@@ -15317,7 +15722,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 825,
+      "line": 844,
       "severity": "high",
       "pattern": "中文字符",
       "text": "柔光",
@@ -15326,7 +15731,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 826,
+      "line": 845,
       "severity": "high",
       "pattern": "中文字符",
       "text": "强光",
@@ -15335,7 +15740,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 827,
+      "line": 846,
       "severity": "high",
       "pattern": "中文字符",
       "text": "差值",
@@ -15344,7 +15749,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 828,
+      "line": 847,
       "severity": "high",
       "pattern": "中文字符",
       "text": "排除",
@@ -15353,7 +15758,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 829,
+      "line": 848,
       "severity": "high",
       "pattern": "中文字符",
       "text": "色相",
@@ -15362,7 +15767,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 830,
+      "line": 849,
       "severity": "high",
       "pattern": "中文字符",
       "text": "饱和度",
@@ -15371,7 +15776,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 831,
+      "line": 850,
       "severity": "high",
       "pattern": "中文字符",
       "text": "颜色",
@@ -15380,7 +15785,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 832,
+      "line": 851,
       "severity": "high",
       "pattern": "中文字符",
       "text": "明度",
@@ -15389,7 +15794,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 835,
+      "line": 854,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除「{name}」？",
@@ -15398,7 +15803,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 836,
+      "line": 855,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{count} 个项目",
@@ -15407,7 +15812,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 837,
+      "line": 856,
       "severity": "high",
       "pattern": "中文字符",
       "text": "从 v{from} 升级到 v{to}",
@@ -15416,7 +15821,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 840,
+      "line": 859,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除场景",
@@ -15425,7 +15830,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 843,
+      "line": 862,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未找到项目",
@@ -15434,7 +15839,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 844,
+      "line": 863,
       "severity": "high",
       "pattern": "中文字符",
       "text": "部分项目未找到",
@@ -15443,7 +15848,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 847,
+      "line": 866,
       "severity": "high",
       "pattern": "中文字符",
       "text": "资源",
@@ -15452,7 +15857,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 848,
+      "line": 867,
       "severity": "high",
       "pattern": "中文字符",
       "text": "公司",
@@ -15461,7 +15866,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 851,
+      "line": 870,
       "severity": "high",
       "pattern": "中文字符",
       "text": "全部下载",
@@ -15470,7 +15875,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 852,
+      "line": 871,
       "severity": "high",
       "pattern": "中文字符",
       "text": "特效",
@@ -15479,7 +15884,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 855,
+      "line": 874,
       "severity": "high",
       "pattern": "中文字符",
       "text": "登录 MyCut",
@@ -15488,7 +15893,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 856,
+      "line": 875,
       "severity": "high",
       "pattern": "中文字符",
       "text": "没有账户？",
@@ -15497,7 +15902,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 857,
+      "line": 876,
       "severity": "high",
       "pattern": "中文字符",
       "text": "创建一个",
@@ -15506,7 +15911,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 858,
+      "line": 877,
       "severity": "high",
       "pattern": "中文字符",
       "text": "，10 秒即可。",
@@ -15515,7 +15920,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 859,
+      "line": 878,
       "severity": "high",
       "pattern": "中文字符",
       "text": "项目在本地，",
@@ -15524,7 +15929,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 860,
+      "line": 879,
       "severity": "high",
       "pattern": "中文字符",
       "text": "账户让它们跟着你走。",
@@ -15533,7 +15938,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 861,
+      "line": 880,
       "severity": "high",
       "pattern": "中文字符",
       "text": "创建 MyCut 账户",
@@ -15542,7 +15947,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 862,
+      "line": 881,
       "severity": "high",
       "pattern": "中文字符",
       "text": "邮箱",
@@ -15551,7 +15956,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 863,
+      "line": 882,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密码",
@@ -15560,7 +15965,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 864,
+      "line": 883,
       "severity": "high",
       "pattern": "中文字符",
       "text": "确认密码",
@@ -15569,7 +15974,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 865,
+      "line": 884,
       "severity": "high",
       "pattern": "中文字符",
       "text": "昵称",
@@ -15578,7 +15983,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 866,
+      "line": 885,
       "severity": "high",
       "pattern": "中文字符",
       "text": "这个昵称会显示在你的作品中",
@@ -15587,7 +15992,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 867,
+      "line": 886,
       "severity": "high",
       "pattern": "中文字符",
       "text": "登录",
@@ -15596,7 +16001,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 868,
+      "line": 887,
       "severity": "high",
       "pattern": "中文字符",
       "text": "创建账户",
@@ -15605,7 +16010,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 869,
+      "line": 888,
       "severity": "high",
       "pattern": "中文字符",
       "text": "发送重置链接",
@@ -15614,7 +16019,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 870,
+      "line": 889,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重置密码",
@@ -15623,7 +16028,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 871,
+      "line": 890,
       "severity": "high",
       "pattern": "中文字符",
       "text": "处理中…",
@@ -15632,7 +16037,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 872,
+      "line": 891,
       "severity": "high",
       "pattern": "中文字符",
       "text": "30 天内记住我",
@@ -15641,7 +16046,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 873,
+      "line": 892,
       "severity": "high",
       "pattern": "中文字符",
       "text": "忘记密码？",
@@ -15650,7 +16055,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 874,
+      "line": 893,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已有账户？",
@@ -15659,7 +16064,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 875,
+      "line": 894,
       "severity": "high",
       "pattern": "中文字符",
       "text": "去登录",
@@ -15668,7 +16073,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 876,
+      "line": 895,
       "severity": "high",
       "pattern": "中文字符",
       "text": "我已阅读并同意",
@@ -15677,7 +16082,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 877,
+      "line": 896,
       "severity": "high",
       "pattern": "中文字符",
       "text": "注册即同意",
@@ -15686,16 +16091,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 878,
-      "severity": "high",
-      "pattern": "中文字符",
-      "text": "先以游客身份继续",
-      "description": "发现硬编码的中文文本",
-      "lineContent": "\"auth.login.guest\": \"先以游客身份继续\","
-    },
-    {
-      "file": "locale\\zh.ts",
-      "line": 879,
+      "line": 897,
       "severity": "high",
       "pattern": "中文字符",
       "text": "大写锁定已开启",
@@ -15704,7 +16100,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 880,
+      "line": 898,
       "severity": "high",
       "pattern": "中文字符",
       "text": "忘记密码",
@@ -15713,7 +16109,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 881,
+      "line": 899,
       "severity": "high",
       "pattern": "中文字符",
       "text": "如果该邮箱已注册，重置链接已发送。",
@@ -15722,7 +16118,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 882,
+      "line": 900,
       "severity": "high",
       "pattern": "中文字符",
       "text": "请在 30 分钟内完成重置。",
@@ -15731,7 +16127,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 883,
+      "line": 901,
       "severity": "high",
       "pattern": "中文字符",
       "text": "没收到？",
@@ -15740,7 +16136,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 884,
+      "line": 902,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重新发送",
@@ -15749,7 +16145,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 885,
+      "line": 903,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重置密码",
@@ -15758,7 +16154,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 886,
+      "line": 904,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新密码",
@@ -15767,7 +16163,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 887,
+      "line": 905,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密码已重置，请用新密码登录。",
@@ -15776,7 +16172,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 888,
+      "line": 906,
       "severity": "high",
       "pattern": "中文字符",
       "text": "邮箱或密码不正确",
@@ -15785,7 +16181,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 889,
+      "line": 907,
       "severity": "high",
       "pattern": "中文字符",
       "text": "该邮箱已注册",
@@ -15794,7 +16190,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 890,
+      "line": 908,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密码至少 10 位",
@@ -15803,7 +16199,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 891,
+      "line": 909,
       "severity": "high",
       "pattern": "中文字符",
       "text": "两次输入的密码不一致",
@@ -15812,7 +16208,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 892,
+      "line": 910,
       "severity": "high",
       "pattern": "中文字符",
       "text": "邮箱格式不正确",
@@ -15821,7 +16217,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 893,
+      "line": 911,
       "severity": "high",
       "pattern": "中文字符",
       "text": "请先同意服务条款与隐私政策",
@@ -15830,7 +16226,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 894,
+      "line": 912,
       "severity": "high",
       "pattern": "中文字符",
       "text": "该密码出现在公开泄露记录中，请换一个",
@@ -15839,7 +16235,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 895,
+      "line": 913,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重置链接无效或已过期",
@@ -15848,7 +16244,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 896,
+      "line": 914,
       "severity": "high",
       "pattern": "中文字符",
       "text": "出错了，请重试",
@@ -15857,7 +16253,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 897,
+      "line": 915,
       "severity": "high",
       "pattern": "中文字符",
       "text": "网络连接失败",
@@ -15866,7 +16262,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 898,
+      "line": 916,
       "severity": "high",
       "pattern": "中文字符",
       "text": "尝试次数过多，请稍后再试",
@@ -15875,7 +16271,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 901,
+      "line": 919,
       "severity": "high",
       "pattern": "中文字符",
       "text": "管理员验证",
@@ -15884,7 +16280,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 902,
+      "line": 920,
       "severity": "high",
       "pattern": "中文字符",
       "text": "确认是本人操作",
@@ -15893,7 +16289,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 903,
+      "line": 921,
       "severity": "high",
       "pattern": "中文字符",
       "text": "管理面板包含敏感操作，需要再次验证身份。",
@@ -15902,7 +16298,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 904,
+      "line": 922,
       "severity": "high",
       "pattern": "中文字符",
       "text": "账户密码",
@@ -15911,7 +16307,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 905,
+      "line": 923,
       "severity": "high",
       "pattern": "中文字符",
       "text": "动态码（TOTP）",
@@ -15920,7 +16316,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 906,
+      "line": 924,
       "severity": "high",
       "pattern": "中文字符",
       "text": "输入身份验证器 App 中的 6 位数字，支持直接粘贴。",
@@ -15929,7 +16325,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 907,
+      "line": 925,
       "severity": "high",
       "pattern": "中文字符",
       "text": "进入管理面板",
@@ -15938,7 +16334,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 908,
+      "line": 926,
       "severity": "high",
       "pattern": "中文字符",
       "text": "验证通过后 {count} 分钟内有效",
@@ -15947,7 +16343,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 909,
+      "line": 927,
       "severity": "high",
       "pattern": "中文字符",
       "text": "取消",
@@ -15956,7 +16352,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 910,
+      "line": 928,
       "severity": "high",
       "pattern": "中文字符",
       "text": "管理员会话 {time}",
@@ -15965,7 +16361,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 911,
+      "line": 929,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重新验证",
@@ -15974,7 +16370,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 912,
+      "line": 930,
       "severity": "high",
       "pattern": "中文字符",
       "text": "全部动作",
@@ -15983,7 +16379,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 913,
+      "line": 931,
       "severity": "high",
       "pattern": "中文字符",
       "text": "第 {from}–{to} 条 · 共 {total} 条",
@@ -15992,7 +16388,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 914,
+      "line": 932,
       "severity": "high",
       "pattern": "中文字符",
       "text": "上一页",
@@ -16001,7 +16397,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 915,
+      "line": 933,
       "severity": "high",
       "pattern": "中文字符",
       "text": "下一页",
@@ -16010,7 +16406,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 916,
+      "line": 934,
       "severity": "high",
       "pattern": "中文字符",
       "text": "提权",
@@ -16019,7 +16415,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 917,
+      "line": 935,
       "severity": "high",
       "pattern": "中文字符",
       "text": "封禁",
@@ -16028,7 +16424,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 918,
+      "line": 936,
       "severity": "high",
       "pattern": "中文字符",
       "text": "解封",
@@ -16037,7 +16433,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 919,
+      "line": 937,
       "severity": "high",
       "pattern": "中文字符",
       "text": "改角色",
@@ -16046,7 +16442,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 920,
+      "line": 938,
       "severity": "high",
       "pattern": "中文字符",
       "text": "改套餐",
@@ -16055,7 +16451,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 921,
+      "line": 939,
       "severity": "high",
       "pattern": "中文字符",
       "text": "调整点数",
@@ -16064,7 +16460,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 922,
+      "line": 940,
       "severity": "high",
       "pattern": "中文字符",
       "text": "修改模型",
@@ -16073,7 +16469,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 923,
+      "line": 941,
       "severity": "high",
       "pattern": "中文字符",
       "text": "更新密钥",
@@ -16082,7 +16478,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 924,
+      "line": 942,
       "severity": "high",
       "pattern": "中文字符",
       "text": "写入路由密钥",
@@ -16091,7 +16487,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 925,
+      "line": 943,
       "severity": "high",
       "pattern": "中文字符",
       "text": "清除密钥覆盖",
@@ -16100,7 +16496,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 926,
+      "line": 944,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成兑换码",
@@ -16109,7 +16505,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 927,
+      "line": 945,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新增模型",
@@ -16118,7 +16514,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 928,
+      "line": 946,
       "severity": "high",
       "pattern": "中文字符",
       "text": "更新服务商端点",
@@ -16127,7 +16523,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 929,
+      "line": 947,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新建渠道",
@@ -16136,7 +16532,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 930,
+      "line": 948,
       "severity": "high",
       "pattern": "中文字符",
       "text": "修改渠道",
@@ -16145,7 +16541,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 931,
+      "line": 949,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除渠道",
@@ -16154,7 +16550,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 932,
+      "line": 950,
       "severity": "high",
       "pattern": "中文字符",
       "text": "数据看板",
@@ -16163,7 +16559,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 933,
+      "line": 951,
       "severity": "high",
       "pattern": "中文字符",
       "text": "近 24 小时",
@@ -16172,7 +16568,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 934,
+      "line": 952,
       "severity": "high",
       "pattern": "中文字符",
       "text": "近 7 天",
@@ -16181,7 +16577,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 935,
+      "line": 953,
       "severity": "high",
       "pattern": "中文字符",
       "text": "近 30 天",
@@ -16190,7 +16586,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 936,
+      "line": 954,
       "severity": "high",
       "pattern": "中文字符",
       "text": "调用次数",
@@ -16199,7 +16595,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 937,
+      "line": 955,
       "severity": "high",
       "pattern": "中文字符",
       "text": "消耗点数",
@@ -16208,7 +16604,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 938,
+      "line": 956,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成总秒数",
@@ -16217,7 +16613,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 939,
+      "line": 957,
       "severity": "high",
       "pattern": "中文字符",
       "text": "平均 RPM",
@@ -16226,7 +16622,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 940,
+      "line": 958,
       "severity": "high",
       "pattern": "中文字符",
       "text": "所选范围内的每分钟平均调用次数",
@@ -16235,7 +16631,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 941,
+      "line": 959,
       "severity": "high",
       "pattern": "中文字符",
       "text": "成功率",
@@ -16244,7 +16640,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 942,
+      "line": 960,
       "severity": "high",
       "pattern": "中文字符",
       "text": "活跃用户",
@@ -16253,7 +16649,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 943,
+      "line": 961,
       "severity": "high",
       "pattern": "中文字符",
       "text": "失败",
@@ -16262,7 +16658,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 944,
+      "line": 962,
       "severity": "high",
       "pattern": "中文字符",
       "text": "发放点数",
@@ -16271,7 +16667,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 945,
+      "line": 963,
       "severity": "high",
       "pattern": "中文字符",
       "text": "消耗分布 · 按模型",
@@ -16280,7 +16676,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 946,
+      "line": 964,
       "severity": "high",
       "pattern": "中文字符",
       "text": "调用趋势",
@@ -16289,7 +16685,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 947,
+      "line": 965,
       "severity": "high",
       "pattern": "中文字符",
       "text": "所选范围内的调用次数",
@@ -16298,7 +16694,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 948,
+      "line": 966,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未标注",
@@ -16307,7 +16703,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 949,
+      "line": 967,
       "severity": "high",
       "pattern": "中文字符",
       "text": "其他",
@@ -16316,7 +16712,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 950,
+      "line": 968,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型",
@@ -16325,7 +16721,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 951,
+      "line": 969,
       "severity": "high",
       "pattern": "中文字符",
       "text": "调用",
@@ -16334,7 +16730,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 952,
+      "line": 970,
       "severity": "high",
       "pattern": "中文字符",
       "text": "消耗",
@@ -16343,7 +16739,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 953,
+      "line": 971,
       "severity": "high",
       "pattern": "中文字符",
       "text": "秒数",
@@ -16352,7 +16748,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 954,
+      "line": 972,
       "severity": "high",
       "pattern": "中文字符",
       "text": "该范围内没有调用记录",
@@ -16361,7 +16757,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 955,
+      "line": 973,
       "severity": "high",
       "pattern": "中文字符",
       "text": "无数据",
@@ -16370,7 +16766,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 956,
+      "line": 974,
       "severity": "high",
       "pattern": "中文字符",
       "text": "按小时",
@@ -16379,7 +16775,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 957,
+      "line": 975,
       "severity": "high",
       "pattern": "中文字符",
       "text": "按天",
@@ -16388,7 +16784,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 958,
+      "line": 976,
       "severity": "high",
       "pattern": "中文字符",
       "text": "数值明细见下方表格",
@@ -16397,7 +16793,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 959,
+      "line": 977,
       "severity": "high",
       "pattern": "中文字符",
       "text": "封禁该用户？",
@@ -16406,7 +16802,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 960,
+      "line": 978,
       "severity": "high",
       "pattern": "中文字符",
       "text": "封禁后该用户无法登录，现有会话立即失效。",
@@ -16415,7 +16811,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 961,
+      "line": 979,
       "severity": "high",
       "pattern": "中文字符",
       "text": "变更该用户的角色？",
@@ -16424,7 +16820,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 962,
+      "line": 980,
       "severity": "high",
       "pattern": "中文字符",
       "text": "角色决定该用户能访问哪些接口，变更立即生效。",
@@ -16433,7 +16829,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 963,
+      "line": 981,
       "severity": "high",
       "pattern": "中文字符",
       "text": "变更该用户的套餐？",
@@ -16442,7 +16838,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 964,
+      "line": 982,
       "severity": "high",
       "pattern": "中文字符",
       "text": "套餐决定该用户能使用哪些模型，变更立即生效。",
@@ -16451,7 +16847,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 965,
+      "line": 983,
       "severity": "high",
       "pattern": "中文字符",
       "text": "确认",
@@ -16460,7 +16856,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 966,
+      "line": 984,
       "severity": "high",
       "pattern": "中文字符",
       "text": "取消",
@@ -16469,7 +16865,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 967,
+      "line": 985,
       "severity": "high",
       "pattern": "中文字符",
       "text": "用户管理",
@@ -16478,7 +16874,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 968,
+      "line": 986,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型配置",
@@ -16487,7 +16883,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 969,
+      "line": 987,
       "severity": "high",
       "pattern": "中文字符",
       "text": "计费管理",
@@ -16496,7 +16892,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 970,
+      "line": 988,
       "severity": "high",
       "pattern": "中文字符",
       "text": "审计日志",
@@ -16505,7 +16901,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 971,
+      "line": 989,
       "severity": "high",
       "pattern": "中文字符",
       "text": "返回编辑器",
@@ -16514,7 +16910,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 973,
+      "line": 991,
       "severity": "high",
       "pattern": "中文字符",
       "text": "请先登录",
@@ -16523,7 +16919,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 974,
+      "line": 992,
       "severity": "high",
       "pattern": "中文字符",
       "text": "需要管理员权限",
@@ -16532,7 +16928,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 975,
+      "line": 993,
       "severity": "high",
       "pattern": "中文字符",
       "text": "需要先完成管理员验证",
@@ -16541,7 +16937,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 976,
+      "line": 994,
       "severity": "high",
       "pattern": "中文字符",
       "text": "加载失败",
@@ -16550,7 +16946,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 977,
+      "line": 995,
       "severity": "high",
       "pattern": "中文字符",
       "text": "加载失败（HTTP {status}）",
@@ -16559,7 +16955,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 978,
+      "line": 996,
       "severity": "high",
       "pattern": "中文字符",
       "text": "重试",
@@ -16568,7 +16964,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 979,
+      "line": 997,
       "severity": "high",
       "pattern": "中文字符",
       "text": "搜索邮箱或昵称…",
@@ -16577,7 +16973,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 980,
+      "line": 998,
       "severity": "high",
       "pattern": "中文字符",
       "text": "用户",
@@ -16586,7 +16982,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 981,
+      "line": 999,
       "severity": "high",
       "pattern": "中文字符",
       "text": "注册时间",
@@ -16595,7 +16991,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 982,
+      "line": 1000,
       "severity": "high",
       "pattern": "中文字符",
       "text": "角色",
@@ -16604,7 +17000,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 983,
+      "line": 1001,
       "severity": "high",
       "pattern": "中文字符",
       "text": "状态",
@@ -16613,7 +17009,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 984,
+      "line": 1002,
       "severity": "high",
       "pattern": "中文字符",
       "text": "操作",
@@ -16622,7 +17018,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 985,
+      "line": 1003,
       "severity": "high",
       "pattern": "中文字符",
       "text": "管理员",
@@ -16631,7 +17027,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 986,
+      "line": 1004,
       "severity": "high",
       "pattern": "中文字符",
       "text": "用户",
@@ -16640,7 +17036,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 987,
+      "line": 1005,
       "severity": "high",
       "pattern": "中文字符",
       "text": "专业",
@@ -16649,7 +17045,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 988,
+      "line": 1006,
       "severity": "high",
       "pattern": "中文字符",
       "text": "免费",
@@ -16658,7 +17054,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 989,
+      "line": 1007,
       "severity": "high",
       "pattern": "中文字符",
       "text": "正常",
@@ -16667,7 +17063,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 990,
+      "line": 1008,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已封禁",
@@ -16676,7 +17072,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 991,
+      "line": 1009,
       "severity": "high",
       "pattern": "中文字符",
       "text": "封禁",
@@ -16685,7 +17081,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 992,
+      "line": 1010,
       "severity": "high",
       "pattern": "中文字符",
       "text": "解封",
@@ -16694,7 +17090,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 993,
+      "line": 1011,
       "severity": "high",
       "pattern": "中文字符",
       "text": "封禁原因（写入审计）",
@@ -16703,7 +17099,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 994,
+      "line": 1012,
       "severity": "high",
       "pattern": "中文字符",
       "text": "设为管理员",
@@ -16712,7 +17108,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 995,
+      "line": 1013,
       "severity": "high",
       "pattern": "中文字符",
       "text": "设为用户",
@@ -16721,7 +17117,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 996,
+      "line": 1014,
       "severity": "high",
       "pattern": "中文字符",
       "text": "设为专业",
@@ -16730,7 +17126,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 997,
+      "line": 1015,
       "severity": "high",
       "pattern": "中文字符",
       "text": "设为免费",
@@ -16739,7 +17135,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 998,
+      "line": 1016,
       "severity": "high",
       "pattern": "中文字符",
       "text": "调整点数",
@@ -16748,7 +17144,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 999,
+      "line": 1017,
       "severity": "high",
       "pattern": "中文字符",
       "text": "不能对自己执行该操作",
@@ -16757,7 +17153,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1000,
+      "line": 1018,
       "severity": "high",
       "pattern": "中文字符",
       "text": "没有匹配的用户",
@@ -16766,7 +17162,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1001,
+      "line": 1019,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型",
@@ -16775,7 +17171,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1002,
+      "line": 1020,
       "severity": "high",
       "pattern": "中文字符",
       "text": "类型",
@@ -16784,7 +17180,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1003,
+      "line": 1021,
       "severity": "high",
       "pattern": "中文字符",
       "text": "定价",
@@ -16793,7 +17189,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1004,
+      "line": 1022,
       "severity": "high",
       "pattern": "中文字符",
       "text": "状态",
@@ -16802,7 +17198,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1005,
+      "line": 1023,
       "severity": "high",
       "pattern": "中文字符",
       "text": "视频",
@@ -16811,7 +17207,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1006,
+      "line": 1024,
       "severity": "high",
       "pattern": "中文字符",
       "text": "工具",
@@ -16820,7 +17216,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1007,
+      "line": 1025,
       "severity": "high",
       "pattern": "中文字符",
       "text": "音频",
@@ -16829,7 +17225,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1008,
+      "line": 1026,
       "severity": "high",
       "pattern": "中文字符",
       "text": "本地",
@@ -16838,7 +17234,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1009,
+      "line": 1027,
       "severity": "high",
       "pattern": "中文字符",
       "text": "不计费（本地运行）",
@@ -16847,7 +17243,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1010,
+      "line": 1028,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{count} 点/秒",
@@ -16856,7 +17252,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1011,
+      "line": 1029,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{count} 点/次",
@@ -16865,7 +17261,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1012,
+      "line": 1030,
       "severity": "high",
       "pattern": "中文字符",
       "text": "专业",
@@ -16874,7 +17270,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1013,
+      "line": 1031,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已启用",
@@ -16883,7 +17279,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1014,
+      "line": 1032,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已停用",
@@ -16892,7 +17288,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1015,
+      "line": 1033,
       "severity": "high",
       "pattern": "中文字符",
       "text": "720p 点/秒",
@@ -16901,7 +17297,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1016,
+      "line": 1034,
       "severity": "high",
       "pattern": "中文字符",
       "text": "1080p 点/秒",
@@ -16910,7 +17306,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1017,
+      "line": 1035,
       "severity": "high",
       "pattern": "中文字符",
       "text": "点/次",
@@ -16919,7 +17315,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1018,
+      "line": 1036,
       "severity": "high",
       "pattern": "中文字符",
       "text": "保存",
@@ -16928,7 +17324,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1019,
+      "line": 1037,
       "severity": "high",
       "pattern": "中文字符",
       "text": "编辑",
@@ -16937,7 +17333,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1020,
+      "line": 1038,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已保存",
@@ -16946,7 +17342,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1021,
+      "line": 1039,
       "severity": "high",
       "pattern": "中文字符",
       "text": "保存失败",
@@ -16955,7 +17351,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1022,
+      "line": 1040,
       "severity": "high",
       "pattern": "中文字符",
       "text": "显示名称",
@@ -16964,7 +17360,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1023,
+      "line": 1041,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成模式",
@@ -16973,7 +17369,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1024,
+      "line": 1042,
       "severity": "high",
       "pattern": "中文字符",
       "text": "文生视频",
@@ -16982,7 +17378,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1025,
+      "line": 1043,
       "severity": "high",
       "pattern": "中文字符",
       "text": "图生视频",
@@ -16991,7 +17387,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1026,
+      "line": 1044,
       "severity": "high",
       "pattern": "中文字符",
       "text": "支持同步音频",
@@ -17000,7 +17396,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1027,
+      "line": 1045,
       "severity": "high",
       "pattern": "中文字符",
       "text": "最长时长（秒）",
@@ -17009,7 +17405,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1028,
+      "line": 1046,
       "severity": "high",
       "pattern": "中文字符",
       "text": "排序",
@@ -17018,7 +17414,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1029,
+      "line": 1047,
       "severity": "high",
       "pattern": "中文字符",
       "text": "每日限额",
@@ -17027,7 +17423,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1030,
+      "line": 1048,
       "severity": "high",
       "pattern": "中文字符",
       "text": "不限",
@@ -17036,7 +17432,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1031,
+      "line": 1049,
       "severity": "high",
       "pattern": "中文字符",
       "text": "文案",
@@ -17045,7 +17441,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1032,
+      "line": 1050,
       "severity": "high",
       "pattern": "中文字符",
       "text": "名称文案键",
@@ -17054,7 +17450,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1033,
+      "line": 1051,
       "severity": "high",
       "pattern": "中文字符",
       "text": "描述文案键",
@@ -17063,7 +17459,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1034,
+      "line": 1052,
       "severity": "high",
       "pattern": "中文字符",
       "text": "填了文案键就优先用译文，留空则用上面的显示名称",
@@ -17072,7 +17468,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1035,
+      "line": 1053,
       "severity": "high",
       "pattern": "中文字符",
       "text": "服务商路由",
@@ -17081,7 +17477,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1036,
+      "line": 1054,
       "severity": "high",
       "pattern": "中文字符",
       "text": "端点为该服务商侧的模型 ID；留空的路由不参与降级",
@@ -17090,7 +17486,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1037,
+      "line": 1055,
       "severity": "high",
       "pattern": "中文字符",
       "text": "火山方舟",
@@ -17099,7 +17495,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1041,
+      "line": 1059,
       "severity": "high",
       "pattern": "中文字符",
       "text": "渠道",
@@ -17108,7 +17504,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1042,
+      "line": 1060,
       "severity": "high",
       "pattern": "中文字符",
       "text": "此模型由以下渠道提供，按优先级依次尝试",
@@ -17117,7 +17513,70 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1043,
+      "line": 1061,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "上游模型名",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_upstream\": \"上游模型名\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1062,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "上游模型名已更新",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_upstream_saved\": \"上游模型名已更新\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1063,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "添加渠道",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_add\": \"添加渠道\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1064,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "已添加该渠道",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_added\": \"已添加该渠道\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1065,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "选择渠道",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_pick\": \"选择渠道\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1066,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "移除",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_remove\": \"移除\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1067,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "已移除该渠道",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"admin.models.channel_removed\": \"已移除该渠道\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1068,
       "severity": "high",
       "pattern": "中文字符",
       "text": "无可用渠道",
@@ -17126,7 +17585,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1044,
+      "line": 1069,
       "severity": "high",
       "pattern": "中文字符",
       "text": "可用",
@@ -17135,7 +17594,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1045,
+      "line": 1070,
       "severity": "high",
       "pattern": "中文字符",
       "text": "管理渠道",
@@ -17144,7 +17603,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1046,
+      "line": 1071,
       "severity": "high",
       "pattern": "中文字符",
       "text": "渠道",
@@ -17153,7 +17612,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1047,
+      "line": 1072,
       "severity": "high",
       "pattern": "中文字符",
       "text": "一个渠道 = 一套协议 + API 地址 + 密钥 + 模型映射。同一模型可由多个渠道提供，按优先级依次尝试、失败自动降级。",
@@ -17162,7 +17621,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1048,
+      "line": 1073,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新建渠道",
@@ -17171,7 +17630,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1049,
+      "line": 1074,
       "severity": "high",
       "pattern": "中文字符",
       "text": "还没有渠道",
@@ -17180,7 +17639,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1050,
+      "line": 1075,
       "severity": "high",
       "pattern": "中文字符",
       "text": "优先级",
@@ -17189,7 +17648,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1051,
+      "line": 1076,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型",
@@ -17198,7 +17657,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1052,
+      "line": 1077,
       "severity": "high",
       "pattern": "中文字符",
       "text": "名称",
@@ -17207,7 +17666,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1053,
+      "line": 1078,
       "severity": "high",
       "pattern": "中文字符",
       "text": "类型",
@@ -17216,7 +17675,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1054,
+      "line": 1079,
       "severity": "high",
       "pattern": "中文字符",
       "text": "API 地址",
@@ -17225,7 +17684,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1055,
+      "line": 1080,
       "severity": "high",
       "pattern": "中文字符",
       "text": "API 密钥",
@@ -17234,7 +17693,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1056,
+      "line": 1081,
       "severity": "high",
       "pattern": "中文字符",
       "text": "优先级",
@@ -17243,7 +17702,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1057,
+      "line": 1082,
       "severity": "high",
       "pattern": "中文字符",
       "text": "启用",
@@ -17252,7 +17711,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1058,
+      "line": 1083,
       "severity": "high",
       "pattern": "中文字符",
       "text": "留空使用内置地址",
@@ -17261,7 +17720,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1059,
+      "line": 1084,
       "severity": "high",
       "pattern": "中文字符",
       "text": "输入密钥（不会回显）",
@@ -17270,7 +17729,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1060,
+      "line": 1085,
       "severity": "high",
       "pattern": "中文字符",
       "text": "留空以保留现有密钥",
@@ -17279,7 +17738,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1061,
+      "line": 1086,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型与映射",
@@ -17288,7 +17747,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1062,
+      "line": 1087,
       "severity": "high",
       "pattern": "中文字符",
       "text": "此渠道支持哪些模型，以及它们在本渠道侧叫什么名字",
@@ -17297,7 +17756,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1063,
+      "line": 1088,
       "severity": "high",
       "pattern": "中文字符",
       "text": "添加模型",
@@ -17306,7 +17765,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1064,
+      "line": 1089,
       "severity": "high",
       "pattern": "中文字符",
       "text": "尚未映射任何模型，保存后此渠道不会被使用",
@@ -17315,7 +17774,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1065,
+      "line": 1090,
       "severity": "high",
       "pattern": "中文字符",
       "text": "上游模型名",
@@ -17324,7 +17783,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1066,
+      "line": 1091,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未配置密钥",
@@ -17333,7 +17792,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1067,
+      "line": 1092,
       "severity": "high",
       "pattern": "中文字符",
       "text": "可用",
@@ -17342,7 +17801,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1068,
+      "line": 1093,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除",
@@ -17351,7 +17810,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1069,
+      "line": 1094,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除该渠道？",
@@ -17360,7 +17819,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1070,
+      "line": 1095,
       "severity": "high",
       "pattern": "中文字符",
       "text": "只依赖它的模型会变成不可用。此操作不可撤销。",
@@ -17369,7 +17828,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1071,
+      "line": 1096,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已保存",
@@ -17378,7 +17837,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1072,
+      "line": 1097,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已创建",
@@ -17387,7 +17846,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1073,
+      "line": 1098,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已删除",
@@ -17396,7 +17855,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1074,
+      "line": 1099,
       "severity": "high",
       "pattern": "中文字符",
       "text": "编辑",
@@ -17405,7 +17864,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1075,
+      "line": 1100,
       "severity": "high",
       "pattern": "中文字符",
       "text": "请填写名称",
@@ -17414,7 +17873,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1076,
+      "line": 1101,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未知的协议类型",
@@ -17423,7 +17882,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1077,
+      "line": 1102,
       "severity": "high",
       "pattern": "中文字符",
       "text": "API 地址必须是 http 或 https",
@@ -17432,7 +17891,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1078,
+      "line": 1103,
       "severity": "high",
       "pattern": "中文字符",
       "text": "请至少映射一个模型",
@@ -17441,7 +17900,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1079,
+      "line": 1104,
       "severity": "high",
       "pattern": "中文字符",
       "text": "映射里包含不存在的模型 ID",
@@ -17450,7 +17909,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1080,
+      "line": 1105,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型 ID",
@@ -17459,7 +17918,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1081,
+      "line": 1106,
       "severity": "high",
       "pattern": "中文字符",
       "text": "端点",
@@ -17468,7 +17927,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1082,
+      "line": 1107,
       "severity": "high",
       "pattern": "中文字符",
       "text": "留空使用内置域名",
@@ -17477,7 +17936,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1083,
+      "line": 1108,
       "severity": "high",
       "pattern": "中文字符",
       "text": "端点已更新",
@@ -17486,7 +17945,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1084,
+      "line": 1109,
       "severity": "high",
       "pattern": "中文字符",
       "text": "端点必须是 http 或 https 地址",
@@ -17495,7 +17954,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1085,
+      "line": 1110,
       "severity": "high",
       "pattern": "中文字符",
       "text": "端点与「共用密钥」都按服务商生效，所有模型一致",
@@ -17504,7 +17963,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1086,
+      "line": 1111,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新增模型",
@@ -17513,7 +17972,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1087,
+      "line": 1112,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新增模型",
@@ -17522,7 +17981,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1088,
+      "line": 1113,
       "severity": "high",
       "pattern": "中文字符",
       "text": "ID 创建后不可修改（账本与授权都按它引用）。新模型默认停用，配置好路由与密钥后再启用。",
@@ -17531,7 +17990,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1089,
+      "line": 1114,
       "severity": "high",
       "pattern": "中文字符",
       "text": "创建",
@@ -17540,7 +17999,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1090,
+      "line": 1115,
       "severity": "high",
       "pattern": "中文字符",
       "text": "取消",
@@ -17549,7 +18008,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1091,
+      "line": 1116,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已创建",
@@ -17558,7 +18017,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1092,
+      "line": 1117,
       "severity": "high",
       "pattern": "中文字符",
       "text": "ID 只能用小写字母、数字、点、下划线和短横线，且以字母或数字开头",
@@ -17567,7 +18026,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1093,
+      "line": 1118,
       "severity": "high",
       "pattern": "中文字符",
       "text": "该 ID 已存在",
@@ -17576,7 +18035,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1094,
+      "line": 1119,
       "severity": "high",
       "pattern": "中文字符",
       "text": "加载中…",
@@ -17585,7 +18044,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1095,
+      "line": 1120,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{total} 个模型 · {enabled} 启用 · {issues} 无可用密钥",
@@ -17594,7 +18053,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1096,
+      "line": 1121,
       "severity": "high",
       "pattern": "中文字符",
       "text": "接口路由",
@@ -17603,7 +18062,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1097,
+      "line": 1122,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{count} 条 · 顺序降级",
@@ -17612,7 +18071,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1099,
+      "line": 1124,
       "severity": "high",
       "pattern": "中文字符",
       "text": "无可用密钥",
@@ -17621,7 +18080,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1100,
+      "line": 1125,
       "severity": "high",
       "pattern": "中文字符",
       "text": "显示全部",
@@ -17630,7 +18089,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1101,
+      "line": 1126,
       "severity": "high",
       "pattern": "中文字符",
       "text": "只看无可用密钥",
@@ -17639,7 +18098,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1102,
+      "line": 1127,
       "severity": "high",
       "pattern": "中文字符",
       "text": "接口",
@@ -17648,7 +18107,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1103,
+      "line": 1128,
       "severity": "high",
       "pattern": "中文字符",
       "text": "按顺序降级",
@@ -17657,7 +18116,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1104,
+      "line": 1129,
       "severity": "high",
       "pattern": "中文字符",
       "text": "优先级：模型专属 → 服务商共用 →（仅火山方舟）环境变量",
@@ -17666,7 +18125,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1105,
+      "line": 1130,
       "severity": "high",
       "pattern": "中文字符",
       "text": "能力",
@@ -17675,7 +18134,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1106,
+      "line": 1131,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密钥",
@@ -17684,7 +18143,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1107,
+      "line": 1132,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未配置",
@@ -17693,7 +18152,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1108,
+      "line": 1133,
       "severity": "high",
       "pattern": "中文字符",
       "text": "输入密钥（不会回显）",
@@ -17702,7 +18161,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1109,
+      "line": 1134,
       "severity": "high",
       "pattern": "中文字符",
       "text": "共用 ····{suffix}",
@@ -17711,7 +18170,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1110,
+      "line": 1135,
       "severity": "high",
       "pattern": "中文字符",
       "text": "共用 · 环境变量",
@@ -17720,7 +18179,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1111,
+      "line": 1136,
       "severity": "high",
       "pattern": "中文字符",
       "text": "模型专属 ····{suffix}",
@@ -17729,7 +18188,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1112,
+      "line": 1137,
       "severity": "high",
       "pattern": "中文字符",
       "text": "设置",
@@ -17738,7 +18197,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1113,
+      "line": 1138,
       "severity": "high",
       "pattern": "中文字符",
       "text": "覆盖",
@@ -17747,7 +18206,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1114,
+      "line": 1139,
       "severity": "high",
       "pattern": "中文字符",
       "text": "编辑共用",
@@ -17756,7 +18215,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1115,
+      "line": 1140,
       "severity": "high",
       "pattern": "中文字符",
       "text": "清除覆盖",
@@ -17765,7 +18224,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1116,
+      "line": 1141,
       "severity": "high",
       "pattern": "中文字符",
       "text": "写入",
@@ -17774,7 +18233,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1117,
+      "line": 1142,
       "severity": "high",
       "pattern": "中文字符",
       "text": "取消",
@@ -17783,7 +18242,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1118,
+      "line": 1143,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密钥已更新",
@@ -17792,7 +18251,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1119,
+      "line": 1144,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已回退到共用密钥",
@@ -17801,7 +18260,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1120,
+      "line": 1145,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{count} 处未保存",
@@ -17810,7 +18269,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1121,
+      "line": 1146,
       "severity": "high",
       "pattern": "中文字符",
       "text": "放弃",
@@ -17819,7 +18278,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1122,
+      "line": 1147,
       "severity": "high",
       "pattern": "中文字符",
       "text": "放弃未保存的改动？",
@@ -17828,7 +18287,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1123,
+      "line": 1148,
       "severity": "high",
       "pattern": "中文字符",
       "text": "关闭后这些改动不会保留。",
@@ -17837,7 +18296,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1124,
+      "line": 1149,
       "severity": "high",
       "pattern": "中文字符",
       "text": "放弃改动",
@@ -17846,7 +18305,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1125,
+      "line": 1150,
       "severity": "high",
       "pattern": "中文字符",
       "text": "继续编辑",
@@ -17855,7 +18314,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1126,
+      "line": 1151,
       "severity": "high",
       "pattern": "中文字符",
       "text": "人工调整（强制留痕）",
@@ -17864,7 +18323,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1127,
+      "line": 1152,
       "severity": "high",
       "pattern": "中文字符",
       "text": "用户邮箱",
@@ -17873,7 +18332,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1128,
+      "line": 1153,
       "severity": "high",
       "pattern": "中文字符",
       "text": "调整点数（可负）",
@@ -17882,7 +18341,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1129,
+      "line": 1154,
       "severity": "high",
       "pattern": "中文字符",
       "text": "原因（必填，写入审计）",
@@ -17891,7 +18350,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1130,
+      "line": 1155,
       "severity": "high",
       "pattern": "中文字符",
       "text": "确认调整",
@@ -17900,7 +18359,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1131,
+      "line": 1156,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已调整，余额 {count} 点",
@@ -17909,7 +18368,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1132,
+      "line": 1157,
       "severity": "high",
       "pattern": "中文字符",
       "text": "兑换码（v1 充值通道）",
@@ -17918,7 +18377,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1133,
+      "line": 1158,
       "severity": "high",
       "pattern": "中文字符",
       "text": "数量",
@@ -17927,7 +18386,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1134,
+      "line": 1159,
       "severity": "high",
       "pattern": "中文字符",
       "text": "每张点数",
@@ -17936,7 +18395,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1135,
+      "line": 1160,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成",
@@ -17945,7 +18404,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1136,
+      "line": 1161,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成结果",
@@ -17954,7 +18413,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1137,
+      "line": 1162,
       "severity": "high",
       "pattern": "中文字符",
       "text": "复制全部",
@@ -17963,7 +18422,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1138,
+      "line": 1163,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已复制",
@@ -17972,7 +18431,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1139,
+      "line": 1164,
       "severity": "high",
       "pattern": "中文字符",
       "text": "时间",
@@ -17981,7 +18440,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1140,
+      "line": 1165,
       "severity": "high",
       "pattern": "中文字符",
       "text": "操作人",
@@ -17990,7 +18449,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1141,
+      "line": 1166,
       "severity": "high",
       "pattern": "中文字符",
       "text": "动作",
@@ -17999,7 +18458,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1142,
+      "line": 1167,
       "severity": "high",
       "pattern": "中文字符",
       "text": "对象",
@@ -18008,7 +18467,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1143,
+      "line": 1168,
       "severity": "high",
       "pattern": "中文字符",
       "text": "详情",
@@ -18017,7 +18476,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1146,
+      "line": 1171,
       "severity": "high",
       "pattern": "中文字符",
       "text": "余额 {count} 点",
@@ -18026,7 +18485,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1147,
+      "line": 1172,
       "severity": "high",
       "pattern": "中文字符",
       "text": "充值",
@@ -18035,7 +18494,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1148,
+      "line": 1173,
       "severity": "high",
       "pattern": "中文字符",
       "text": "本次预估 {count} 点",
@@ -18044,7 +18503,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1149,
+      "line": 1174,
       "severity": "high",
       "pattern": "中文字符",
       "text": "本地运行，不计费",
@@ -18053,16 +18512,16 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1150,
+      "line": 1175,
       "severity": "high",
       "pattern": "中文字符",
-      "text": "生成前冻结，按实际用量结算，失败全额退回",
+      "text": "生成前冻结预估点数，失败全额退回",
       "description": "发现硬编码的中文文本",
-      "lineContent": "\"billing.estimate_note\": \"生成前冻结，按实际用量结算，失败全额退回\","
+      "lineContent": "\"billing.estimate_note\": \"生成前冻结预估点数，失败全额退回\","
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1151,
+      "line": 1176,
       "severity": "high",
       "pattern": "中文字符",
       "text": "点数不足",
@@ -18071,7 +18530,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1152,
+      "line": 1177,
       "severity": "high",
       "pattern": "中文字符",
       "text": "本次预估 {estimate} 点，当前余额 {balance} 点",
@@ -18080,7 +18539,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1153,
+      "line": 1178,
       "severity": "high",
       "pattern": "中文字符",
       "text": "去充值",
@@ -18089,7 +18548,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1154,
+      "line": 1179,
       "severity": "high",
       "pattern": "中文字符",
       "text": "兑换码充值",
@@ -18098,7 +18557,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1155,
+      "line": 1180,
       "severity": "high",
       "pattern": "中文字符",
       "text": "输入兑换码，如 MC-XXXX-XXXX",
@@ -18107,7 +18566,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1156,
+      "line": 1181,
       "severity": "high",
       "pattern": "中文字符",
       "text": "兑换",
@@ -18116,7 +18575,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1157,
+      "line": 1182,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已到账 {count} 点，余额 {balance} 点",
@@ -18125,7 +18584,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1158,
+      "line": 1183,
       "severity": "high",
       "pattern": "中文字符",
       "text": "兑换码无效或已被使用",
@@ -18134,7 +18593,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1159,
+      "line": 1184,
       "severity": "high",
       "pattern": "中文字符",
       "text": "生成失败，已退回 {count} 点",
@@ -18143,7 +18602,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1160,
+      "line": 1185,
       "severity": "high",
       "pattern": "中文字符",
       "text": "专业",
@@ -18152,7 +18611,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1161,
+      "line": 1186,
       "severity": "high",
       "pattern": "中文字符",
       "text": "专业计划可用",
@@ -18161,7 +18620,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1162,
+      "line": 1187,
       "severity": "high",
       "pattern": "中文字符",
       "text": "该模型已下线，请选择其他模型",
@@ -18170,7 +18629,34 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1165,
+      "line": 1188,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "该模型需要专业版",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"billing.error.pro_required\": \"该模型需要专业版\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1189,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "已达该模型今日次数上限",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"billing.error.daily_limit\": \"已达该模型今日次数上限\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1190,
+      "severity": "high",
+      "pattern": "中文字符",
+      "text": "请先登录再生成",
+      "description": "发现硬编码的中文文本",
+      "lineContent": "\"billing.error.unauthenticated\": \"请先登录再生成\","
+    },
+    {
+      "file": "locale\\zh.ts",
+      "line": 1193,
       "severity": "high",
       "pattern": "中文字符",
       "text": "登录",
@@ -18179,7 +18665,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1166,
+      "line": 1194,
       "severity": "high",
       "pattern": "中文字符",
       "text": "个人中心",
@@ -18188,7 +18674,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1167,
+      "line": 1195,
       "severity": "high",
       "pattern": "中文字符",
       "text": "管理面板",
@@ -18197,7 +18683,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1168,
+      "line": 1196,
       "severity": "high",
       "pattern": "中文字符",
       "text": "退出登录",
@@ -18206,7 +18692,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1171,
+      "line": 1199,
       "severity": "high",
       "pattern": "中文字符",
       "text": "个人中心",
@@ -18215,7 +18701,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1172,
+      "line": 1200,
       "severity": "high",
       "pattern": "中文字符",
       "text": "{date} 加入",
@@ -18224,7 +18710,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1173,
+      "line": 1201,
       "severity": "high",
       "pattern": "中文字符",
       "text": "点数",
@@ -18233,7 +18719,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1174,
+      "line": 1202,
       "severity": "high",
       "pattern": "中文字符",
       "text": "安全",
@@ -18242,7 +18728,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1175,
+      "line": 1203,
       "severity": "high",
       "pattern": "中文字符",
       "text": "登录的设备",
@@ -18251,7 +18737,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1176,
+      "line": 1204,
       "severity": "high",
       "pattern": "中文字符",
       "text": "危险区",
@@ -18260,7 +18746,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1177,
+      "line": 1205,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除账户将移除云端数据，本机项目不受影响。",
@@ -18269,7 +18755,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1178,
+      "line": 1206,
       "severity": "high",
       "pattern": "中文字符",
       "text": "删除账户",
@@ -18278,7 +18764,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1179,
+      "line": 1207,
       "severity": "high",
       "pattern": "中文字符",
       "text": "当前余额",
@@ -18287,7 +18773,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1180,
+      "line": 1208,
       "severity": "high",
       "pattern": "中文字符",
       "text": "最近流水",
@@ -18296,7 +18782,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1181,
+      "line": 1209,
       "severity": "high",
       "pattern": "中文字符",
       "text": "冻结",
@@ -18305,7 +18791,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1182,
+      "line": 1210,
       "severity": "high",
       "pattern": "中文字符",
       "text": "结算",
@@ -18314,7 +18800,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1183,
+      "line": 1211,
       "severity": "high",
       "pattern": "中文字符",
       "text": "退回",
@@ -18323,7 +18809,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1184,
+      "line": 1212,
       "severity": "high",
       "pattern": "中文字符",
       "text": "注册赠送",
@@ -18332,7 +18818,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1185,
+      "line": 1213,
       "severity": "high",
       "pattern": "中文字符",
       "text": "兑换",
@@ -18341,7 +18827,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1186,
+      "line": 1214,
       "severity": "high",
       "pattern": "中文字符",
       "text": "人工调整",
@@ -18350,7 +18836,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1187,
+      "line": 1215,
       "severity": "high",
       "pattern": "中文字符",
       "text": "两步验证",
@@ -18359,7 +18845,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1188,
+      "line": 1216,
       "severity": "high",
       "pattern": "中文字符",
       "text": "已开启",
@@ -18368,7 +18854,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1189,
+      "line": 1217,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未开启",
@@ -18377,7 +18863,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1190,
+      "line": 1218,
       "severity": "high",
       "pattern": "中文字符",
       "text": "开启",
@@ -18386,7 +18872,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1191,
+      "line": 1219,
       "severity": "high",
       "pattern": "中文字符",
       "text": "关闭",
@@ -18395,7 +18881,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1192,
+      "line": 1220,
       "severity": "high",
       "pattern": "中文字符",
       "text": "将以下链接添加到身份验证器 App：",
@@ -18404,7 +18890,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1193,
+      "line": 1221,
       "severity": "high",
       "pattern": "中文字符",
       "text": "输入密码确认",
@@ -18413,7 +18899,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1194,
+      "line": 1222,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密码",
@@ -18422,7 +18908,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1195,
+      "line": 1223,
       "severity": "high",
       "pattern": "中文字符",
       "text": "修改密码",
@@ -18431,7 +18917,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1196,
+      "line": 1224,
       "severity": "high",
       "pattern": "中文字符",
       "text": "当前密码",
@@ -18440,7 +18926,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1197,
+      "line": 1225,
       "severity": "high",
       "pattern": "中文字符",
       "text": "新密码",
@@ -18449,7 +18935,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1198,
+      "line": 1226,
       "severity": "high",
       "pattern": "中文字符",
       "text": "密码已修改",
@@ -18458,7 +18944,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1199,
+      "line": 1227,
       "severity": "high",
       "pattern": "中文字符",
       "text": "下线其他所有设备",
@@ -18467,7 +18953,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1200,
+      "line": 1228,
       "severity": "high",
       "pattern": "中文字符",
       "text": "下线",
@@ -18476,7 +18962,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1201,
+      "line": 1229,
       "severity": "high",
       "pattern": "中文字符",
       "text": "当前",
@@ -18485,7 +18971,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1202,
+      "line": 1230,
       "severity": "high",
       "pattern": "中文字符",
       "text": "两步验证已关闭",
@@ -18575,7 +19061,7 @@
     },
     {
       "file": "locale\\zh.ts",
-      "line": 1038,
+      "line": 1056,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Atlas Cloud",
@@ -19565,7 +20051,7 @@
     },
     {
       "file": "services\\ai\\client.ts",
-      "line": 163,
+      "line": 202,
       "severity": "high",
       "pattern": "中文字符",
       "text": "提交任务...",
@@ -19583,7 +20069,7 @@
     },
     {
       "file": "services\\ai\\client.ts",
-      "line": 82,
+      "line": 112,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Content-Type",
@@ -19592,7 +20078,7 @@
     },
     {
       "file": "services\\ai\\client.ts",
-      "line": 124,
+      "line": 157,
       "severity": "medium",
       "pattern": "用户可见英文",
       "text": "Content-Type",
@@ -19880,7 +20366,7 @@
     },
     {
       "file": "services\\ai-video\\generate.ts",
-      "line": 68,
+      "line": 81,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未知错误",
@@ -19889,7 +20375,7 @@
     },
     {
       "file": "services\\ai-video\\generate.ts",
-      "line": 84,
+      "line": 100,
       "severity": "high",
       "pattern": "中文字符",
       "text": "未知错误",
@@ -19898,7 +20384,7 @@
     },
     {
       "file": "services\\ai-video\\generate.ts",
-      "line": 99,
+      "line": 115,
       "severity": "high",
       "pattern": "中文字符",
       "text": "切换渠道次数过多，已中止。请在管理面板中检查渠道配置",

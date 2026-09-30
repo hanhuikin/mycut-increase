@@ -4,6 +4,7 @@ import {
 	BlobSource,
 	VideoSampleSink,
 	type VideoCodec,
+	type VideoSample,
 } from "mediabunny";
 import { createTimelineAudioBuffer } from "@/media/audio";
 import type { SceneTracks } from "@/timeline";
@@ -162,6 +163,81 @@ export class VideoFrameExtractor {
 		} finally {
 			frame.close();
 		}
+	}
+
+	/**
+	 * JPEG dataURLs for a batch of timestamps in one sorted pass —
+	 * samplesAtTimestamps decodes each packet at most once when the
+	 * timestamps ascend, so a filmstrip batch costs far less than N separate
+	 * getSample calls. Reports each frame through `onFrame` (indexed like
+	 * the input array) as it lands; aborts early once `shouldContinue`
+	 * returns false. Every yielded sample is closed here.
+	 */
+	async framesAt({
+		seconds,
+		maxEdge = 160,
+		onFrame,
+		shouldContinue,
+	}: {
+		seconds: number[];
+		maxEdge?: number;
+		onFrame?: (position: number, dataUrl: string | null) => void;
+		shouldContinue?: () => boolean;
+	}): Promise<void> {
+		if (!this.sink || seconds.length === 0) {
+			return;
+		}
+		const order = seconds
+			.map((value, index) => ({
+				index,
+				time: Math.min(Math.max(value, 0), this.durationSeconds),
+			}))
+			.sort((left, right) => left.time - right.time);
+		let position = 0;
+		for await (const frame of this.sink.samplesAtTimestamps(
+			order.map((entry) => entry.time),
+		)) {
+			if (shouldContinue && !shouldContinue()) {
+				// The frame for this iteration was already yielded to us —
+				// close it before abandoning the batch or it leaks.
+				frame?.close();
+				break;
+			}
+			const entry = order[position];
+			if (frame) {
+				try {
+					onFrame?.(
+						entry ? entry.index : position,
+						this.renderSampleToDataUrl({ frame, maxEdge }),
+					);
+				} finally {
+					frame.close();
+				}
+			} else {
+				onFrame?.(entry ? entry.index : position, null);
+			}
+			position += 1;
+		}
+	}
+
+	/** Draws one decoded sample to a canvas and encodes it as JPEG. */
+	private renderSampleToDataUrl({
+		frame,
+		maxEdge,
+	}: {
+		frame: VideoSample;
+		maxEdge: number;
+	}): string | null {
+		const scale = Math.min(1, maxEdge / Math.max(this.width, this.height));
+		const canvas = document.createElement("canvas");
+		canvas.width = Math.max(1, Math.round(this.width * scale));
+		canvas.height = Math.max(1, Math.round(this.height * scale));
+		const context = canvas.getContext("2d");
+		if (!context) {
+			return null;
+		}
+		frame.draw(context, 0, 0, canvas.width, canvas.height);
+		return canvas.toDataURL("image/jpeg", 0.9);
 	}
 
 	dispose(): void {
