@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyCut · 完整 UI 设计稿</title>
+<style>
+  :root{
+    --bg:#0C0D10;
+    --panel:#14161B;
+    --panel-2:#181B21;
+    --line:#262A33;
+    --line-soft:#1E222A;
+    --ink:#E8EAF0;
+    --ink-2:#9BA1AD;
+    --ink-3:#6B7280;
+    --accent:#16A9F3;      /* = --primary hsl(200 90% 52%) */
+    --accent-deep:#2567EC;
+    --audio:#8F5DBA;
+    --text-track:#5DBAA0;
+    --graphic:#BA5D7A;
+    --effect:#5D93BA;
+    --ok:#23D160;
+    --warn:#DD6722;
+    --danger:#E91616;
+    --font-display:"Segoe UI Variable Display","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+    --font-body:system-ui,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    --font-mono:"Cascadia Code","Consolas","SF Mono",ui-monospace,monospace;
+    --r-lg:16px; --r-md:12px; --r-sm:8px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:24px}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:var(--font-body);font-size:14px;line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(22,169,243,.35)}
+
+  /* ---------- 骨架 ---------- */
+  .shell{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+  .rail{
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    border-right:1px solid var(--line-soft);
+    padding:26px 16px 30px 22px;
+    background:linear-gradient(180deg,#0E0F13,#0C0D10);
+  }
+  .main{padding:0 clamp(20px,4.6vw,68px) 140px;max-width:1160px;min-width:0}
+  .rail-brand{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+  .rail-brand .mark{
+    width:26px;height:26px;border-radius:7px;flex:none;position:relative;
+    background:conic-gradient(from 210deg,#16A9F3,#2567EC,#8F5DBA,#16A9F3);
+  }
+  .rail-brand .mark::after{content:"";position:absolute;inset:7px;border-radius:3px;background:#0C0D10}
+  .rail-brand b{font-family:var(--font-display);font-size:15px;letter-spacing:.02em}
+  .rail nav a{
+    display:flex;gap:9px;align-items:baseline;
+    color:var(--ink-2);text-decoration:none;font-size:13px;
+    padding:6px 10px;margin:1px -10px;border-radius:var(--r-sm);
+    transition:color .15s,background .15s;
+  }
+  .rail nav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+  .rail nav a .n{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);width:16px;flex:none}
+  .rail nav a:hover .n{color:var(--accent)}
+  .rail nav .grp{
+    font-family:var(--font-mono);font-size:9.5px;letter-spacing:.2em;
+    color:#4B515C;text-transform:uppercase;margin:18px 0 6px -10px;
+  }
+
+  /* ---------- 顶栏时间码标尺（与既有设计稿一致的签名装饰） ---------- */
+  .ruler{
+    height:30px;border-bottom:1px solid var(--line-soft);position:relative;
+    background:
+      repeating-linear-gradient(90deg,transparent 0 79px,var(--line) 79px 80px),
+      repeating-linear-gradient(90deg,transparent 0 15px,var(--line-soft) 15px 16px);
+  }
+  .ruler .tc{
+    position:absolute;right:0;top:0;height:100%;display:flex;align-items:center;
+    padding:0 4px 0 14px;background:var(--bg);
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:.08em;
+  }
+  .ruler .ph{position:absolute;left:56px;top:0;bottom:-1px;width:2px;background:var(--accent)}
+  .ruler .ph::before{
+    content:"";position:absolute;top:0;left:-4px;
+    border:5px solid transparent;border-top-color:var(--accent);
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover{padding:64px 0 48px;border-bottom:1px solid var(--line-soft)}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase}
+  .cover h1{
+    font-family:var(--font-display);font-weight:700;
+    font-size:clamp(32px,5vw,50px);line-height:1.14;letter-spacing:-.02em;margin:14px 0 12px;
+  }
+  .cover h1 .en{color:var(--ink-3);font-weight:600}
+  .cover .sub{color:var(--ink-2);font-size:15.5px;max-width:660px}
+  .cover .meta{
+    display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:24px;
+    font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+  }
+  .cover .meta b{color:var(--ink-2);font-weight:500}
+
+  /* ---------- 章节 ---------- */
+  section{padding:56px 0 8px;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  .h-sec{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .h-sec .no{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent);
+    border:1px solid rgba(22,169,243,.35);border-radius:6px;padding:1px 7px;flex:none;
+  }
+  .h-sec h2{font-family:var(--font-display);font-size:25px;font-weight:700;letter-spacing:-.01em}
+  .h-sec .en{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+  .lede{color:var(--ink-2);max-width:760px;margin:10px 0 26px}
+  h3{
+    font-family:var(--font-display);font-size:16.5px;font-weight:650;
+    margin:34px 0 12px;padding-left:11px;border-left:2px solid var(--accent);
+  }
+  h4{font-size:13.5px;font-weight:650;margin:22px 0 8px;color:var(--ink)}
+  p{margin:9px 0;color:var(--ink-2)}
+  p strong,li strong,td strong{color:var(--ink);font-weight:600}
+  ul,ol{margin:9px 0 9px 20px;color:var(--ink-2)}
+  li{margin:4px 0}
+  a{color:var(--accent)}
+
+  code{
+    font-family:var(--font-mono);font-size:11.5px;
+    background:rgba(255,255,255,.055);border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px;color:#B9C2CE;
+  }
+  .mono{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3)}
+
+  /* ---------- 表格 ---------- */
+  .tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:12.5px}
+  .tbl th{
+    text-align:left;font-weight:600;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);padding:8px 10px;border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.02);white-space:nowrap;
+  }
+  .tbl td{padding:8px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2)}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl tbody tr:hover{background:rgba(255,255,255,.02)}
+  .tbl .c{text-align:center}
+  .tbl code{font-size:11px}
+
+  /* ---------- 色卡 ---------- */
+  .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px;margin:14px 0}
+  .sw{
+    border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;
+    background:var(--panel);display:flex;flex-direction:column;
+  }
+  .sw .chip{height:44px;display:flex}
+  .sw .chip i{flex:1;display:block}
+  .sw .body{padding:8px 10px 10px}
+  .sw .nm{font-size:12px;color:var(--ink);font-weight:600}
+  .sw .vl{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);margin-top:2px;word-break:break-all}
+  .sw .use{font-size:11px;color:var(--ink-3);margin-top:4px;line-height:1.5}
+
+  /* ---------- 提示块 ---------- */
+  .note{
+    border:1px solid var(--line);border-left:2px solid var(--accent);
+    background:rgba(22,169,243,.05);border-radius:0 var(--r-md) var(--r-md) 0;
+    padding:12px 16px;margin:16px 0;font-size:12.5px;color:var(--ink-2);
+  }
+  .note.warn{border-left-color:var(--warn);background:rgba(221,103,34,.06)}
+  .note.gap{border-left-color:var(--danger);background:rgba(233,22,22,.05)}
+  .note.ok{border-left-color:var(--ok);background:rgba(35,209,96,.05)}
+  .note .t{
+    display:block;font-weight:650;color:var(--ink);margin-bottom:3px;
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    font-family:var(--font-mono);
+  }
+
+  /* ---------- 屏幕稿 mock ---------- */
+  .shot{
+    margin:20px 0;border:1px solid var(--line);border-radius:var(--r-lg);
+    overflow:hidden;background:#0A0B0D;
+  }
+  .shot .cap{
+    display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    padding:9px 14px;border-bottom:1px solid var(--line-soft);
+    background:rgba(255,255,255,.02);
+  }
+  .shot .cap b{font-size:12px;color:var(--ink);font-weight:600}
+  .shot .cap span{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)}
+  .shot .stage{padding:18px;background:
+      radial-gradient(120% 90% at 12% 0%,rgba(37,103,236,.10),transparent 60%),
+      radial-gradient(90% 80% at 100% 100%,rgba(143,93,186,.10),transparent 60%),
+      #0A0B0D;
+  }
+  .shot .legend{
+    display:flex;flex-wrap:wrap;gap:6px 16px;padding:11px 14px;
+    border-top:1px solid var(--line-soft);background:rgba(255,255,255,.015);
+    font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3);
+  }
+  .shot .legend i{font-style:normal;color:var(--accent)}
+
+  /* 通用线框零件 */
+  .wf{background:#0D0D0D;border:1px solid #292929;border-radius:6px;color:#9BA1AD;font-size:10.5px}
+  .wf .row{display:flex;align-items:center;gap:8px}
+  .wf .bar{height:9px;border-radius:3px;background:#242424}
+  .wf .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    height:22px;padding:0 9px;border-radius:5px;border:1px solid #292929;
+    font-size:10.5px;color:#DEDEDE;white-space:nowrap;
+  }
+  .wf .btn.pri{background:#16A9F3;border-color:#16A9F3;color:#fff;font-weight:600}
+  .wf .btn.soft{background:#212121;border-color:#292929}
+  .wf .btn.tx{border-color:transparent;color:#808080}
+  .wf .pill{
+    border:1px solid #292929;border-radius:999px;padding:2px 8px;
+    font-size:9.5px;font-family:var(--font-mono);color:#9BA1AD;
+  }
+  .wf .dash{border:1px dashed #3A3F49;border-radius:6px}
+  .wf .lbl{font-size:9.5px;font-family:var(--font-mono);letter-spacing:.1em;color:#5C6371;text-transform:uppercase}
+  .wf .ic{
+    width:22px;height:22px;border-radius:5px;background:#1E1E1E;
+    display:flex;align-items:center;justify-content:center;flex:none;
+    color:#9BA1AD;font-size:11px;
+  }
+  .wf .ic.on{background:#1B2A33;color:#16A9F3;box-shadow:inset 0 0 0 1px rgba(22,169,243,.45)}
+
+  /* 编辑器整体稿 */
+  .ed{display:flex;flex-direction:column;gap:3px;height:530px}
+  .ed-hd{
+    height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 8px;flex:none;
+  }
+  .ed-body{display:grid;grid-template-columns:24% 1fr 23%;gap:3px;flex:1;min-height:0;padding:0 2px}
+  .pane{background:#0D0D0D;border:1px solid #292929;border-radius:5px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+  .pane>.ph{
+    height:38px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 8px;border-bottom:1px solid #1E1E2A;background:#0F1013;
+  }
+  .pane>.pb{padding:8px;overflow:hidden;flex:1;min-height:0}
+  .tabrail{
+    width:30px;flex:none;border-right:1px solid #1E1E2A;background:#0F1013;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;
+  }
+  .assets{display:flex;min-height:0;flex:1}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .thumb{aspect-ratio:16/9;border-radius:4px;background:
+    linear-gradient(135deg,#1C2230,#141821);border:1px solid #242A36;
+    position:relative;overflow:hidden}
+  .thumb::after{
+    content:attr(data-d);position:absolute;right:3px;bottom:2px;
+    font-family:var(--font-mono);font-size:8.5px;color:#C9D1DA;
+    background:rgba(0,0,0,.6);border-radius:2px;padding:0 3px;
+  }
+  .canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;position:relative}
+  .canvas{
+    aspect-ratio:16/9;width:78%;border-radius:3px;
+    background:linear-gradient(150deg,#1A2233,#101420 55%,#1B1526);
+    border:1px solid #2E3340;position:relative;
+  }
+  .canvas .guide{position:absolute;background:rgba(22,169,243,.55)}
+  .canvas .box{
+    position:absolute;left:18%;top:24%;width:42%;height:44%;
+    border:1.5px solid #16A9F3;
+  }
+  .canvas .hd{position:absolute;width:7px;height:7px;background:#0D0D0D;border:1.5px solid #16A9F3;border-radius:1px}
+
+  /* 时间轴稿 */
+  .tl{background:#0D0D0D;border:1px solid #292929;border-radius:5px;padding:0;overflow:hidden}
+  .tl-toolbar{
+    height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 8px;border-bottom:1px solid #1E1E2A;
+  }
+  .tl-body{display:grid;grid-template-columns:86px 1fr;position:relative}
+  .tl-labels{border-right:1px solid #1E1E2A;background:#0F1013}
+  .tl-lane{
+    height:var(--h);border-bottom:1px solid #17191F;
+    display:flex;align-items:center;padding:0 8px;gap:6px;
+    font-size:9.5px;color:#7C8493;
+  }
+  .tl-tracks{position:relative;background:
+    repeating-linear-gradient(90deg,transparent 0 49px,#171A20 49px 50px)}
+  .tl-ruler{
+    height:16px;border-bottom:1px solid #1E1E2A;position:relative;
+    background:repeating-linear-gradient(90deg,transparent 0 49px,#2A2F38 49px 50px);
+  }
+  .tl-ruler span{
+    position:absolute;top:0;font-family:var(--font-mono);font-size:8.5px;color:#5C6371;
+  }
+  .clip{
+    position:absolute;height:var(--h);border-radius:3px;display:flex;align-items:center;
+    padding:0 6px;font-size:9px;color:rgba(255,255,255,.92);overflow:hidden;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  .clip.video{background:linear-gradient(90deg,#1E2634,#242E3F);}
+  .clip.video::before{
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,transparent 1px 26px);
+  }
+  .clip.sel{box-shadow:0 0 0 1.5px #16A9F3;color:#fff}
+  .clip.audio{background:linear-gradient(180deg,#6E4691,#8F5DBA)}
+  .clip.audio::after{
+    content:"";position:absolute;left:4px;right:4px;top:42%;height:22%;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.7) 0 1px,transparent 1px 3px);
+    border-radius:1px;
+  }
+  .clip.text{background:#5DBAA0}
+  .clip.effect{background:#5D93BA}
+  .ph-line{position:absolute;top:0;bottom:0;width:2px;background:#16A9F3}
+  .ph-line::before{
+    content:"";position:absolute;top:-4px;left:-3px;
+    border:4px solid transparent;border-top-color:#16A9F3;
+  }
+  .kf{
+    position:absolute;width:9px;height:9px;background:#0D0D0D;
+    border:1.5px solid #16A9F3;transform:rotate(45deg);border-radius:1px;
+  }
+
+  /* 管理后台稿 */
+  .adm{background:#0D0D0D;border:1px solid #292929;border-radius:6px;overflow:hidden}
+  .adm-top{
+    height:34px;border-bottom:1px solid #292929;background:#0D0D0D;
+    display:flex;align-items:center;gap:9px;padding:0 10px;
+  }
+  .adm-grid{display:grid;grid-template-columns:112px 1fr;min-height:250px}
+  .adm-nav{border-right:1px solid #262626;padding:8px;background:#0D0D0D}
+  .adm-nav a{
+    display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;
+    font-size:11px;color:rgba(222,222,222,.7);text-decoration:none;margin-bottom:2px;
+  }
+  .adm-nav a.on{background:rgba(22,169,243,.1);color:#16A9F3}
+  .adm-main{padding:12px;background:#0A0A0A}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .tile{border:1px solid #262626;border-radius:8px;padding:9px 10px;background:#0D0D0D}
+  .tile .k{font-size:9.5px;color:#808080}
+  .tile .v{font-family:var(--font-mono);font-size:17px;color:#DEDEDE;margin-top:2px}
+  .tile .d{font-size:9px;color:#5CD07A;margin-top:1px}
+  .chart{
+    margin-top:9px;border:1px solid #262626;border-radius:8px;height:96px;background:#0D0D0D;
+    position:relative;overflow:hidden;
+  }
+  .chart .grid{position:absolute;inset:0;background:
+    repeating-linear-gradient(0deg,transparent 0 23px,#1A1A1A 23px 24px),
+    repeating-linear-gradient(90deg,transparent 0 59px,#1A1A1A 59px 60px);}
+  .chart svg{position:absolute;inset:0;width:100%;height:100%}
+
+  /* 分栏小色 */
+  .track-swatch{display:inline-block;width:34px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:8px}
+
+  /* 状态点 */
+  .dots{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0}
+  .dot{
+    font-family:var(--font-mono);font-size:10px;padding:2px 8px;border-radius:999px;
+    border:1px solid var(--line);color:var(--ink-3);
+  }
+  .dot.on{border-color:rgba(35,209,96,.4);color:#6FD79A;background:rgba(35,209,96,.07)}
+  .dot.wip{border-color:rgba(221,103,34,.4);color:#E09A6B;background:rgba(221,103,34,.07)}
+  .dot.no{border-color:rgba(233,22,22,.35);color:#E77A7A;background:rgba(233,22,22,.06)}
+
+  /* 两栏 */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media (max-width:1080px){.cols{grid-template-columns:1fr}}
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr}
+    .rail{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line-soft)}
+    .ed-body{grid-template-columns:1fr}
+  }
+  .kbd{
+    display:inline-block;font-family:var(--font-mono);font-size:10.5px;
+    border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;
+    padding:1px 6px;background:rgba(255,255,255,.04);color:#C4CBD4;
+  }
+  .foot{padding:34px 0 0;border-top:1px solid var(--line-soft);margin-top:40px;
+    font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ================= 左侧索引 ================= -->
+<aside class="rail">
+  <div class="rail-brand">
+    <span class="mark"></span>
+    <b>MyCut · UI 设计稿</b>
+  </div>
+  <nav>
+    <div class="grp">基础 Foundations</div>
+    <a href="#s1"><span class="n">01</span>设计基础与令牌</a>
+    <a href="#s2"><span class="n">02</span>组件库规格</a>
+    <a href="#s3"><span class="n">03</span>信息架构</a>
+
+    <div class="grp">产品界面 Surfaces</div>
+    <a href="#s4"><span class="n">04</span>落地页</a>
+    <a href="#s5"><span class="n">05</span>项目库</a>
+    <a href="#s6"><span class="n">06</span>编辑器总览</a>
+    <a href="#s7"><span class="n">07</span>素材面板</a>
+    <a href="#s8"><span class="n">08</span>预览面板</a>
+    <a href="#s9"><span class="n">09</span>属性面板</a>
+    <a href="#s10"><span class="n">10</span>时间轴</a>
+    <a href="#s11"><span class="n">11</span>导出</a>
+    <a href="#s12"><span class="n">12</span>AI 能力与计费</a>
+    <a href="#s13"><span class="n">13</span>账户与设置</a>
+    <a href="#s14"><span class="n">14</span>认证流程</a>
+    <a href="#s15"><span class="n">15</span>管理后台</a>
+
+    <div class="grp">规范 Specs</div>
+    <a href="#s16"><span class="n">16</span>交互与动效</a>
+    <a href="#s17"><span class="n">17</span>无障碍与响应式</a>
+    <a href="#s18"><span class="n">18</span>状态与走查清单</a>
+    <a href="#s19"><span class="n">19</span>附录 · 代码对照</a>
+  </nav>
+</aside>
+
+<main class="main">
+
+<div class="ruler"><span class="tc">00:00:12:08 / 00:01:24:00 · 30fps</span><span class="ph"></span></div>
+
+<!-- ================= 封面 ================= -->
+<header class="cover">
+  <div class="eyebrow">Product UI Specification</div>
+  <h1>MyCut 完整 UI 设计稿<br><span class="en">Browser-based video editor</span></h1>
+  <p class="sub">
+    本稿基于 <code>apps/web</code> 现有实现逐面整理，覆盖设计令牌、组件库、落地页、项目库、
+    编辑器（素材 / 预览 / 属性 / 时间轴）、导出、AI 能力与计费、账户设置、认证流程、
+    管理后台，以及交互、无障碍与状态规范。所有尺寸、色值、圆角、层级均取自源码常量，
+    可直接作为设计交付与实现对照的单一事实来源。
+  </p>
+  <div class="meta">
+    <span><b>版本</b> v1.0 · 对应代码快照 d954883</span>
+    <span><b>日期</b> 2026-10-12</span>
+    <span><b>技术底座</b> Next.js + React 19 + Tailwind v4 + Radix + Hugeicons</span>
+    <span><b>语言</b> 中文 / English 双语（i18n 已全覆盖）</span>
+    <span><b>主题</b> Light · Dark（跟随系统）</span>
+  </div>
+  <div class="note">
+    <span class="t">阅读方式</span>
+    每一节先给「设计意图」，再给「结构与尺寸」，最后给「状态与边界」。带
+    <span class="mono">代码样式</span> 的数值即源码中的真实常量或类名，红色标注为当前实现与设计意图的差距（Gap），
+    橙色为待补全项（WIP）。
+  </div>
+</header>
+
+<!-- ================= 01 设计基础 ================= -->
+<section id="s1">
+  <div class="h-sec">
+    <span class="no">01</span>
+    <h2>设计基础与令牌</h2>
+    <span class="en">Foundations</span>
+  </div>
+  <p class="lede">
+    编辑器是「密集操作面」：一屏之内同时存在素材库、画布、参数与时间轴四条信息流。
+    因此基础层只有一条主线——<strong>把颜色让给内容，把对比度让给状态</strong>。
+    界面自身近乎无彩（中性灰阶），彩色只出现在三类地方：品牌主色（可操作）、
+    轨道类型色（可辨识）、AI / 计费提示（需注意力）。
+  </p>
+
+  <h3>1.1 设计原则</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:150px">原则</th><th>说明</th><th style="width:220px">落地证据</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>无彩界面</strong></td>
+        <td>全局用中性灰构成层级（背景 5% → 面板 10% → 强调面 14% → 悬停 21%）。颜色不承担结构职责，只承担状态职责。</td>
+        <td><code>--background</code> / <code>--accent</code> / <code>--border</code> 全为 <code>hsl(0 0% x%)</code></td>
+      </tr>
+      <tr>
+        <td><strong>密度优先</strong></td>
+        <td>字号比 Web 常规小一档（正文 0.92rem），控件高 28–40px，标签栏 32×32。为的是在一屏内同时容纳四条信息流。</td>
+        <td><code>--text-base: 0.92rem</code>、按钮 <code>size-icon: size-7</code></td>
+      </tr>
+      <tr>
+        <td><strong>状态用线，不用块</strong></td>
+        <td>选中 / 激活态优先用 1–1.5px 描边与强调色文字表达，避免大面积填充改变布局观感。</td>
+        <td>时间轴片段选中环 <code>box-shadow 0 0 0 1.5px var(--primary)</code></td>
+      </tr>
+      <tr>
+        <td><strong>产物即主体</strong></td>
+        <td>画布周围除必要控件外不放置任何装饰；预览区背景与面板背景同色，画布用一层极淡渐变托出。</td>
+        <td><code>PreviewPanel</code> 与 <code>AssetsPanel</code> 共用 <code>panel bg-background</code></td>
+      </tr>
+      <tr>
+        <td><strong>读面升级</strong></td>
+        <td>管理后台是「阅读面」而非操作面，整体字号上浮一档（13.5 / 15 / 16px），且经 <code>body.admin-surface</code> 作用到 Portal 层。</td>
+        <td>globals.css 中 <code>body.admin-surface .text-sm</code> 等三条规则</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>1.2 色彩令牌</h3>
+  <p>下表为 <code>:root</code>（亮）/ <code>.dark</code>（暗）双份定义。色块左半为亮色、右半为暗色。</p>
+
+  <div class="sw-grid">
+    <div class="sw"><div class="chip"><i style="background:#FFFFFF"></i><i style="background:#0D0D0D"></i></div>
+      <div class="body"><div class="nm">background</div><div class="vl">#FFFFFF / #0D0D0D</div><div class="use">页面底色、面板底色</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#1C1C1C"></i><i style="background:#DEDEDE"></i></div>
+      <div class="body"><div class="nm">foreground</div><div class="vl">#1C1C1C / #DEDEDE</div><div class="use">正文、默认按钮底</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#16A9F3"></i><i style="background:#16A9F3"></i></div>
+      <div class="body"><div class="nm">primary</div><div class="vl">hsl(200 90% 52%)</div><div class="use">主操作、播放头、选中环、链接、头像</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#F0F9FF"></i><i style="background:#00253D"></i></div>
+      <div class="body"><div class="nm">secondary</div><div class="vl">#F0F9FF / #00253D</div><div class="use">已激活的工具态（如吸附、波纹、面板标签）</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#0284C5"></i><i style="background:#00BCFD"></i></div>
+      <div class="body"><div class="nm">secondary-fg</div><div class="vl">#0284C5 / #00BCFD</div><div class="use">secondary 上的文字与图标</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#F5F5F5"></i><i style="background:#242424"></i></div>
+      <div class="body"><div class="nm">accent</div><div class="vl">#F5F5F5 / #242424</div><div class="use">hover 底、分组头、次级容器</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#D9D9D9"></i><i style="background:#333333"></i></div>
+      <div class="body"><div class="nm">muted</div><div class="vl">#D9D9D9 / #333333</div><div class="use">缩略图占位、骨架屏、滑轨</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#808080"></i><i style="background:#808080"></i></div>
+      <div class="body"><div class="nm">muted-foreground</div><div class="vl">#808080 / #808080</div><div class="use">说明文字、未激活图标、时间码后缀</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#E8E8E8"></i><i style="background:#292929"></i></div>
+      <div class="body"><div class="nm">border</div><div class="vl">#E8E8E8 / #292929</div><div class="use">面板描边、分隔线、按钮描边</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#F9FAFB"></i><i style="background:#1A1A1A"></i></div>
+      <div class="body"><div class="nm">.panel 作用域</div><div class="vl">#F9FAFB / #1A1A1A</div><div class="use">编辑器三块面板比页面底色亮一级，用于区分「容器」与「画布」</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#E91616"></i><i style="background:#E91616"></i></div>
+      <div class="body"><div class="nm">destructive</div><div class="vl">hsl(0 83% 50%)</div><div class="use">删除、封禁、错误文本</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#23D160"></i><i style="background:#23D160"></i></div>
+      <div class="body"><div class="nm">constructive</div><div class="vl">hsl(141 71% 48%)</div><div class="use">成功、余额增加</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#DD6722"></i><i style="background:#F7803B"></i></div>
+      <div class="body"><div class="nm">caution</div><div class="vl">#DD6722 / #F7803B</div><div class="use">降级渲染提示、Caps Lock、警告态</div></div></div>
+    <div class="sw"><div class="chip"><i style="background:#457BE8"></i><i style="background:#457BE8"></i></div>
+      <div class="body"><div class="nm">chart-1…5</div><div class="vl">暗色为独立推导的一套</div><div class="use">后台图表分类色，暗色下重新计算而非翻转</div></div></div>
+  </div>
+
+  <div class="note">
+    <span class="t">暗色图表色是独立推导的</span>
+    亮色档位放到 5% 黑的底上会掉到 3:1 对比度以下，因此 <code>--chart-*</code> 在 <code>.dark</code> 中
+    按亮度带、彩度下限、色觉区分度与对底对比度重新取值，不是自动反转。做新图表时请沿用
+    <code>var(--chart-N)</code>，不要另取色。
+  </div>
+
+  <h4>轨道类型色</h4>
+  <p>时间轴片段按轨道类型着色，这是编辑器里唯一成体系的彩色编码，与语义绑定，不随主题变化。</p>
+  <table class="tbl">
+    <thead><tr><th>轨道类型</th><th>色值</th><th>处理</th><th>高度</th></tr></thead>
+    <tbody>
+      <tr><td>video</td><td><span class="track-swatch" style="background:linear-gradient(90deg,#1E2634,#242E3F)"></span><code>transparent</code>（透明壳 + 真实缩略帧）</td><td>铺满等距关键帧预览条，左端为片头帧</td><td><code>65px</code></td></tr>
+      <tr><td>audio</td><td><span class="track-swatch" style="background:#8F5DBA"></span><code>#8F5DBA</code></td><td>叠加 <code>rgba(255,255,255,.7)</code> 波形；上方音量线</td><td><code>50px</code></td></tr>
+      <tr><td>text</td><td><span class="track-swatch" style="background:#5DBAA0"></span><code>#5DBAA0</code></td><td>显示文字内容前若干字</td><td><code>25px</code></td></tr>
+      <tr><td>graphic</td><td><span class="track-swatch" style="background:#BA5D7A"></span><code>#BA5D7A</code></td><td>形状 / 图形</td><td><code>25px</code></td></tr>
+      <tr><td>effect</td><td><span class="track-swatch" style="background:#5D93BA"></span><code>#5D93BA</code></td><td>独立效果片段（作用于下方轨道）</td><td><code>25px</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>1.3 排版</h3>
+  <p>全局字体 <strong>Inter</strong>（<code>next/font/google</code> 子集 latin），中文回落到系统字体（PingFang SC / Microsoft YaHei）。数值、时间码、ID、金额一律使用等宽体。</p>
+  <table class="tbl">
+    <thead><tr><th>令牌</th><th>编辑器（默认面）</th><th>管理后台（<code>admin-surface</code>）</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>text-xs</code></td><td>0.72rem / 11.5px</td><td>0.844rem / 13.5px</td><td>字段标签、说明、胶囊、时间码</td></tr>
+      <tr><td><code>text-sm</code></td><td>0.79rem / 12.6px</td><td>0.9375rem / 15px</td><td>控件默认字、按钮、表格单元格</td></tr>
+      <tr><td><code>text-base</code></td><td>0.92rem / 14.7px</td><td>1rem / 16px</td><td>输入框、卡片正文</td></tr>
+      <tr><td><code>text-lg</code></td><td>见 Tailwind 默认</td><td>—</td><td>对话框标题（<code>font-semibold</code>）、空态标题</td></tr>
+      <tr><td>标题</td><td colspan="2"><code>font-display</code> 字重 650–700，字距 −0.01 ~ −0.02em</td><td>落地页 5xl–7xl；页标题 4xl</td></tr>
+    </tbody>
+  </table>
+  <p><strong>用法约束：</strong>面板内不使用 <code>text-base</code> 以上的字级；空态与对话框标题可用 <code>text-lg</code>。同一屏出现三种以上字重即为超标。</p>
+
+  <h3>1.4 圆角 / 间距 / 描边</h3>
+  <div class="cols">
+    <div>
+      <h4>圆角</h4>
+      <table class="tbl">
+        <thead><tr><th>令牌</th><th>值</th><th>使用</th></tr></thead>
+        <tbody>
+          <tr><td><code>--radius-sm</code></td><td>0.35rem / 5.6px</td><td>小按钮、图标按钮、片段、次要控件</td></tr>
+          <tr><td><code>--radius-md</code></td><td>0.65rem / 10.4px</td><td>输入框、下拉项、通用按钮</td></tr>
+          <tr><td><code>--radius-lg</code></td><td>0.82rem / 13px</td><td>对话框、弹出层</td></tr>
+          <tr><td><code>rounded-2xl</code></td><td>1rem / 16px</td><td>卡片（<code>Card</code> 原语）</td></tr>
+          <tr><td>面板</td><td><code>rounded-sm</code></td><td>编辑器三块面板与时间轴外壳</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h4>间距与描边</h4>
+      <table class="tbl">
+        <thead><tr><th>项</th><th>值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>基础步长</td><td>2px</td><td>面板内 <code>gap-0.5</code>（2px）为最常见间距</td></tr>
+          <tr><td>面板间距</td><td>0.18–0.19rem</td><td>竖向 3px / 横向 3px，配合 <code>px-3</code> 外边距</td></tr>
+          <tr><td>面板内边距</td><td>8–12px</td><td>面板体 <code>px-2</code>，区块 <code>px-3.5</code></td></tr>
+          <tr><td>描边</td><td>1px</td><td>统一 <code>border</code>；选中环 1.5px；<code>Tooltip</code> 变体用 0.5px</td></tr>
+          <tr><td>焦点环</td><td>1–2px <code>--ring</code>/50</td><td>仅键盘导航时出现（<code>:focus-visible</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>1.5 动效</h3>
+  <table class="tbl">
+    <thead><tr><th>场景</th><th>时长 / 曲线</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>hover 变色（按钮 / 菜单项）</td><td>150ms linear</td><td>最常见，不改变尺寸</td></tr>
+      <tr><td>折叠区展开</td><td>100ms ease-out</td><td>用 <code>grid-template-rows 0fr→1fr</code> 实现高度动画</td></tr>
+      <tr><td>手风琴（Radix Accordion）</td><td>200ms ease-out</td><td>变量 <code>--animate-accordion-*</code></td></tr>
+      <tr><td>抽屉 / 弹出层</td><td>200ms</td><td>Radix 默认 data-state 动画</td></tr>
+      <tr><td>主题切换</td><td>0（禁用过渡）</td><td><code>disableTransitionOnChange</code>，避免整页闪烁</td></tr>
+      <tr><td>进度 / 脉冲</td><td>animate-pulse</td><td>监听计时小圆点、生成中骨架</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="t">动效的红线</span>
+    画布、时间轴拖动、播放头跟随<strong>不使用 CSS 过渡</strong>——它们由 <code>requestAnimationFrame</code>
+    逐帧驱动，任何过渡都会引入可感知的滞后。动画只用于「非空间性」的变化：颜色、透明度、弹出与折叠。
+  </div>
+
+  <h3>1.6 图标与品牌</h3>
+  <ul>
+    <li>图标主体来自 <strong>Hugeicons</strong>（<code>@hugeicons/core-free-icons</code> + <code>@hugeicons/react</code>），描边风格、单一笔宽；少量使用 Lucide（<code>Languages</code>、<code>Download</code>、<code>Eye</code> 等）与项目自有图标（<code>OcRippleIcon</code>、<code>OcVideoIcon</code>、<code>OcShapesIcon</code>）。</li>
+    <li>默认尺寸 <code>size-4</code>（16px）；工具按钮内 16px，标签栏 16px，面板内标签 16px。</li>
+    <li>品牌标记为渐变方形 + 内切圆角镂空（<code>DEFAULT_LOGO_URL</code> = <code>/logos/opencut/svg/logo.svg</code>），亮色主题下用 <code>invert</code> 反相。</li>
+    <li>品牌名在站点信息中为 <strong>MyCut</strong>；右键 Logo 可复制 SVG、下载 SVG、进入 <code>/brand</code> 品牌资源页。</li>
+  </ul>
+</section>
+
+<!-- ================= 02 组件库 ================= -->
+<section id="s2">
+  <div class="h-sec">
+    <span class="no">02</span>
+    <h2>组件库规格</h2>
+    <span class="en">Component Library</span>
+  </div>
+  <p class="lede">
+    组件层基于 Radix + CVA，共 40+ 个原语（<code>apps/web/src/components/ui</code>）。
+    下表按使用频次列出规格；「变体」一列即代码中的真实枚举值。
+  </p>
+
+  <h3>2.1 Button</h3>
+  <table class="tbl">
+    <thead><tr><th>变体</th><th>视觉</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>default</code></td><td>实心 <code>bg-foreground</code> + <code>text-background</code></td><td>页面级主操作（新建项目、创建第一个项目）</td></tr>
+      <tr><td><code>background</code></td><td>实心 <code>bg-background</code> 带阴影感</td><td>浮在缩略图上的「更多」按钮</td></tr>
+      <tr><td><code>outline</code></td><td>1px <code>border</code>，hover 变 <code>accent</code></td><td>次级操作：导入、登录、清除搜索、国际化切换</td></tr>
+      <tr><td><code>secondary</code></td><td>淡蓝底 + 淡蓝描边 + 蓝字</td><td><strong>已激活的开关类工具</strong>（吸附、波纹、面板标签、属性标签）</td></tr>
+      <tr><td><code>ghost</code></td><td>透明，hover 出 <code>accent</code></td><td>工具条内常态按钮</td></tr>
+      <tr><td><code>text</code></td><td>透明、无圆角、hover 降透明度</td><td>工具条图标按钮、面板头部动作</td></tr>
+      <tr><td><code>destructive</code></td><td>实心红</td><td>删除确认</td></tr>
+      <tr><td><code>destructive-foreground</code></td><td>白底红字红边，hover 淡红底</td><td>列表/卡片中的删除入口（弱化处理）</td></tr>
+      <tr><td><code>caution</code></td><td>琥珀字，hover 淡琥珀底</td><td>需要提醒但不阻断的操作</td></tr>
+      <tr><td><code>link</code></td><td>主色文字 + 下划线</td><td>行内跳转</td></tr>
+    </tbody>
+  </table>
+  <table class="tbl">
+    <thead><tr><th>尺寸</th><th>高度 / 内距</th><th>圆角</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>default</code></td><td>36px / px-4</td><td>md</td><td>表单、对话框底部</td></tr>
+      <tr><td><code>sm</code></td><td>28px / px-2.5</td><td>sm</td><td>面板内的次级按钮（更换图片、库中选取）</td></tr>
+      <tr><td><code>lg</code></td><td>40px / px-6</td><td>md</td><td>落地页 CTA、项目库主操作、搜索框</td></tr>
+      <tr><td><code>icon</code></td><td>28×28px</td><td>sm</td><td>标签栏、工具条、翻页箭头</td></tr>
+      <tr><td><code>text</code></td><td>自适应 / 无内距</td><td>无</td><td>与 <code>text</code> 变体搭配</td></tr>
+    </tbody>
+  </table>
+  <p><strong>统一约束：</strong>按钮内图标固定 16px（<code>[&amp;_svg]:size-4</code>），禁用态统一 <code>opacity-50</code> + 禁用指针；焦点环仅键盘触发。</p>
+
+  <h3>2.2 输入类</h3>
+  <table class="tbl">
+    <thead><tr><th>组件</th><th>尺寸</th><th>关键规格</th></tr></thead>
+    <tbody>
+      <tr><td><code>Input</code></td><td>default 36 / xs 28 / sm 28 / lg 40（<code>px-3</code>）</td><td>变体 default / outline / destructive。聚焦态 = <code>border-primary/50</code> + 2px <code>primary/20</code> 环。可携带密码显隐与清除按钮（各自占一个 40px 尾随区，两个同时出现时右内距 <code>pr-20</code>）</td></tr>
+      <tr><td><code>Textarea</code></td><td>最小高 100px，<code>resize-y</code></td><td>AI 视频描述（<code>ai_video.prompt_label</code>）、音频描述、擦除描述；<code>rows=4</code></td></tr>
+      <tr><td><code>Select</code></td><td>触发器与 Input 同高</td><td>预览缩放（含「适应」分隔项）、AI 模型 / 分辨率 / 画幅 / 时长</td></tr>
+      <tr><td><code>Checkbox</code></td><td>默认 16，项目库选择态 20（<code>size-5</code>）</td><td>支持 <code>indeterminate</code>（全选半选）</td></tr>
+      <tr><td><code>Slider</code></td><td>时间轴缩放 112px 宽（<code>w-28</code>）</td><td>参数调节、插值曲线控制</td></tr>
+      <tr><td><code>Switch</code> / <code>NumberField</code> / <code>ColorPicker</code> / <code>FontPicker</code></td><td>—</td><td>属性面板参数控件；颜色选择器与字体选择器为专用弹层</td></tr>
+      <tr><td><code>Label</code></td><td>12.5px</td><td>字段标签统一小号，前置 16px 高行高保持与控件对齐</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 容器与浮层</h3>
+  <table class="tbl">
+    <thead><tr><th>组件</th><th>规格</th><th>用法要点</th></tr></thead>
+    <tbody>
+      <tr><td><code>Card</code></td><td><code>rounded-2xl border bg-card</code>；头部/内容/底部 <code>p-6</code></td><td>项目卡片、设置页信息卡</td></tr>
+      <tr><td><code>Dialog</code></td><td>宽 <code>calc(100%-2rem)</code>、最大 <code>max-w-lg</code>，垂直居中；遮罩 <code>bg-black/10 + backdrop-blur-sm</code></td><td>头部/体/底部分别 <code>p-6</code>，头部与底部带分隔线；右上关闭按钮 <code>top-6 right-6</code></td></tr>
+      <tr><td><code>AlertDialog</code></td><td>同上但无关闭按钮</td><td>封禁、改角色、改套餐等不可逆操作</td></tr>
+      <tr><td><code>Popover</code></td><td>默认宽度由内容决定；导出面板固定 <code>w-80</code></td><td>锚定触发元素，常用于工具条（导出、网格参考线、曲线编辑器）</td></tr>
+      <tr><td><code>DropdownMenu</code> / <code>ContextMenu</code></td><td>宽度 176–192px（<code>w-44 / w-48</code>）</td><td>支持图标项、勾选项、<code>destructive</code> 项、分隔线；项目卡片与列表行共用同一套菜单项</td></tr>
+      <tr><td><code>Tooltip</code></td><td>1px 描边 + <code>px-3 py-1.5</code>；<code>sidebar</code> 变体带指示箭头</td><td>工具条延迟 200ms；标签栏延迟 10ms（更快响应）</td></tr>
+      <tr><td><code>Toaster</code>（sonner）</td><td>右上角</td><td>成功 / 失败 / 校验冲突提示；失败必带 <code>description</code> 说明原因</td></tr>
+      <tr><td><code>Sheet</code> / <code>Tabs</code> / <code>Table</code> / <code>Badge</code> / <code>Progress</code> / <code>Skeleton</code> / <code>Spinner</code></td><td>—</td><td>表格用于管理后台；进度用于导出与生成；骨架用于项目库与分析卡</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 编辑器专用组合件</h3>
+  <table class="tbl">
+    <thead><tr><th>组合件</th><th>结构</th><th>出处</th></tr></thead>
+    <tbody>
+      <tr><td><strong>面板</strong> PanelView</td><td>头部 44px（左标题 + 右动作，底部分隔线）+ 可滚动体（<code>pt-2 px-2</code>，隐藏滚动条）</td><td><code>base-panel.tsx</code></td></tr>
+      <tr><td><strong>区块</strong> Section</td><td>头 44px（<code>px-3.5</code>，可折叠时右侧箭头按钮旋转 90°）+ 内容 <code>p-4 pt-0</code>；折叠动画 100ms；展开态缓存到 <code>sectionKey</code></td><td><code>section.tsx</code></td></tr>
+      <tr><td><strong>字段行</strong> SectionField</td><td>标签行 16px + 控件，纵向间距 8px；字段组间距 14px</td><td><code>section.tsx</code></td></tr>
+      <tr><td><strong>分离按钮</strong> SplitButton</td><td>高 28px、<code>rounded-lg</code>、1px 描边、<code>bg-accent</code>；左半为静态文本（可选中复制、未传 onClick 时为默认光标），中间 1px 分隔，右半为可点击图标</td><td><code>split-button.tsx</code>，用于场景选择器</td></tr>
+      <tr><td><strong>可拖拽项</strong> DraggableItem</td><td>缩略 + 名称，双击或按钮加入时间轴；支持拖到时间轴指定轨道/时刻</td><td><code>draggable-item.tsx</code></td></tr>
+      <tr><td><strong>可缩放分栏</strong> ResizablePanelGroup</td><td>面板间 3px 句柄，悬停显形；比例持久化</td><td><code>editor/panel-store.ts</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 03 信息架构 ================= -->
+<section id="s3">
+  <div class="h-sec">
+    <span class="no">03</span>
+    <h2>信息架构</h2>
+    <span class="en">Information Architecture</span>
+  </div>
+  <p class="lede">站点共 5 条主干：公开站点、项目库、编辑器、账户/设置、管理后台。编辑器与项目库之间是唯一的环形动线（进入 → 编辑 → 退出/导出）。</p>
+  <table class="tbl">
+    <thead><tr><th>路由</th><th>页面</th><th>层级</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td>落地页</td><td>公开</td><td>Header + Hero（4 特性卡）+ Footer；未登录可浏览</td></tr>
+      <tr><td><code>/projects</code></td><td>项目库</td><td>需登录</td><td>网格/列表双视图、搜索、排序、多选批量操作；未登录访问会重定向到 <code>/login?next=/projects</code></td></tr>
+      <tr><td><code>/editor/[project_id]</code></td><td>编辑器</td><td>核心工作台</td><td>四区布局；进入前经移动端门槛（&lt;1024px 提示）</td></tr>
+      <tr><td><code>/settings/account</code></td><td>个人中心</td><td>登录后</td><td>点数/流水、登录的设备、两步验证、危险区</td></tr>
+      <tr><td><code>/login</code> <code>/signup</code> <code>/forgot</code> <code>/reset</code></td><td>认证四页</td><td>公开</td><td>左右分栏；左侧品牌面板仅桌面显示</td></tr>
+      <tr><td><code>/brand</code> <code>/changelog</code> <code>/privacy</code> <code>/terms</code></td><td>内容页</td><td>公开</td><td>品牌资源、更新日志（含版本详情 <code>/changelog/[version]</code>）、法务</td></tr>
+      <tr><td><code>/admin/dashboard</code></td><td>数据看板</td><td>管理员</td><td>调用量、消耗、成功率、活跃用户 + 模型维度图表</td></tr>
+      <tr><td><code>/admin/users</code></td><td>用户管理</td><td>管理员</td><td>搜索、封禁/解封、改角色、改套餐</td></tr>
+      <tr><td><code>/admin/models</code></td><td>模型配置</td><td>管理员</td><td>模型注册表，抽屉式编辑</td></tr>
+      <tr><td><code>/admin/channels</code></td><td>渠道</td><td>管理员</td><td>上游供应商渠道</td></tr>
+      <tr><td><code>/admin/billing</code></td><td>计费管理</td><td>管理员</td><td>定价、兑换码、余额调整</td></tr>
+      <tr><td><code>/admin/audit</code></td><td>审计日志</td><td>管理员</td><td>管理动作留痕</td></tr>
+      <tr><td><code>/admin/enter</code></td><td>提权验证</td><td>管理员</td><td>密码（+ TOTP）门禁，签发 30 分钟会话 <code>sessionStorage</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 04 落地页 ================= -->
+<section id="s4">
+  <div class="h-sec">
+    <span class="no">04</span>
+    <h2>落地页</h2>
+    <span class="en">Landing</span>
+  </div>
+  <p class="lede">
+    落地页与编辑器是两种气质：这里允许品牌化的渐变、光晕与动效入场，
+    但结构必须极简——一个主张、四个能力、一个动作。
+  </p>
+
+  <div class="shot">
+    <div class="cap"><b>Landing · Header + Hero</b><span>route: / · components/header.tsx · components/landing/hero.tsx</span></div>
+    <div class="stage">
+      <div class="wf" style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between">
+        <div class="row">
+          <span style="width:22px;height:22px;border-radius:6px;background:conic-gradient(from 210deg,#16A9F3,#2567EC,#8F5DBA,#16A9F3)"></span>
+          <b style="font-size:13px;color:#E8EAF0">MyCut</b>
+        </div>
+        <div class="row">
+          <span class="btn">⌾ 40k+</span>
+          <span class="btn pri">项目 →</span>
+          <span class="btn soft">文</span>
+          <span class="btn soft">◐</span>
+          <span class="btn outline">登录</span>
+        </div>
+      </div>
+
+      <div style="position:relative;margin-top:14px;border-radius:10px;overflow:hidden;padding:44px 20px 38px;text-align:center;
+                  background:
+                    radial-gradient(70% 120% at 22% 18%,rgba(59,130,246,.22),transparent 60%),
+                    radial-gradient(60% 110% at 80% 82%,rgba(168,85,247,.20),transparent 60%),
+                    linear-gradient(140deg,#0F1220,#0B0D16 55%,#140F20)">
+        <div style="position:absolute;inset:0;opacity:.10;
+                    background-image:linear-gradient(to right,rgba(99,102,241,.4) 1px,transparent 1px),
+                                     linear-gradient(to bottom,rgba(99,102,241,.4) 1px,transparent 1px);
+                    background-size:44px 44px"></div>
+        <div style="position:relative">
+          <span class="pill" style="background:rgba(255,255,255,.06)">✦ AI 驱动的视频编辑</span>
+          <h3 style="border:0;padding:0;margin:16px 0 0;font-size:27px;line-height:1.2;letter-spacing:-.02em;
+                     background:linear-gradient(90deg,#F4F6FF,#BFD2FF 40%,#DCC7FF);-webkit-background-clip:text;background-clip:text;color:transparent">
+            下一代视频<br><span style="background:linear-gradient(90deg,#818CF8,#C084FC);-webkit-background-clip:text;background-clip:text;color:transparent">AI 时代的编辑器</span>
+          </h3>
+          <p style="color:#A9B3C6;max-width:430px;margin:12px auto 0;font-size:12px">
+            开源、AI 驱动的视频编辑平台。使用能够理解你创意的智能工具，创造令人惊艳的视频。
+          </p>
+          <div style="display:flex;gap:9px;justify-content:center;margin-top:20px">
+            <span class="btn pri" style="height:30px;padding:0 18px;font-size:12px;background:linear-gradient(90deg,#4F46E5,#9333EA);border-color:transparent">开始创作 →</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:12px">
+        <div class="wf" style="padding:11px"><span style="display:inline-flex;padding:5px;border-radius:6px;background:rgba(99,102,241,.18);color:#8B93FF">✦</span><div style="color:#E8EAF0;font-size:11.5px;margin-top:7px;font-weight:600">AI 驱动</div><div style="font-size:10px;color:#7D8595;margin-top:2px">智能编辑与 AI 辅助</div></div>
+        <div class="wf" style="padding:11px"><span style="display:inline-flex;padding:5px;border-radius:6px;background:rgba(99,102,241,.18);color:#8B93FF">⚡</span><div style="color:#E8EAF0;font-size:11.5px;margin-top:7px;font-weight:600">闪电般快速</div><div style="font-size:10px;color:#7D8595;margin-top:2px">实时预览和渲染</div></div>
+        <div class="wf" style="padding:11px"><span style="display:inline-flex;padding:5px;border-radius:6px;background:rgba(99,102,241,.18);color:#8B93FF">▤</span><div style="color:#E8EAF0;font-size:11.5px;margin-top:7px;font-weight:600">专业功能</div><div style="font-size:10px;color:#7D8595;margin-top:2px">为专业人士打造的高级工具</div></div>
+        <div class="wf" style="padding:11px"><span style="display:inline-flex;padding:5px;border-radius:6px;background:rgba(99,102,241,.18);color:#8B93FF">✧</span><div style="color:#E8EAF0;font-size:11.5px;margin-top:7px;font-weight:600">智能特效</div><div style="font-size:10px;color:#7D8595;margin-top:2px">一键自动增强</div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> Header：sticky + 底部投影遮罩（<code>shadow-background/85</code>）</span>
+      <span><i>●</i> 网格 4rem、双光晕、迷你高 4.5rem 以下留白</span>
+      <span><i>●</i> CTA 主色渐变 indigo→purple，hover 加深</span>
+    </div>
+  </div>
+
+  <h4>结构规范</h4>
+  <table class="tbl">
+    <thead><tr><th>区域</th><th>内容</th><th>规格</th></tr></thead>
+    <tbody>
+      <tr><td>Header</td><td>Logo（右键菜单：复制 SVG / 下载 SVG / 品牌资源）+ 右侧按钮组：GitHub「40k+」outline · <strong>「项目」</strong>主按钮（带右箭头）· 语言切换 · 主题切换 · 账户区</td><td><code>px-6 pt-4</code>，sticky <code>z-10</code>；Logo 32px，标题 <code>text-xl font-bold</code></td></tr>
+      <tr><td>Hero 主标</td><td>两行：第一行 <code>landing.title_line1</code>（「下一代视频」），第二行 <code>landing.title_line2</code>（「AI 时代的编辑器」）</td><td>整体 <code>text-5xl md:text-7xl</code>；第一行渐变 <code>gray-900→indigo-900→purple-900</code>（暗色：白→indigo-200→purple-200），第二行单独渐变 <code>indigo-600→purple-600</code>（暗色：indigo-400→purple-400）</td></tr>
+      <tr><td>徽标</td><td>圆角胶囊 + Sparkles 图标 + 「AI 驱动的视频编辑」</td><td><code>rounded-full border px-4 py-2</code>，半透明毛玻璃</td></tr>
+      <tr><td>主 CTA</td><td><strong>仅一个</strong>：「开始创作」→ <code>/projects</code></td><td><code>h-12 px-8 text-base font-semibold</code>，箭头图标 hover 右移 1 格</td></tr>
+      <tr><td>特性卡 ×4</td><td>AI 驱动 / 闪电般快速 / 专业功能 / 智能特效（各自一句副标题）</td><td><code>max-w-5xl</code>，1 → 2 → 4 列，<code>gap-6 mt-20</code>；卡片 <code>rounded-2xl border p-6</code>，图标为 48px 圆角方块（<code>rounded-lg bg-indigo-100 p-3</code>）+ 24px 图标，标题 <code>text-lg font-semibold</code>，副标题 <code>text-sm</code>；hover 时边框转 indigo 并浮起阴影，内部叠加一层极淡渐变</td></tr>
+      <tr><td>入场动效</td><td>徽标 → 标题 → 描述 → CTA → 特性卡容器 → 每张卡</td><td>徽标/标题/描述/CTA：500ms，延迟 0 / 0.1 / 0.2 / 0.3s，位移 20px 向上淡入；卡片容器：700ms、延迟 0.4s、位移 40px；每张卡再各 500ms、延迟 0.5 + i×0.1s、位移 20px</td></tr>
+      <tr><td>背景层</td><td>渐变 + 网格 + 三个光晕</td><td><code>-z-50</code> 固定层；暗色下网格透明度降到 10%</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn">
+    <span class="t">一致性缺口 GAP-01</span>
+    落地页与项目库使用 indigo/purple 渐变体系，而编辑器与后台使用 <code>--primary</code> 蓝（#16A9F3）。
+    两套色系目前并存：营销面走品牌紫蓝，产品面走功能蓝。建议明确保留该「双层品牌」策略并写入规范
+    （营销 = 情绪色，产品 = 功能色），否则后续新增页面会摇摆。
+  </div>
+</section>
+
+<!-- ================= 05 项目库 ================= -->
+<section id="s5">
+  <div class="h-sec">
+    <span class="no">05</span>
+    <h2>项目库</h2>
+    <span class="en">Projects</span>
+  </div>
+  <p class="lede">项目库是「浏览 + 批量管理」面。同一份数据支持网格与列表两种视图，操作路径保持一致（卡片右上角菜单 ≈ 右键菜单 ≈ 选中后的批量操作条）。</p>
+
+  <div class="shot">
+    <div class="cap"><b>Projects · 网格视图 + 头部工具条</b><span>route: /projects · app/projects/page.tsx</span></div>
+    <div class="stage">
+      <div class="wf" style="padding:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #292929">
+          <div class="row" style="gap:14px">
+            <span style="font-size:11px;color:#7D8595">首页 / <b style="color:#DEDEDE">全部项目</b></span>
+            <span style="display:inline-flex;border:1px solid #292929;border-radius:6px;padding:2px;gap:2px">
+              <span class="ic on">▦</span><span class="ic">▤</span>
+            </span>
+          </div>
+          <div class="row">
+            <span class="btn soft" style="width:150px;justify-content:flex-start;color:#7D8595">⌕ 搜索</span>
+            <span class="btn pri" style="height:28px;padding:0 14px">＋ 新建项目</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #1E1E2A">
+          <div class="row" style="gap:10px">
+            <span class="ic" style="border:1px solid #3A3F49;background:transparent"></span>
+            <span style="font-size:10.5px;color:#7D8595">全选</span>
+            <span style="width:1px;height:12px;background:#292929"></span>
+            <span class="btn tx" style="font-size:10.5px">修改时间 ▾</span>
+            <span class="btn tx" style="font-size:10.5px">↓</span>
+          </div>
+          <div class="row" style="gap:7px;opacity:.55">
+            <span class="btn soft" style="width:26px;padding:0">⧉</span>
+            <span class="btn soft" style="width:26px;padding:0;color:#E77A7A;border-color:rgba(233,22,22,.35)">🗑</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px">
+          <div>
+            <div class="thumb" data-d="00:24"></div>
+            <div style="font-size:10.5px;color:#DEDEDE;margin-top:6px">品牌宣传片 v3</div>
+            <div style="font-size:9.5px;color:#7D8595;margin-top:2px">◷ 创建于 10-08</div>
+          </div>
+          <div>
+            <div class="thumb" data-d="01:02"></div>
+            <div style="font-size:10.5px;color:#DEDEDE;margin-top:6px">产品讲解 · 竖版</div>
+            <div style="font-size:9.5px;color:#7D8595;margin-top:2px">◷ 创建于 10-05</div>
+          </div>
+          <div>
+            <div class="thumb" data-d="00:12"></div>
+            <div style="font-size:10.5px;color:#DEDEDE;margin-top:6px">AI 生成片段合集</div>
+            <div style="font-size:9.5px;color:#7D8595;margin-top:2px">◷ 创建于 10-02</div>
+          </div>
+          <div>
+            <div class="thumb" data-d="03:41"></div>
+            <div style="font-size:10.5px;color:#DEDEDE;margin-top:6px">直播回放剪辑</div>
+            <div style="font-size:9.5px;color:#7D8595;margin-top:2px">◷ 创建于 09-28</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 头部 <code>h-16</code> + 工具条 <code>h-14</code>，两者均 sticky（16px / 64px）</span>
+      <span><i>●</i> 网格列数：1 / 2 / 3 / 4（xs 30rem 断点起两列）</span>
+      <span><i>●</i> 卡片缩略 16:9，右下角时长胶囊</span>
+    </div>
+  </div>
+
+  <h3>5.1 视图与工具</h3>
+  <table class="tbl">
+    <thead><tr><th>元素</th><th>规格</th><th>交互</th></tr></thead>
+    <tbody>
+      <tr><td>面包屑</td><td>首页 / 全部项目，<code>text-sm sm:text-base</code></td><td>点击回落地页</td></tr>
+      <tr><td>视图切换</td><td>分段控件：外框 1px + <code>p-1</code>，两个图标按钮；选中项 <code>!bg-accent</code></td><td>桌面端在此，移动端在工具条左侧以文字按钮形式出现</td></tr>
+      <tr><td>搜索</td><td><code>size=lg</code> 输入框，占位符「搜索...」，左侧放大镜图标 16px，<code>pl-9</code></td><td>实时过滤；无结果时展示「未找到结果」空态并提供清除按钮</td></tr>
+      <tr><td>排序</td><td>下拉：创建时间 / 修改时间 / 名称 / 时长；右侧独立升降序箭头按钮（升序时箭头旋转 180°）</td><td>勾选项显示当前排序键</td></tr>
+      <tr><td>全选</td><td>20px 复选框，支持半选态</td><td>Shift + 点击可范围选择</td></tr>
+      <tr><td>批量操作</td><td>仅在选中 &gt;0 时出现，右侧：复制（outline）+ 删除（红字描边）</td><td>窄屏折叠为「⋯」菜单</td></tr>
+      <tr><td>新建项目</td><td>主色实心按钮，桌面「新建项目」/ 窄屏「新建」</td><td>创建后直接进入 <code>/editor/[id]</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 卡片与列表行</h3>
+  <div class="cols">
+    <div>
+      <h4>网格卡片</h4>
+      <ul>
+        <li>缩略图 16:9，占位时显示 48px 视频图标（<code>muted-foreground</code>）</li>
+        <li>右下角时长胶囊：黑 60% 底、白字、<code>rounded-sm</code>；时长 ≥1 小时切换为 <code>HH:MM:SS</code></li>
+        <li>标题最多两行（<code>line-clamp-2</code>），hover 时前景色提升</li>
+        <li>元信息行：日历图标 + 「创建于 MM-DD」</li>
+        <li><strong>复选框</strong>左上角 <code>top-3 left-3</code>，默认透明，hover 或已选中时出现；<strong>菜单按钮</strong>右上角同理</li>
+      </ul>
+    </div>
+    <div>
+      <h4>列表行</h4>
+      <ul>
+        <li>左侧 20px 复选框 → 40px 缩略 → 标题（占满剩余宽度）→ 时长 → 创建日期 → 菜单</li>
+        <li>行内边距 <code>py-2 px-4</code>，底边 1px 半透明分隔线</li>
+        <li>选中行底色 <code>bg-primary/5</code></li>
+        <li>多选时隐藏行内菜单按钮（避免误触）</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>5.3 菜单与空态</h3>
+  <table class="tbl">
+    <thead><tr><th>入口</th><th>菜单项</th></tr></thead>
+    <tbody>
+      <tr><td>卡片菜单 / 右键菜单</td><td>重命名（✎）· 复制（⧉）· 信息（ⓘ）· ─── · 删除（红）</td></tr>
+      <tr><td>批量操作菜单（窄屏）</td><td>复制 · 删除（红）</td></tr>
+      <tr><td>删除确认</td><td>列出将删除的项目名；确认按钮为 destructive</td></tr>
+      <tr><td>项目信息</td><td>弹窗展示分辨率、帧率、时长、轨道与元素数量等元数据</td></tr>
+    </tbody>
+  </table>
+  <table class="tbl">
+    <thead><tr><th>状态</th><th>呈现</th></tr></thead>
+    <tbody>
+      <tr><td>加载中</td><td>24 张骨架卡，结构同真实卡片（缩略 + 标题条 + 元信息条）</td></tr>
+      <tr><td>完全无项目</td><td>64px 圆形底 + 32px 视频图标；标题「暂无项目」+ 一句说明 + 「创建您的第一个项目」主按钮</td></tr>
+      <tr><td>搜索无结果</td><td>64px 方形底 + 放大镜图标；标题「未找到结果」+ 「没有匹配 “{query}” 的项目」+ 「清除搜索」outline 按钮</td></tr>
+      <tr><td>本地存储未持久化</td><td><code>StoragePersistenceDialog</code> 提示授予持久化，避免浏览器清理数据</td></tr>
+      <tr><td>存在旧版项目</td><td><code>MigrationDialog</code> 迁移流程</td></tr>
+      <tr><td>有新版发布</td><td>左下角更新卡（见 6.8）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 06 编辑器总览 ================= -->
+<section id="s6">
+  <div class="h-sec">
+    <span class="no">06</span>
+    <h2>编辑器总览</h2>
+    <span class="en">Editor Shell</span>
+  </div>
+  <p class="lede">
+    编辑器是全站唯一的高密度工作台。整体为「顶栏 + 上方三栏 + 下方时间轴」的二层嵌套布局，
+    三栏之间与上下之间都是可拖拽分栏，比例持久化到本地。
+  </p>
+
+  <div class="shot">
+    <div class="cap"><b>Editor · 完整布局（暗色）</b><span>route: /editor/[project_id]</span></div>
+    <div class="stage">
+      <div class="ed wf" style="padding:6px">
+        <!-- 顶栏 -->
+        <div class="ed-hd">
+          <div class="row" style="gap:6px">
+            <span class="ic" style="background:transparent">◈</span>
+            <span style="font-size:11.5px;color:#DEDEDE;padding:2px 6px;border-radius:4px;background:#1E1E1E">品牌宣传片 v3</span>
+          </div>
+          <div class="row" style="gap:6px">
+            <span class="btn tx">💬</span>
+            <span class="btn" style="background:linear-gradient(90deg,#2567EC,#37B6F7);border-color:transparent;color:#fff;font-weight:600;height:24px">⤒ 导出</span>
+            <span class="btn tx">◐</span>
+          </div>
+        </div>
+
+        <!-- 三栏 -->
+        <div class="ed-body">
+          <div class="pane">
+            <div class="assets">
+              <div class="tabrail">
+                <span class="ic on">▤</span><span class="ic">♪</span><span class="ic">T</span>
+                <span class="ic">☺</span><span class="ic">✦</span><span class="ic">⇥</span>
+                <span class="ic">CC</span><span class="ic">☰</span><span class="ic">▶</span>
+                <span class="ic">✧</span><span class="ic">♪+</span><span class="ic">⚙</span>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+                <div class="ph"><span style="font-size:10.5px;color:#7D8595">素材</span>
+                  <span class="row" style="gap:4px"><span class="btn tx">▦</span><span class="btn tx">⇅</span><span class="btn tx">↥</span></span></div>
+                <div class="pb">
+                  <div class="grid2">
+                    <div class="thumb" data-d="00:12"></div>
+                    <div class="thumb" data-d="00:31"></div>
+                    <div class="thumb" data-d="00:08"></div>
+                    <div class="thumb" data-d="01:04"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pane">
+            <div class="pb" style="padding:0;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px">
+                <span class="mono" style="font-size:10px">00:00:12:08</span>
+                <span style="font-size:10px;color:#7D8595">▶</span>
+                <span class="row" style="gap:6px"><span class="btn soft" style="height:18px;font-size:9.5px">适应 ▾</span><span class="btn tx">⛶</span></span>
+              </div>
+              <div class="canvas-wrap">
+                <div class="canvas">
+                  <div class="box">
+                    <span class="hd" style="left:-4px;top:-4px"></span>
+                    <span class="hd" style="right:-4px;top:-4px"></span>
+                    <span class="hd" style="left:-4px;bottom:-4px"></span>
+                    <span class="hd" style="right:-4px;bottom:-4px"></span>
+                  </div>
+                  <div class="guide" style="left:50%;top:0;bottom:0;width:1px"></div>
+                  <div class="guide" style="top:50%;left:0;right:0;height:1px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pane">
+            <div class="assets">
+              <div class="tabrail">
+                <span class="ic on">⤢</span><span class="ic">♪</span><span class="ic">◔</span><span class="ic">◑</span><span class="ic">◎</span><span class="ic">✦</span>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+                <div class="ph"><span style="font-size:10.5px;color:#7D8595">变换</span><span class="btn tx">⬦</span></div>
+                <div class="pb">
+                  <div class="lbl">位置</div>
+                  <div class="row" style="margin:4px 0 9px"><span class="bar" style="flex:1"></span><span class="bar" style="flex:1"></span></div>
+                  <div class="lbl">缩放</div>
+                  <div class="row" style="margin:4px 0 9px"><span class="bar" style="flex:1"></span><span class="bar" style="flex:1"></span></div>
+                  <div class="lbl">旋转</div>
+                  <div class="row" style="margin:4px 0"><span class="bar" style="width:100%"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时间轴 -->
+        <div class="tl">
+          <div class="tl-toolbar">
+            <div class="row" style="gap:3px">
+              <span class="ic">✂</span><span class="ic">⇤</span><span class="ic">⇥</span><span class="ic">🔗</span>
+              <span class="ic">⧉</span><span class="ic">❄</span><span class="ic">🗑</span>
+              <span style="width:1px;height:16px;background:#292929;margin:0 3px"></span>
+              <span class="ic">⚑</span><span class="ic">◠</span>
+            </div>
+            <div class="row" style="gap:0">
+              <span class="btn soft" style="height:20px;border-radius:5px 0 0 5px;font-size:9.5px">主场景</span>
+              <span style="width:1px;background:#292929;height:20px"></span>
+              <span class="btn soft" style="height:20px;border-radius:0 5px 5px 0;font-size:9.5px">▤</span>
+            </div>
+            <div class="row" style="gap:4px">
+              <span class="ic on">🧲</span><span class="ic on">↹</span>
+              <span style="width:1px;height:16px;background:#292929;margin:0 3px"></span>
+              <span class="ic">−</span><span class="bar" style="width:70px;height:4px;background:#333"></span><span class="ic">＋</span>
+            </div>
+          </div>
+
+          <div class="tl-body" style="grid-template-columns:86px 1fr">
+            <div class="tl-labels">
+              <div class="tl-lane" style="--h:16px"></div>
+              <div class="tl-lane" style="--h:44px">文字</div>
+              <div class="tl-lane" style="--h:44px">视频</div>
+              <div class="tl-lane" style="--h:34px">音频</div>
+            </div>
+            <div class="tl-tracks" style="height:138px">
+              <div class="tl-ruler">
+                <span style="left:4px">00:00</span><span style="left:54px">00:01</span>
+                <span style="left:104px">00:02</span><span style="left:154px">00:03</span>
+                <span style="left:204px">00:04</span><span style="left:254px">00:05</span>
+              </div>
+              <div class="tl-lane" style="--h:44px;border-bottom:0"></div>
+              <div class="tl-lane" style="--h:44px;border-bottom:0"></div>
+              <div class="tl-lane" style="--h:34px;border-bottom:0"></div>
+
+              <div class="clip text" style="--h:14px;left:58px;top:20px;width:74px">标题：让剪辑…</div>
+              <div class="clip video sel" style="--h:40px;left:4px;top:64px;width:176px">品牌宣传片_v3.mp4</div>
+              <div class="clip video" style="--h:40px;left:186px;top:64px;width:112px">b-roll.mp4</div>
+              <div class="clip audio" style="--h:30px;left:4px;top:108px;width:294px">bgm.mp3</div>
+              <div class="kf" style="left:100px;top:58px"></div>
+              <div class="kf" style="left:140px;top:58px"></div>
+              <div class="ph-line" style="left:150px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 顶栏 54.4px（<code>h-[3.4rem]</code>）</span>
+      <span><i>●</i> 三栏比例 25 / 50 / 25（min 15 / 30 / 15，max 40 / — / 40）</span>
+      <span><i>●</i> 上下比例 50 / 50（主区 30–85）</span>
+      <span><i>●</i> 面板间距 3px，左右外边距 <code>px-3</code></span>
+    </div>
+  </div>
+
+  <h3>6.1 布局与尺寸</h3>
+  <table class="tbl">
+    <thead><tr><th>区域</th><th>默认比例</th><th>可调范围</th><th>备注</th></tr></thead>
+    <tbody>
+      <tr><td>顶栏 EditorHeader</td><td>固定 54.4px</td><td>—</td><td><code>px-3 pt-0.5</code>，左右两端对齐</td></tr>
+      <tr><td>素材面板 tools</td><td>25%</td><td>15% – 40%</td><td>内含 30px 工具列 + 内容区</td></tr>
+      <tr><td>预览区 preview</td><td>50%</td><td>≥30%，占满剩余</td><td><code>flex-1</code>，被两侧挤压</td></tr>
+      <tr><td>属性面板 properties</td><td>25%</td><td>15% – 40%</td><td>内含 30px 标签列 + 内容区</td></tr>
+      <tr><td>主内容 mainContent</td><td>50%</td><td>30% – 85%</td><td>三栏所在区</td></tr>
+      <tr><td>时间轴 timeline</td><td>50%</td><td>剩余</td><td>含工具条 40px + 标尺 + 轨道</td></tr>
+    </tbody>
+  </table>
+
+  <h3>6.2 顶栏</h3>
+  <table class="tbl">
+    <thead><tr><th>位置</th><th>元素</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td>左</td><td>Logo 按钮（28×28，图标 20px）</td><td>下拉：退出项目（带防重复点击的 exiting 态）· 快捷键设置</td></tr>
+      <tr><td>左</td><td>项目名（输入框伪装成文本）</td><td>单击进入编辑，自动全选；Enter 保存、Esc 还原；hover 显示 <code>accent</code> 底；编辑中显示 1px 焦点环；宽度按内容自适应（<code>field-sizing: content</code>）</td></tr>
+      <tr><td>右</td><td>反馈入口</td><td>Popover 表单</td></tr>
+      <tr><td>右</td><td><strong>导出按钮</strong></td><td>唯一使用专属渐变的主按钮：双层嵌套，外层 1px 亮边（#38BDF8），内层 <code>#2567EC → #37B6F7</code> 渐变 + 顶部高光；无项目时 <code>opacity-50</code> 且不可点</td></tr>
+      <tr><td>右</td><td>主题切换</td><td>亮 / 暗 / 跟随系统</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="t">顶部降级提示条</span>
+    当渲染器降级（WebGL 不可用等）时，顶栏上方出现 36px 高的横幅：<code>bg-accent</code> 底、
+    <code>text-xs text-muted-foreground</code>，居中显示「为获得最佳体验，请…」并带一个可关闭的 ✕。
+    关闭后本次会话不再出现。
+  </div>
+</section>
+
+<!-- ================= 07 素材面板 ================= -->
+<section id="s7">
+  <div class="h-sec">
+    <span class="no">07</span>
+    <h2>素材面板</h2>
+    <span class="en">Assets Panel</span>
+  </div>
+  <p class="lede">
+    素材面板用「左侧 30px 图标列 + 右侧内容区」承载 12 个功能域。图标列可纵向滚动，
+    上下边缘有渐隐遮罩提示还有更多项。
+  </p>
+
+  <h3>7.1 工具列</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:46px">#</th><th>标签</th><th>图标</th><th>内容</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>素材</td><td>文件夹</td><td>导入的素材库，网格/列表、排序、拖拽入轨</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>2</td><td>音频</td><td>耳机</td><td>音频搜索 + 试听 + 商用筛选</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>3</td><td>文字</td><td>T</td><td>默认文本模板，拖入或点击加入时间轴</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>4</td><td>贴纸</td><td>笑脸</td><td>分类浏览 + 关键词搜索 + 区域筛选</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>5</td><td>特效</td><td>魔棒</td><td>效果注册表，每项渲染实时预览画布，尺寸 <code>minmax(96px,1fr)</code></td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>6</td><td>转场</td><td>双箭头</td><td>—</td><td><span class="dot wip">即将推出</span></td></tr>
+      <tr><td>7</td><td>字幕</td><td>CC</td><td>字幕 / 转录相关操作</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>8</td><td>调节</td><td>滑杆</td><td>—</td><td><span class="dot wip">即将推出</span></td></tr>
+      <tr><td>9</td><td>AI 视频</td><td>摄像机</td><td>文生视频 / 图生视频 + 参考帧选取</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>10</td><td>AI 工具</td><td>魔棒</td><td>AI 抠像 / AI 擦除（Canvas 涂鸦 + 画笔尺寸）</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>11</td><td>AI 音频</td><td>音符</td><td>音乐 / 音效生成</td><td><span class="dot on">已实现</span></td></tr>
+      <tr><td>12</td><td>设置</td><td>齿轮</td><td>项目设置：画布尺寸、帧率、背景</td><td><span class="dot on">已实现</span></td></tr>
+    </tbody>
+  </table>
+  <p><strong>图标列规格：</strong>宽 30px（含 <code>p-1</code>），按钮 32×32、<code>rounded-sm</code>、间距 2px；激活项用 <code>secondary</code> 变体（淡蓝底蓝字），未激活用 <code>ghost</code> + <code>text-muted-foreground</code>；hover 显示<strong>侧向 Tooltip</strong>（<code>side="right"</code>，延迟 10ms，<code>sidebar</code> 变体带指示箭头）。</p>
+
+  <h3>7.2 内容区通用骨架</h3>
+  <div class="shot">
+    <div class="cap"><b>PanelView 骨架 + 素材网格</b><span>base-panel.tsx · assets.tsx</span></div>
+    <div class="stage" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="wf" style="height:190px;display:flex;flex-direction:column">
+        <div style="height:38px;border-bottom:1px solid #1E1E2A;display:flex;align-items:center;justify-content:space-between;padding:0 8px">
+          <span style="font-size:10.5px;color:#7D8595">素材</span>
+          <span class="row" style="gap:3px"><span class="ic">▦</span><span class="ic">⇅</span><span class="ic">↥</span></span>
+        </div>
+        <div style="padding:8px;flex:1">
+          <div class="grid2">
+            <div class="thumb" data-d="00:12"></div>
+            <div class="thumb" data-d="00:31"></div>
+          </div>
+        </div>
+      </div>
+      <div class="wf" style="height:190px;display:flex;flex-direction:column">
+        <div style="height:38px;border-bottom:1px solid #1E1E2A;display:flex;align-items:center;padding:0 8px">
+          <span style="font-size:10.5px;color:#7D8595">音频</span>
+        </div>
+        <div style="padding:8px;flex:1;display:flex;flex-direction:column;gap:6px">
+          <div class="row"><span class="bar" style="flex:1"></span><span class="ic">⚑</span></div>
+          <div class="row" style="gap:6px"><span class="ic">▶</span><span style="font-size:10px;color:#B9C2CE">Whoosh Impact</span></div>
+          <div class="row" style="gap:6px"><span class="ic">▶</span><span style="font-size:10px;color:#B9C2CE">Vinyl Scratch</span></div>
+          <div class="row" style="gap:6px"><span class="ic">▶</span><span style="font-size:10px;color:#B9C2CE">Soft Pop</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 头部 44px：左标题 12.6px <code>muted-foreground</code>，右动作区</span>
+      <span><i>●</i> 内容区 <code>px-2 pt-2</code>，滚动条隐藏</span>
+      <span><i>●</i> 拖拽文件到面板时整体底色变 <code>accent/30</code></span>
+    </div>
+  </div>
+
+  <h3>7.3 各视图要点</h3>
+  <table class="tbl">
+    <thead><tr><th>视图</th><th>头部动作</th><th>内容与交互</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>素材</strong></td>
+        <td>视图切换（网格/列表）· 排序菜单 · 导入按钮</td>
+        <td>无素材或拖拽悬停时显示整块虚线拖放区（点击可打开文件选择）；有素材时网格 16:9 缩略，时长胶囊右下角；支持框选（<code>SelectableSurface</code>）；列表模式为紧凑行</td>
+      </tr>
+      <tr>
+        <td><strong>音频</strong></td>
+        <td>搜索框（带清除）· 筛选菜单（仅商用）</td>
+        <td>默认展示热门音频；搜索时切换为结果列表；每行 play/pause 按钮就地试听，切换时自动暂停上一条；加载条显示中</td>
+      </tr>
+      <tr>
+        <td><strong>文字</strong></td>
+        <td>—</td>
+        <td>单个「默认文本」项（1:1 预览块显示文本内容），点击或拖拽在播放头处插入</td>
+      </tr>
+      <tr>
+        <td><strong>贴纸</strong></td>
+        <td>搜索（含区域解析，如按语言/地区）· 分类 Tabs</td>
+        <td>分类：形状等；贴纸按内在尺寸放置；加载与失败态有 toast</td>
+      </tr>
+      <tr>
+        <td><strong>特效</strong></td>
+        <td>—</td>
+        <td>自动填充网格（最小 96px），每项为实时的效果预览画布（渲染服务在预览图就绪时回调重绘），<code>rounded</code> 卡片形态</td>
+      </tr>
+      <tr>
+        <td><strong>字幕</strong></td>
+        <td>依转录状态变化</td>
+        <td>基于转录结果生成字幕条目，可加入时间轴</td>
+      </tr>
+      <tr>
+        <td><strong>AI 视频</strong></td>
+        <td>余额胶囊 + 充值入口</td>
+        <td>见第 12 节</td>
+      </tr>
+      <tr>
+        <td><strong>AI 工具</strong></td>
+        <td>模式切换（AI 抠像 / AI 擦除）</td>
+        <td>AI 擦除模式：320px 宽上限的画布 + 半透明红遮罩涂鸦、画笔尺寸 8/16/24/40、清空遮罩、擦除描述输入</td>
+      </tr>
+      <tr>
+        <td><strong>AI 音频</strong></td>
+        <td>模式切换（音乐 / 音效）</td>
+        <td>文本域（最小 100px，可纵向拉伸）+ 音色/风格选择 + 生成按钮</td>
+      </tr>
+      <tr>
+        <td><strong>设置</strong></td>
+        <td>—</td>
+        <td>项目级设置：画布尺寸、帧率、背景（颜色 / 模糊 / 图片）</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 08 预览面板 ================= -->
+<section id="s8">
+  <div class="h-sec">
+    <span class="no">08</span>
+    <h2>预览面板</h2>
+    <span class="en">Preview</span>
+  </div>
+  <p class="lede">
+    预览区是编辑器的视觉中心：上下各留出控制条，中间为画布。画布按项目设置的尺寸与缩放比例渲染，
+    之上叠加交互层（选择框、变换手柄、遮罩手柄、吸附参考线、文字直编、书签注释）。
+  </p>
+
+  <div class="shot">
+    <div class="cap"><b>Preview · 画布 + 控制条 + 交互层</b><span>preview/components/index.tsx · toolbar.tsx</span></div>
+    <div class="stage">
+      <div class="wf" style="height:290px;display:flex;flex-direction:column;padding:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px">
+          <span class="mono" style="font-size:11px;color:#DEDEDE">00:00:12:08</span>
+          <span class="row" style="gap:6px">
+            <span class="ic" style="width:26px;height:26px;border-radius:50%;background:#1B2A33;color:#16A9F3">▶</span>
+          </span>
+          <span class="row" style="gap:7px">
+            <span class="btn soft" style="height:20px;font-size:10px">适应 ▾</span>
+            <span style="width:1px;height:14px;background:#292929"></span>
+            <span class="btn tx">⛶</span>
+          </span>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 14px 14px">
+          <div style="position:relative;aspect-ratio:16/9;width:74%;border-radius:3px;border:1px solid #2E3340;
+                      background:linear-gradient(150deg,#1A2233,#101420 55%,#1B1526)">
+            <div style="position:absolute;left:16%;top:22%;width:44%;height:46%;border:1.5px solid #16A9F3">
+              <span style="position:absolute;left:-4px;top:-4px;width:7px;height:7px;background:#0D0D0D;border:1.5px solid #16A9F3"></span>
+              <span style="position:absolute;right:-4px;top:-4px;width:7px;height:7px;background:#0D0D0D;border:1.5px solid #16A9F3"></span>
+              <span style="position:absolute;left:-4px;bottom:-4px;width:7px;height:7px;background:#0D0D0D;border:1.5px solid #16A9F3"></span>
+              <span style="position:absolute;right:-4px;bottom:-4px;width:7px;height:7px;background:#0D0D0D;border:1.5px solid #16A9F3"></span>
+              <span style="position:absolute;left:50%;top:-9px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#0D0D0D;border:1.5px solid #16A9F3"></span>
+            </div>
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(22,169,243,.5)"></div>
+            <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(22,169,243,.5)"></div>
+            <div style="position:absolute;left:62%;top:0;bottom:0;width:1px;background:rgba(255,80,80,.5)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 控制条上下内距 <code>pt-5 px-5 / pb-3</code></span>
+      <span><i>●</i> 画布级联缩放：适应 / 25 / 50 / 75 / 100 / 150 / 200%</span>
+      <span><i>●</i> 手柄 7px 方块 + 旋转圆点；吸附参考线为 1px 半透明主色</span>
+    </div>
+  </div>
+
+  <h3>8.1 控制条</h3>
+  <table class="tbl">
+    <thead><tr><th>位置</th><th>元素</th><th>规格</th></tr></thead>
+    <tbody>
+      <tr><td>左</td><td>当前时间码 / 总时长</td><td>等宽体、主色数字 + <code>muted-foreground</code> 分隔符与总时长；<strong>当前时间码可点击编辑</strong>（<code>EditableTimecode</code>），格式 <code>HH:MM:SS:FF</code>，按帧率换算</td></tr>
+      <tr><td>中</td><td>播放 / 暂停</td><td>圆形图标按钮；播放中切换为暂停图标</td></tr>
+      <tr><td>右</td><td>缩放选择器</td><td>Select 触发器显示「适应」或百分比；菜单首项为「适应」，其后是预设档，两者间有分隔线</td></tr>
+      <tr><td>右</td><td>全屏</td><td>文字变体按钮，进入容器全屏（<code>useFullscreen</code>）</td></tr>
+      <tr><td>右</td><td>参考线（已注释）</td><td>代码中保留的 <code>GridPopover</code> 触发位，当前版本隐藏</td></tr>
+    </tbody>
+  </table>
+
+  <h3>8.2 画布交互层</h3>
+  <table class="tbl">
+    <thead><tr><th>层</th><th>能力</th><th>视觉</th></tr></thead>
+    <tbody>
+      <tr><td>命中测试</td><td>点击选中元素、点空白取消选择；支持重叠元素的优先级判定</td><td>选中元素出现 1.5px 主色选中环</td></tr>
+      <tr><td>变换手柄</td><td>拖拽移动、四角缩放、上方圆点旋转</td><td>角手柄 7px 方块（深底 + 主色边），旋转手柄为圆形</td></tr>
+      <tr><td>吸附参考线</td><td>画布中心线、元素边缘、安全区对齐时显形</td><td>1px 半透明主色线，松手即隐</td></tr>
+      <tr><td>文字直编</td><td>双击文本元素在原位进入编辑</td><td>文本层上覆盖可编辑区域</td></tr>
+      <tr><td>蒙版手柄</td><td>蒙版路径与半径控制点</td><td>同类方形手柄，路径为细线</td></tr>
+      <tr><td>右键菜单</td><td>元素级操作（复制、删除、分离音频等）</td><td>标准上下文菜单</td></tr>
+      <tr><td>叠加上/下层</td><td>网格参考线、书签注释等可切换显隐的覆盖层</td><td>由 <code>PreviewOverlayLayer</code> 统一渲染</td></tr>
+      <tr><td>滚轮 / 手势</td><td>滚轮缩放（已归一化不同 <code>deltaMode</code>）</td><td>缩放范围 0.25× – 16×，步进 1.25</td></tr>
+    </tbody>
+  </table>
+  <p class="mono">鼠标光标随交互上下文切换（<code>preview/components/cursors.ts</code>）：默认箭头 / 抓取 / 缩放 / 旋转各有专用光标。</p>
+</section>
+
+<!-- ================= 09 属性面板 ================= -->
+<section id="s9">
+  <div class="h-sec">
+    <span class="no">09</span>
+    <h2>属性面板</h2>
+    <span class="en">Properties</span>
+  </div>
+  <p class="lede">
+    属性面板是「按选中元素类型动态装配」的：左侧 30px 标签列决定看哪一类参数，右侧为参数表单。
+    标签集合由元素类型决定，因此用户永远只看到与当前对象相关的参数。
+  </p>
+
+  <h3>9.1 标签装配表</h3>
+  <table class="tbl">
+    <thead><tr><th>元素类型</th><th>默认标签</th><th>标签顺序</th><th>参数内容</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>文字</strong></td><td>文字</td>
+        <td>文字 · 变换 · 混合</td>
+        <td>内容、字体、字号、颜色、对齐、字重、斜体、装饰线、字距、行高；背景（开关 / 颜色 / 圆角 / 左右内距 / 上下内距 / 偏移 X / 偏移 Y）</td>
+      </tr>
+      <tr>
+        <td><strong>视频</strong></td><td>变换</td>
+        <td>变换 · 音频（有音轨时）· 速度 · 混合 · 蒙版 · 特效</td>
+        <td>位置 XY、缩放 XY、旋转；音量、静音；速度曲线；不透明度、混合模式；蒙版形状与参数；片段级效果列表</td>
+      </tr>
+      <tr>
+        <td><strong>图片</strong></td><td>变换</td>
+        <td>变换 · 混合 · 蒙版 · 特效</td>
+        <td>同上（无音频/速度）</td>
+      </tr>
+      <tr>
+        <td><strong>贴纸</strong></td><td>变换</td>
+        <td>变换 · 混合 · 特效</td>
+        <td>同上（无蒙版）</td>
+      </tr>
+      <tr>
+        <td><strong>图形</strong></td><td>图形</td>
+        <td>图形 · 变换 · 混合 · 蒙版 · 特效</td>
+        <td>图形专属参数（形状、填充、描边等）+ 通用变换</td>
+      </tr>
+      <tr>
+        <td><strong>音频</strong></td><td>音频</td>
+        <td>音频 · 速度</td>
+        <td>音量、静音；速度曲线</td>
+      </tr>
+      <tr>
+        <td><strong>效果</strong></td><td>特效</td>
+        <td>特效</td>
+        <td>独立效果片段的参数面板</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>记忆规则：</strong>每种元素类型记住上次停留的标签（<code>activeTabPerType</code>）；若切换元素后该标签不存在，则回落到该类型的默认标签。</p>
+
+  <h3>9.2 空态与多选态</h3>
+  <div class="cols">
+    <div>
+      <h4>未选中</h4>
+      <p>面板整体居中显示空态：40px 齿轮图标（<code>muted-foreground/75</code>、描边 1）+ 标题「属性」+ 一句引导文字「在时间轴或画布中选择一个元素」。</p>
+    </div>
+    <div>
+      <h4>多选</h4>
+      <p>显示居中的计数文案：「已选择 {count} 个元素」，不展示任何参数表单——避免出现「改一个动全部」的歧义。批量操作走时间轴工具条。</p>
+    </div>
+  </div>
+
+  <h3>9.3 参数控件与关键帧</h3>
+  <table class="tbl">
+    <thead><tr><th>控件</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td>数值字段</td><td>支持拖拽微调、键入、草稿态（<code>use-property-draft</code>），输入过程中不立即写库，失焦或回车提交</td></tr>
+      <tr><td>关键帧开关</td><td>每个可关键帧参数旁有一个菱形按钮；开启后该参数在当前时间点写入关键帧，时间轴片段上出现菱形标记</td></tr>
+      <tr><td>关键帧显示规则</td><td>片段宽度小于 40px 时不显示关键帧标记，避免糊成一片</td></tr>
+      <tr><td>颜色 / 字体</td><td>专用弹层（色板 / 字体列表），文本框与预设同屏</td></tr>
+      <tr><td>分组</td><td>用 <code>Section</code>（44px 头 + 可折叠体）组织，常用分组默认展开</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 10 时间轴 ================= -->
+<section id="s10">
+  <div class="h-sec">
+    <span class="no">10</span>
+    <h2>时间轴</h2>
+    <span class="en">Timeline</span>
+  </div>
+  <p class="lede">
+    时间轴是编辑器的骨架。它由「工具条 + 标尺 + 左侧轨道标签列 + 右侧轨道内容区」构成，
+    支持多场景、多轨道、关键帧展开、书签与吸附。
+  </p>
+
+  <h3>10.1 构成与尺寸</h3>
+  <table class="tbl">
+    <thead><tr><th>部件</th><th>尺寸</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>工具条</td><td>高 40px，<code>px-2 py-1</code>，底边 1px</td><td>左：剪辑动作组；中：场景选择器；右：吸附/波纹 + 缩放</td></tr>
+      <tr><td>标尺</td><td>高 22px</td><td>刻度间隔与标签密度随缩放动态计算；标签为等宽体小字</td></tr>
+      <tr><td>轨道标签列</td><td>宽 112px</td><td>显示轨道名（本地化），底边 1px；选中轨道整行底色 <code>accent/50</code></td></tr>
+      <tr><td>轨道间距</td><td>6px</td><td>轨道之间的空隙</td></tr>
+      <tr><td>视频轨 / 音频轨 / 文字·图形·效果轨</td><td>65 / 50 / 25px</td><td>高度与信息量成正比</td></tr>
+      <tr><td>关键帧展开道</td><td>每道 20px</td><td>展开后轨道总高 = 基础高 + 道数 × 20</td></tr>
+      <tr><td>关键帧菱形</td><td>14px</td><td>旋转 45°，深底 + 主色边</td></tr>
+      <tr><td>书签行</td><td>高 16px</td><td>位于标尺下方，默认色 <code>#009dff</code></td></tr>
+      <tr><td>内容区顶部留白</td><td>2px</td><td>避免片段贴边</td></tr>
+      <tr><td>滚动条</td><td>12px</td><td>横向为主</td></tr>
+    </tbody>
+  </table>
+
+  <h3>10.2 工具条</h3>
+  <div class="cols">
+    <div>
+      <h4>剪辑动作（左）</h4>
+      <table class="tbl">
+        <thead><tr><th>按钮</th><th>动作</th><th>可用条件</th></tr></thead>
+        <tbody>
+          <tr><td>✂ 分割</td><td>在播放头处切分选中片段</td><td>有选中片段</td></tr>
+          <tr><td>⇤ 左分割</td><td>去除播放头左侧部分</td><td>同上</td></tr>
+          <tr><td>⇥ 右分割</td><td>去除播放头右侧部分</td><td>同上</td></tr>
+          <tr><td>🔗 源音频</td><td>分离 / 还原源视频音频（图标在链接与断开间切换）</td><td>仅当所选视频含音轨</td></tr>
+          <tr><td>⧉ 复制</td><td>复制选中片段</td><td>有选中</td></tr>
+          <tr><td>❄ 冻结帧</td><td>—</td><td><span class="dot wip">当前禁用</span></td></tr>
+          <tr><td>🗑 删除</td><td>删除选中片段</td><td>有选中</td></tr>
+          <tr><td>⚑ 书签</td><td>在播放头添加 / 移除书签（已存在时按钮呈激活态）</td><td>始终</td></tr>
+          <tr><td>◠ 曲线编辑器</td><td>打开缓动曲线弹层，编辑插值</td><td>仅当所选片段有可插值参数</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h4>场景与视图（中 / 右）</h4>
+      <table class="tbl">
+        <thead><tr><th>控件</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>场景选择（SplitButton）</td><td>左半显示当前场景名（主场景显示为本地化「主场景」），右半图标打开场景列表弹层；便于多版本 / 多段落并行编辑</td></tr>
+          <tr><td>🧲 自动吸附</td><td>开关；激活态为 secondary 变体；吸附到片段边缘、播放头、标尺刻度、书签</td></tr>
+          <tr><td>↹ 波纹编辑</td><td>开关；开启后删除 / 移动片段会带动后续片段前移，不留空隙</td></tr>
+          <tr><td>缩放组</td><td><code>−</code> 按钮 · 112px 滑杆 · <code>＋</code> 按钮；按钮按 1.7 倍步进缩放，滑杆非线性映射</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>10.3 缩放模型</h3>
+  <table class="tbl">
+    <thead><tr><th>参数</th><th>值</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td>基准像素/秒</td><td><code>50</code></td><td>zoom = 1 时，1 秒 = 50px</td></tr>
+      <tr><td>缩放范围</td><td>0.1 – 100</td><td>即约 5px/s 到 5000px/s</td></tr>
+      <tr><td>按钮步进</td><td>×1.7 / ÷1.7</td><td>单次点击的倍率变化</td></tr>
+      <tr><td>滑杆映射</td><td>0–1 → 对数区间</td><td>视觉上等距，感知上等比</td></tr>
+    </tbody>
+  </table>
+
+  <h3>10.4 片段与拖拽反馈</h3>
+  <table class="tbl">
+    <thead><tr><th>状态</th><th>视觉</th></tr></thead>
+    <tbody>
+      <tr><td>常态</td><td>按轨道类型着色的圆角矩形（圆角 ~4px），内部叠加 10% 白描边提升边界可辨度</td></tr>
+      <tr><td>选中</td><td>1.5px 主色环（<code>box-shadow</code>，不改变布局）</td></tr>
+      <tr><td>拖拽中</td><td>跟随光标移动；吸附命中时出现吸附指示线；落在非法轨道时不显示落位预览</td></tr>
+      <tr><td>调整时长</td><td>左右边缘为拖拽热区，光标切换为横向缩放</td></tr>
+      <tr><td>视频缩略</td><td>沿片段等距铺排真实帧（<code>useElementFilmstrip</code>），按 16:9 裁切</td></tr>
+      <tr><td>音频波形</td><td>白色 70% 波形叠在轨道色上；波形上沿还有一条音量线（<code>AudioVolumeLine</code>）</td></tr>
+      <tr><td>静音 / 隐藏</td><td>片段上用图标状态表示（喇叭 / 眼睛），右键菜单可切换</td></tr>
+      <tr><td>右键菜单</td><td>分割 · 复制 · 隐藏/显示 · 静音/取消静音 · 分离/还原音频 · 关键帧 · 效果 · 删除</td></tr>
+      <tr><td>框选</td><td>拖拽空白处出现半透明选择框，命中多个片段后属性面板切换为多选态</td></tr>
+    </tbody>
+  </table>
+
+  <h3>10.5 播放头与书签</h3>
+  <ul>
+    <li><strong>播放头</strong>：2px 主色竖线，顶部有一个 8px 三角标；贯穿标尺与全部轨道；拖动时暂停跟随、松手恢复。</li>
+    <li><strong>书签</strong>：位于标尺下方的独立行，标记为小色块（默认 <code>#009dff</code>）；可在预览区以注释形式叠加显示（可开关）。</li>
+    <li><strong>播放头拖拽</strong>与<strong>轨道点击定位</strong>均可改变当前时间；<code>EditableTimecode</code> 提供精确键入。</li>
+  </ul>
+</section>
+
+<!-- ================= 11 导出 ================= -->
+<section id="s11">
+  <div class="h-sec">
+    <span class="no">11</span>
+    <h2>导出</h2>
+    <span class="en">Export</span>
+  </div>
+  <p class="lede">导出是编辑器的收口动作，采用顶栏锚定的 Popover（宽 320px），把「配置 → 进度 → 结果/失败」三态压在同一个浮层里。</p>
+
+  <div class="shot">
+    <div class="cap"><b>Export · 配置态 / 进行态 / 失败态</b><span>components/editor/export-button.tsx</span></div>
+    <div class="stage" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="wf" style="padding:0">
+        <div style="padding:8px 10px;border-bottom:1px solid #1E1E2A;font-size:10.5px;color:#DEDEDE">导出项目</div>
+        <div style="padding:8px 10px">
+          <div class="lbl" style="display:flex;justify-content:space-between">格式 <span>⌄</span></div>
+          <div style="height:1px;background:#1E1E2A;margin:6px 0"></div>
+          <div class="lbl" style="display:flex;justify-content:space-between">质量 <span>⌄</span></div>
+          <div style="height:1px;background:#1E1E2A;margin:6px 0"></div>
+          <div class="lbl" style="display:flex;justify-content:space-between">音频 <span>⌄</span></div>
+          <div class="btn pri" style="width:100%;margin-top:10px;height:24px">⤓ 导出</div>
+        </div>
+      </div>
+      <div class="wf" style="padding:0">
+        <div style="padding:8px 10px;border-bottom:1px solid #1E1E2A;font-size:10.5px;color:#DEDEDE">正在导出项目</div>
+        <div style="padding:10px">
+          <div class="row" style="justify-content:space-between;font-size:9.5px;color:#7D8595"><span>42%</span><span>100%</span></div>
+          <div style="height:6px;border-radius:3px;background:#1E1E1E;margin-top:5px;overflow:hidden">
+            <div style="width:42%;height:100%;background:#DEDEDE"></div>
+          </div>
+          <div class="btn" style="width:100%;margin-top:10px;height:24px">取消</div>
+        </div>
+      </div>
+      <div class="wf" style="padding:10px">
+        <div style="font-size:10.5px;color:#E77A7A;font-weight:600">导出失败</div>
+        <div style="font-size:9.5px;color:#7D8595;margin-top:4px">Could not encode frame 1240: decoder returned null</div>
+        <div class="row" style="gap:6px;margin-top:10px">
+          <span class="btn" style="flex:1;height:24px">复制错误</span>
+          <span class="btn" style="flex:1;height:24px">重试</span>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 三个区块均可折叠，默认全部收起，标题行即当前值</span>
+      <span><i>●</i> 失败态必带可复制原文，便于反馈</span>
+    </div>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>项</th><th>选项</th><th>默认</th></tr></thead>
+    <tbody>
+      <tr><td>格式</td><td>MP4 · WebM</td><td><strong>MP4</strong></td></tr>
+      <tr><td>质量</td><td>低 · 中 · 高 · 极高</td><td><strong>高</strong></td></tr>
+      <tr><td>音频</td><td>包含音频（复选框）</td><td><strong>包含</strong></td></tr>
+      <tr><td>帧率</td><td>跟随项目设置，不可在此更改</td><td>30fps</td></tr>
+      <tr><td>文件名</td><td><code>{项目名}{扩展名}</code></td><td>—</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="t">关闭即取消</span>
+    导出过程中关闭弹层会调用取消并清空导出状态——这是刻意的：导出属于长任务，用户关掉浮层就是不想它继续。
+    进度条同时显示百分比数字与右侧 100% 刻度，让「还剩多少」有绝对参照。
+  </div>
+</section>
+
+<!-- ================= 12 AI 与计费 ================= -->
+<section id="s12">
+  <div class="h-sec">
+    <span class="no">12</span>
+    <h2>AI 能力与计费</h2>
+    <span class="en">AI &amp; Credits</span>
+  </div>
+  <p class="lede">
+    AI 能力全部落在素材面板的三个标签里（AI 视频 / AI 工具 / AI 音频），
+    与素材库同构：左边选参数，右边出结果，产物直接落到素材库或时间轴。
+    每块 AI 面板顶部都带<strong>余额胶囊</strong>，把「消耗」摆在动手之前。
+  </p>
+
+  <div class="shot">
+    <div class="cap"><b>AI 视频 · 图生视频（含参考帧）+ 余额胶囊</b><span>views/ai-video.tsx</span></div>
+    <div class="stage" style="display:grid;grid-template-columns:340px 1fr;gap:14px">
+      <div class="wf" style="padding:0">
+        <div style="padding:8px 10px;border-bottom:1px solid #1E1E2A;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10.5px;color:#DEDEDE">AI 视频</span>
+          <span class="pill" style="border-color:rgba(22,169,243,.4)">余额 1,280 点 · <span style="color:#16A9F3">充值</span></span>
+        </div>
+        <div style="padding:9px 10px;display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;gap:3px;background:#1E1E1E;border-radius:6px;padding:3px">
+            <span style="flex:1;text-align:center;font-size:10px;color:#7D8595;padding:3px 0">文生视频</span>
+            <span style="flex:1;text-align:center;font-size:10px;color:#DEDEDE;background:#0D0D0D;border-radius:4px;padding:3px 0">图生视频</span>
+          </div>
+          <div>
+            <div class="lbl">模型</div>
+            <div class="btn soft" style="width:100%;margin-top:4px;justify-content:space-between">Seedance · 5s 上限 <span>⌄</span></div>
+          </div>
+          <div>
+            <div class="lbl">起始图片</div>
+            <div class="dash" style="margin-top:4px;padding:14px;text-align:center;border-color:rgba(22,169,243,.6);background:rgba(22,169,243,.05)">
+              <div style="color:#16A9F3;font-size:14px">＋</div>
+              <div style="font-size:9.5px;color:#7D8595;margin-top:3px">从素材选择 / 上传</div>
+            </div>
+            <div class="row" style="gap:5px;margin-top:6px">
+              <span class="btn" style="flex:1;font-size:9.5px">🎞 取帧</span>
+              <span class="btn" style="flex:1;font-size:9.5px">替换</span>
+            </div>
+          </div>
+          <div>
+            <div class="lbl">视频描述</div>
+            <div class="dash" style="margin-top:4px;height:52px;padding:6px;font-size:9.5px;color:#5C6371">描述你想要的运动、镜头与氛围…</div>
+          </div>
+          <div class="row" style="gap:6px">
+            <div style="flex:1"><div class="lbl">时长</div><div class="btn soft" style="width:100%;margin-top:4px;justify-content:space-between;font-size:9.5px">5 秒 <span>⌄</span></div></div>
+            <div style="flex:1"><div class="lbl">画幅</div><div class="btn soft" style="width:100%;margin-top:4px;justify-content:space-between;font-size:9.5px">16:9 <span>⌄</span></div></div>
+          </div>
+          <div class="row" style="gap:6px;font-size:9.5px;color:#9BA1AD">
+            <span style="width:11px;height:11px;border-radius:3px;border:1px solid #4A5160;display:inline-block"></span> 生成音频
+          </div>
+          <div class="btn soft" style="width:100%;justify-content:space-between;font-size:9.5px">高级选项 <span>⌄</span></div>
+          <div style="font-size:9.5px;color:#7D8595">预计消耗 <b style="color:#DEDEDE;font-family:var(--font-mono)">12</b> 点数</div>
+          <div class="btn pri" style="width:100%;height:26px">生成视频</div>
+          <div style="font-size:9px;color:#5C6371;line-height:1.6">主通道 → 备用通道 A → 备用通道 B；失败自动降级</div>
+        </div>
+      </div>
+
+      <div class="wf" style="padding:10px;display:flex;flex-direction:column;gap:8px">
+        <div class="lbl">参考帧选取器（Dialog）</div>
+        <div class="dash" style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:10px;color:#DEDEDE">取帧 · 产品演示.mp4</div>
+          <div style="display:flex;gap:2px;height:44px">
+            <div style="flex:1;background:linear-gradient(120deg,#1E2430,#141821);border-radius:2px"></div>
+            <div style="flex:1;background:linear-gradient(120deg,#222A38,#161B24);border-radius:2px"></div>
+            <div style="flex:1;background:linear-gradient(120deg,#1B222E,#12161E);border-radius:2px;box-shadow:0 0 0 1.5px #16A9F3"></div>
+            <div style="flex:1;background:linear-gradient(120deg,#1F2734,#151A22);border-radius:2px"></div>
+            <div style="flex:1;background:linear-gradient(120deg,#1D242F,#141820);border-radius:2px"></div>
+          </div>
+          <div class="row" style="gap:8px">
+            <span class="mono" style="font-size:9.5px">00:03.4</span>
+            <span style="flex:1;height:4px;border-radius:2px;background:#1E1E1E;position:relative">
+              <span style="position:absolute;left:28%;top:-3px;width:10px;height:10px;border-radius:50%;background:#16A9F3"></span>
+            </span>
+            <span class="mono" style="font-size:9.5px">00:12.0</span>
+          </div>
+          <div class="row" style="gap:6px;justify-content:flex-end">
+            <span class="btn" style="font-size:9.5px">取消</span>
+            <span class="btn pri" style="font-size:9.5px">使用这一帧</span>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#5C6371;line-height:1.6">
+          超大对话框（max-w-4xl，最高 85vh）：上半为可缩放的胶片条，下半为播放头滑杆与时间码；
+          解码器在对话框生命周期内保持打开，每次打开从 t=0 重新生成胶片条。
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 主按钮全宽、主色，是面板唯一的高饱和元素</span>
+      <span><i>●</i> 模型 → 时长上限联动，超出上限的时长自动隐藏</span>
+      <span><i>●</i> 余额胶囊：细描边圆角胶囊 + 等宽数字 + 充值链接</span>
+    </div>
+  </div>
+
+  <h3>12.1 三个 AI 面板</h3>
+  <table class="tbl">
+    <thead><tr><th>面板</th><th>模式</th><th>输入</th><th>输出落点</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>AI 视频</strong></td>
+        <td>文生视频 / 图生视频（另有分镜模式）</td>
+        <td>模型、视频描述、时长（含「自动」）、分辨率、画幅、是否生成音频、高级选项；图生模式额外支持从素材库选图 / 上传 / <strong>从视频取帧</strong></td>
+        <td>生成的视频进入素材库并可拖入时间轴</td>
+      </tr>
+      <tr>
+        <td><strong>AI 工具</strong></td>
+        <td>AI 抠像 / AI 擦除</td>
+        <td>选取图片素材；擦除模式在画布上用 8/16/24/40 px 画笔涂红遮罩，配合文字描述（<code>ai_tools.erase_prompt</code>「描述要擦除的内容」）</td>
+        <td>结果作为新图片素材进入素材库</td>
+      </tr>
+      <tr>
+        <td><strong>AI 音频</strong></td>
+        <td>音乐 / 音效生成</td>
+        <td>文本、音色或风格选择</td>
+        <td>音频进入素材库或直接落到音频轨</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="mono">三者共用：顶部的模式切换 Tabs、底部的通道说明（主通道 → 备用通道 → 再降级）、以及失败时的 toast。</p>
+
+  <h3>12.2 计费与余额</h3>
+  <table class="tbl">
+    <thead><tr><th>元素</th><th>位置</th><th>规格与行为</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>余额胶囊 BalanceChip</strong></td>
+        <td>AI 面板头部</td>
+        <td>细描边圆角胶囊：<code>border-primary/40</code>、<code>px-3 py-1</code>、字号 11.5px；内容为「余额 {n} 点 · <span style="color:#16A9F3">充值</span>」，充值为主色下划线链接</td>
+      </tr>
+      <tr>
+        <td>充值弹层</td>
+        <td>胶囊内联弹出</td>
+        <td>半透明遮罩 + 单一卡片（<code>max-w-xs</code>，<code>rounded-xl</code>）；输入框为<strong>等宽体大写</strong>兑换码，提交按钮全宽；成功 toast 提示「+{count} 点数，当前余额 {balance}」；无效码单独提示</td>
+      </tr>
+      <tr>
+        <td>余额不足</td>
+        <td>生成前拦截</td>
+        <td>专用对话框，内嵌同一套兑换表单，避免用户跳出流程</td>
+      </tr>
+      <tr>
+        <td>预计消耗</td>
+        <td>生成按钮上方</td>
+        <td>一行说明：「预计消耗 <b>N</b> 点数」——把成本前置到点击之前</td>
+      </tr>
+      <tr>
+        <td>流水类型</td>
+        <td>账户设置</td>
+        <td>冻结 freeze / 结算 settle / 退回 refund / 注册赠送 grant / 兑换 redeem / 人工调整 adjust 六类，各自有本地化名称</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="t">计费交互原则</span>
+    「余额可见、成本前置、失败不扣」——用户在点击生成前必须同时看到余额与预计消耗；
+    生成失败走通道降级而非扣费失败；兑换码路径要短到能在一屏内完成一次充值。
+  </div>
+</section>
+
+<!-- ================= 13 账户设置 ================= -->
+<section id="s13">
+  <div class="h-sec">
+    <span class="no">13</span>
+    <h2>账户与设置</h2>
+    <span class="en">Account</span>
+  </div>
+  <p class="lede">设置页以 3xl 单列容器承载「身份 → 点数 → 安全 → 危险区」四段，全部为阅读型卡片，不做花哨分组。</p>
+
+  <div class="shot">
+    <div class="cap"><b>Settings · /settings/account</b><span>app/settings/account/page.tsx</span></div>
+    <div class="stage">
+      <div class="wf" style="padding:14px;max-width:620px">
+        <div class="row" style="gap:11px">
+          <span style="width:40px;height:40px;border-radius:999px;background:#16A9F3;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">H</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#E8EAF0">Han Huikin</div>
+            <div class="mono" style="font-size:10px">you@example.com</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+          <div class="wf" style="padding:10px;border-radius:8px">
+            <div style="font-size:10.5px;color:#DEDEDE;font-weight:600;margin-bottom:6px">点数</div>
+            <div class="row" style="justify-content:space-between;font-size:10px;color:#9BA1AD"><span>当前余额</span><span class="mono" style="color:#DEDEDE">1,280</span></div>
+            <div class="row" style="justify-content:space-between;font-size:10px;color:#9BA1AD;margin-top:3px"><span>最近流水</span><span class="mono">−12</span></div>
+            <div class="row" style="justify-content:space-between;font-size:10px;color:#9BA1AD;margin-top:3px"><span></span><span class="mono" style="color:#6FD79A">+500</span></div>
+          </div>
+          <div class="wf" style="padding:10px;border-radius:8px">
+            <div style="font-size:10.5px;color:#DEDEDE;font-weight:600;margin-bottom:6px">安全</div>
+            <div class="row" style="justify-content:space-between;font-size:10px;color:#9BA1AD"><span>两步验证</span><span class="mono">未开启</span></div>
+            <div class="row" style="justify-content:space-between;font-size:10px;color:#9BA1AD;margin-top:3px"><span>修改密码</span><span class="mono">›</span></div>
+            <div class="row" style="justify-content:space-between;font-size:10px;color:#9BA1AD;margin-top:3px"><span>活动会话</span><span class="mono">2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 头像 52px 圆形，主色底 + 姓名首字母</span>
+      <span><i>●</i> 卡片网格 <code>md:grid-cols-2</code>，间距 16px</span>
+    </div>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>区块</th><th>内容</th><th>交互</th></tr></thead>
+    <tbody>
+      <tr><td>身份</td><td>姓名、邮箱（等宽体）</td><td>只读展示</td></tr>
+      <tr><td>点数 <span class="mono">card_credits</span></td><td>当前余额 + 最近流水（金额带符号，正数绿色）</td><td>流水明细可展开查看全部（类型 + 备注 + 时间）</td></tr>
+      <tr><td>两步验证 <span class="mono">twofa_row</span></td><td>已开启 / 未开启 + 开启·关闭按钮</td><td>开启时先弹密码输入确认，成功后展示 <code>twoFactorURI</code> 并提示「将以下链接添加到身份验证器 App」；关闭同样需要密码</td></tr>
+      <tr><td>密码 <span class="mono">password_row</span></td><td>修改密码按钮 → 对话框（当前密码 / 新密码）</td><td>对话框内完成，不跳页</td></tr>
+      <tr><td>登录的设备 <span class="mono">card_sessions</span></td><td>会话列表（设备 UA、创建时间）</td><td>可退出单个会话</td></tr>
+      <tr><td>危险区 <span class="mono">danger_title</span></td><td>删除账户；说明文案为「删除账户将移除云端数据，本机项目不受影响」</td><td>破坏性按钮，需二次确认</td></tr>
+      <tr><td>未登录</td><td>居中提示 + 去登录链接</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>13.1 全局账户入口</h3>
+  <p>站点 Header 右侧的 <code>AccountArea</code> 是三态组件：</p>
+  <table class="tbl">
+    <thead><tr><th>状态</th><th>呈现</th></tr></thead>
+    <tbody>
+      <tr><td>加载中</td><td>32px 圆形骨架（<code>animate-pulse</code>）</td></tr>
+      <tr><td>未登录</td><td>「登录」outline 按钮（<code>auth.menu.login</code>）→ <code>/login</code></td></tr>
+      <tr><td>已登录</td><td>32px 圆形头像（主色底、首字母、<code>font-semibold</code>）；下拉菜单：顶部一行等宽小字显示邮箱（带底部分隔线）→ 个人中心 → 管理面板（仅 admin 可见）→ 退出登录</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 14 认证 ================= -->
+<section id="s14">
+  <div class="h-sec">
+    <span class="no">14</span>
+    <h2>认证流程</h2>
+    <span class="en">Auth</span>
+  </div>
+  <p class="lede">登录 / 注册 / 忘记密码 / 重置密码四页共用一套左右分栏骨架与一套表单控件，只有标题与字段组合不同。</p>
+
+  <div class="shot">
+    <div class="cap"><b>Auth · 分栏骨架 + 表单控件</b><span>app/(auth)/layout.tsx · form-ui.tsx</span></div>
+    <div class="stage">
+      <div style="display:grid;grid-template-columns:1fr 1fr;min-height:250px;border-radius:8px;overflow:hidden;border:1px solid #292929">
+        <div style="background:rgba(22,169,243,.07);padding:18px;display:flex;flex-direction:column;justify-content:space-between;position:relative">
+          <div class="row" style="gap:8px">
+            <span style="width:20px;height:20px;border-radius:5px;background:conic-gradient(from 210deg,#16A9F3,#2567EC,#8F5DBA,#16A9F3)"></span>
+            <b style="font-size:13px;color:#E8EAF0">MyCut</b>
+          </div>
+          <div style="font-size:16px;font-weight:700;line-height:1.45;color:#E8EAF0">
+            每一帧<br>都在你的浏览器里
+          </div>
+          <div class="mono" style="font-size:9px;letter-spacing:.14em;color:#7D8595">TIMELINE · TRACKS · KEYFRAMES</div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:56px;opacity:.4;
+                      background:repeating-linear-gradient(0deg,transparent 0 11px,#2A2F38 11px 12px);
+                      -webkit-mask-image:linear-gradient(180deg,transparent,#000 70%);
+                      mask-image:linear-gradient(180deg,transparent,#000 70%)"></div>
+        </div>
+        <div style="padding:18px;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:15px;font-weight:700;color:#E8EAF0">登录</div>
+          <div style="font-size:10px;color:#7D8595;margin:4px 0 14px">还没有账号？<span style="color:#16A9F3">去注册</span></div>
+          <div style="font-size:10px;color:rgba(222,222,222,.8);margin-bottom:5px">邮箱</div>
+          <div class="btn" style="width:100%;height:30px;background:#0D0D0D;justify-content:flex-start;padding:0 10px;color:#5C6371">you@example.com</div>
+          <div class="row" style="justify-content:space-between;margin:10px 0 5px">
+            <span style="font-size:10px;color:rgba(222,222,222,.8)">密码</span>
+            <span style="font-size:9.5px;color:#E09A6B">Caps Lock 已开启</span>
+          </div>
+          <div class="btn" style="width:100%;height:30px;background:#0D0D0D;justify-content:space-between;padding:0 10px;color:#5C6371">
+            <span>••••••••</span><span style="color:#7D8595">显示</span>
+          </div>
+          <div class="btn pri" style="width:100%;height:32px;margin-top:14px">登录</div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 左侧品牌面板仅 <code>lg</code> 以上显示，右侧表单固定 <code>max-w-sm</code></span>
+      <span><i>●</i> 输入框高 40px、圆角 <code>lg</code>、聚焦时描边变主色</span>
+    </div>
+  </div>
+
+  <h3>14.1 表单控件规格</h3>
+  <table class="tbl">
+    <thead><tr><th>控件</th><th>规格</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td>AuthField</td><td>40px 高、1px 描边、圆角 10px、横向内距 12px；label 12px <code>foreground/80</code>，位于字段上方 6px；字段间距 14px</td><td>常态描边 <code>border</code> → 聚焦 <code>border-primary</code> → 错误 <code>border-destructive</code>；错误文本 12px 红字在下方 6px</td></tr>
+      <tr><td>密码显隐</td><td>字段内右侧文字按钮（「显示」/「隐藏」）</td><td>不改变输入框宽度</td></tr>
+      <tr><td>Caps Lock 提示</td><td>标签行右端 12px 琥珀色文字</td><td>仅在按键事件报告 Caps Lock 开启时出现</td></tr>
+      <tr><td>SubmitButton</td><td>40px 高、全宽、主色实心、字号 12.6px、<code>font-semibold</code></td><td>加载中：14px 旋转圆环 + 文案切换为「登录中…」；禁用态 <code>opacity-50</code></td></tr>
+      <tr><td>AuthError</td><td>提交后整体错误，红字 12px，<code>aria-live="assertive"</code></td><td>无错误时不渲染占位</td></tr>
+    </tbody>
+  </table>
+
+  <h3>14.2 流程规则</h3>
+  <ul>
+    <li><strong>跳转回跳</strong>：登录页读取 <code>?next=</code> 参数，经 <code>safeNextPath</code> 白名单校验后跳转；默认落到 <code>/projects</code>。管理后台触发的登录会带 <code>next=/admin/…</code>，登录后直接回到原页面。</li>
+    <li><strong>错误映射</strong>：认证错误统一经 <code>errorToKey</code> 映射为本地化文案，不在界面上暴露原始错误。</li>
+    <li><strong>邮件地址</strong>：前后端均做 trim；自动填充分别使用 <code>email</code> / <code>current-password</code> / <code>new-password</code>。</li>
+  </ul>
+</section>
+
+<!-- ================= 15 管理后台 ================= -->
+<section id="s15">
+  <div class="h-sec">
+    <span class="no">15</span>
+    <h2>管理后台</h2>
+    <span class="en">Admin</span>
+  </div>
+  <p class="lede">
+    后台是唯一「阅读面」：整体字号上浮一档，布局为顶部条 + 左侧 196px 导航 + 主区。
+    与产品面相隔的还有一道<strong>提权门禁</strong>——30 分钟有效，过期即回到验证页。
+  </p>
+
+  <div class="shot">
+    <div class="cap"><b>Admin · 数据看板 + 导航 + 会话门禁</b><span>app/admin/layout.tsx · dashboard/page.tsx</span></div>
+    <div class="stage">
+      <div class="adm">
+        <div class="adm-top">
+          <span style="width:18px;height:18px;border-radius:4px;background:conic-gradient(from 210deg,#16A9F3,#2567EC,#8F5DBA,#16A9F3)"></span>
+          <b style="font-size:12px;color:#DEDEDE">MyCut 管理面板</b>
+          <span class="pill" style="margin-left:auto;border-color:rgba(22,169,243,.5);color:#16A9F3">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#16A9F3;margin-right:6px"></span>管理员会话 12:34
+          </span>
+        </div>
+        <div class="adm-grid">
+          <div class="adm-nav">
+            <a class="on">▦ 数据看板</a>
+            <a>👥 用户管理</a>
+            <a>▣ 模型配置</a>
+            <a>⇄ 渠道</a>
+            <a>◉ 计费管理</a>
+            <a>▤ 审计日志</a>
+            <div style="border-top:1px solid #262626;margin-top:6px;padding-top:6px">
+              <a>← 返回编辑器</a>
+            </div>
+          </div>
+          <div class="adm-main">
+            <div class="tiles">
+              <div class="tile"><div class="k">调用次数</div><div class="v">12,480</div><div class="d">较上期 +8.2%</div></div>
+              <div class="tile"><div class="k">点数消耗</div><div class="v">38,920</div><div class="d">较上期 +12.4%</div></div>
+              <div class="tile"><div class="k">成功率</div><div class="v">98.6%</div><div class="d">失败 168</div></div>
+              <div class="tile"><div class="k">活跃用户</div><div class="v">1,204</div><div class="d">均值 3.2 次/人</div></div>
+            </div>
+            <div class="chart">
+              <div class="grid"></div>
+              <svg viewBox="0 0 600 96" preserveAspectRatio="none">
+                <path d="M0,70 L60,62 L120,66 L180,44 L240,50 L300,32 L360,38 L420,24 L480,30 L540,16 L600,22"
+                      fill="none" stroke="#457BE8" stroke-width="2"/>
+                <path d="M0,70 L60,62 L120,66 L180,44 L240,50 L300,32 L360,38 L420,24 L480,30 L540,16 L600,22 L600,96 L0,96 Z"
+                      fill="rgba(69,123,232,.16)" stroke="none"/>
+                <path d="M0,82 L60,80 L120,76 L180,72 L240,70 L300,60 L360,58 L420,52 L480,50 L540,44 L600,40"
+                      fill="none" stroke="#11976B" stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="row" style="gap:6px;margin-top:8px">
+              <span class="pill">24 小时</span><span class="pill" style="color:#DEDEDE;border-color:#4A5160">7 天</span><span class="pill">30 天</span>
+              <span style="margin-left:auto;font-size:9px;color:#808080">● 消耗 &nbsp; ● 调用</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i>●</i> 导航 196px，当前项为主色 10% 底 + 主色文字</span>
+      <span><i>●</i> 「返回编辑器」用上分隔线与其它项区分（离开面板的动作）</span>
+      <span><i>●</i> 门禁胶囊为等宽体；剩余 &lt; 5 分钟转红并加速脉冲</span>
+    </div>
+  </div>
+
+  <h3>15.1 提权门禁</h3>
+  <table class="tbl">
+    <thead><tr><th>状态</th><th>呈现</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td>未提权</td><td>顶栏右侧胶囊：红字红边 + 实心红点，文案「重新验证」</td><td>跳转 <code>/admin/enter?next=当前路径</code></td></tr>
+      <tr><td>已提权</td><td>胶囊：主色字主色边 + 脉冲圆点，文案「管理员会话 MM:SS」</td><td>每秒刷新；刷新页面不会重置（读 <code>sessionStorage</code>）</td></tr>
+      <tr><td>剩余 &lt; 5 分钟</td><td>转红</td><td>提示即将失效，避免操作中途被踢</td></tr>
+      <tr><td>提权页</td><td>密码字段（+ 已开启 2FA 时追加 TOTP 字段）</td><td>成功后回到 <code>?next=</code> 指定页；默认 <code>/admin/users</code></td></tr>
+      <tr><td>非管理员</td><td>居中「无权访问」+ 去登录链接</td><td>不渲染任何后台内容</td></tr>
+    </tbody>
+  </table>
+  <p class="mono">计时器被刻意隔离在叶子组件 GateIndicator 中：它每秒重渲染，但不影响 shell，避免整页图表跟着重绘。</p>
+
+  <h3>15.2 各页要点</h3>
+  <table class="tbl">
+    <thead><tr><th>页面</th><th>主体</th><th>交互规范</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>数据看板</strong></td>
+        <td>4 个统计卡（调用次数 / 消耗 / 成功率 / 活跃用户）+ 趋势区（面积图，多模型序列）+ 模型维度表格（调用、消耗、时长）</td>
+        <td>时间范围 24h / 7d / 30d 分段切换；桶粒度随范围切换 hour/day；图例可点选隐藏序列；「其它模型」归入中性灰残差桶</td>
+      </tr>
+      <tr>
+        <td><strong>用户管理</strong></td>
+        <td>搜索框 + 用户表格（邮箱、姓名、角色、套餐、状态、2FA、注册时间）</td>
+        <td>封禁/解封、改角色、改套餐经 <code>AlertDialog</code> 二次确认（可填封禁原因）；行内操作即刻生效，不做批量保存</td>
+      </tr>
+      <tr>
+        <td><strong>模型配置</strong></td>
+        <td>模型注册表列表</td>
+        <td>抽屉（Drawer）编辑单个模型；改动即时保存</td>
+      </tr>
+      <tr>
+        <td><strong>渠道</strong></td>
+        <td>上游渠道列表与配置</td>
+        <td>支持增删实体与即时切换启用状态</td>
+      </tr>
+      <tr>
+        <td><strong>计费管理</strong></td>
+        <td>定价、兑换码、余额调整</td>
+        <td>即时生效；余额调整需二次确认</td>
+      </tr>
+      <tr>
+        <td><strong>审计日志</strong></td>
+        <td>管理动作时间线</td>
+        <td>只读，支持按动作/操作者筛选</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <span class="t">后台的编辑范式（已确立）</span>
+    后台所有编辑控件遵循<strong>「即刻生效 + 直接增删实体」</strong>：不设页面级「保存」条，
+    每个改动立即提交并给出 toast；列表项可就地编辑或删除。设计新后台功能时请沿用，不要引入草稿态。
+  </div>
+</section>
+
+<!-- ================= 16 交互与动效 ================= -->
+<section id="s16">
+  <div class="h-sec">
+    <span class="no">16</span>
+    <h2>交互与动效</h2>
+    <span class="en">Interaction</span>
+  </div>
+
+  <h3>16.1 拖拽模型</h3>
+  <table class="tbl">
+    <thead><tr><th>场景</th><th>源</th><th>目标</th><th>反馈</th></tr></thead>
+    <tbody>
+      <tr><td>媒体入轨</td><td>素材网格项</td><td>时间轴轨道</td><td>跟随拖影；落点按轨道类型校验（视频不可落入文字轨）；命中吸附线高亮</td></tr>
+      <tr><td>文件导入</td><td>操作系统文件</td><td>素材面板</td><td>面板底色变 <code>accent/30</code>，显示拖放区与进度</td></tr>
+      <tr><td>片段移动 / 裁剪</td><td>时间轴片段</td><td>轨道内 / 跨轨</td><td>1.5px 主色环 + 吸附指示线；非法落位不预览</td></tr>
+      <tr><td>播放头拖动</td><td>标尺 / 播放头</td><td>全时间轴</td><td>拖动期间暂停跟随播放</td></tr>
+      <tr><td>画布操作</td><td>元素 / 手柄</td><td>画布</td><td>光标随上下文切换；中心线与边缘吸附线实时显形</td></tr>
+      <tr><td>面板分栏</td><td>3px 分隔柄</td><td>相邻面板</td><td>悬停显形；松手后比例写入本地存储</td></tr>
+    </tbody>
+  </table>
+
+  <h3>16.2 键盘</h3>
+  <p>快捷键系统支持<strong>用户自定义</strong>：对话框内按分类分组展示，点击某项进入录制态，按下组合键即写入；若与已有绑定冲突，弹出错误 toast 并给出冲突动作名；提供「恢复默认」。</p>
+  <table class="tbl">
+    <thead><tr><th>机制</th><th>规格</th></tr></thead>
+    <tbody>
+      <tr><td>入口</td><td>顶栏 Logo 下拉 → 快捷键</td></tr>
+      <tr><td>展示</td><td>按动作分类分组，每行「动作名 + 当前键位」；键位以 <span class="kbd">Kbd</span> 胶囊呈现</td></tr>
+      <tr><td>录制</td><td>进入录制态后拦截全局按键（<code>preventDefault</code> + <code>stopPropagation</code>），避免触发编辑器动作</td></tr>
+      <tr><td>冲突</td><td>提交前校验；冲突则拒绝写入并提示</td></tr>
+      <tr><td>持久化</td><td>键位存储于本地，跨会话保留</td></tr>
+    </tbody>
+  </table>
+  <p class="note">
+    <span class="t">设计约束</span>
+    不要在代码里写死快捷键提示文案；界面上的按键提示一律从键位存储读取，用户改键后所有提示同步更新。
+  </p>
+
+  <h3>16.3 反馈与容错</h3>
+  <table class="tbl">
+    <thead><tr><th>场景</th><th>反馈形式</th></tr></thead>
+    <tbody>
+      <tr><td>成功操作（重命名、复制、删除、兑换）</td><td>成功 toast，简洁一句话</td></tr>
+      <tr><td>失败操作</td><td>错误 toast + <code>description</code> 说明具体原因 + 兜底文案「请重试」</td></tr>
+      <tr><td>长任务（导出、AI 生成）</td><td>就地进度条 + 百分比；可取消；失败态提供「复制错误」与「重试」</td></tr>
+      <tr><td>渲染降级</td><td>顶部横幅提示 + 可关闭</td></tr>
+      <tr><td>单帧渲染失败</td><td>渲染循环保持存活，跳过该帧继续播放（不中断预览）</td></tr>
+      <tr><td>不可逆操作</td><td>AlertDialog 二次确认，列出受影响对象名称</td></tr>
+      <tr><td>数据迁移 / 存储未持久化</td><td>专用对话框，说明后果与建议动作</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 17 无障碍与响应式 ================= -->
+<section id="s17">
+  <div class="h-sec">
+    <span class="no">17</span>
+    <h2>无障碍与响应式</h2>
+    <span class="en">A11y &amp; Responsive</span>
+  </div>
+
+  <h3>17.1 无障碍要点</h3>
+  <table class="tbl">
+    <thead><tr><th>项</th><th>现状与规范</th></tr></thead>
+    <tbody>
+      <tr><td>键盘可达</td><td>所有交互元素为原生 <code>button</code>/<code>input</code>/<code>a</code> 或 Radix 原语；时间轴轨道用一个覆盖全区的透明 <code>button</code> 承担键盘选择，视觉层仅转发指针事件</td></tr>
+      <tr><td>焦点可见</td><td>默认移除鼠标焦点环，<code>:focus-visible</code> 时显示 2px <code>ring/50</code>。禁止移除该规则</td></tr>
+      <tr><td>图标按钮命名</td><td>所有图标按钮必须带 <code>aria-label</code>（工具条、标签栏、菜单触发器等均已具备）</td></tr>
+      <tr><td>开关状态</td><td>视图切换等使用 <code>aria-pressed</code> 表达当前态，而非仅靠颜色</td></tr>
+      <tr><td>动态区域</td><td>认证错误使用 <code>aria-live="assertive"</code>；toast 由 sonner 管理播报</td></tr>
+      <tr><td>非文本对比</td><td>选中态除颜色外均有线条或形状变化（1.5px 环、菱形标记、勾选框）</td></tr>
+      <tr><td>文案替代</td><td>缩略图统一使用 <code>thumbnail_alt</code> 翻译键；纯装饰层标注 <code>aria-hidden</code></td></tr>
+      <tr><td>点击热区</td><td>小图标按钮视觉 28px，但依赖父容器内距保证至少 32px 的实际可点区</td></tr>
+    </tbody>
+  </table>
+  <div class="note gap">
+    <span class="t">待补强 GAP-02</span>
+    颜色令牌中的 <code>--muted-foreground</code>（#808080）落在 5% 黑底上的对比度约为 4.6:1，
+    用于 11.5px 小字时低于 WCAG AA 对大字号之外文本的建议阈值。建议：面板内 <code>muted-foreground</code>
+    仅用于 ≥12.6px 的次级文字，11.5px 及以下的说明文字改用 <code>foreground</code> 降透明度（如 <code>text-foreground/70</code>）。
+  </div>
+
+  <h3>17.2 响应式断点</h3>
+  <table class="tbl">
+    <thead><tr><th>断点</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt; 1024px</code></td><td><strong>编辑器被门槛拦截</strong>：显示「请在桌面端使用」页，含「返回」与「仍然继续」两个动作（继续后记入本地存储，不再拦截）</td></tr>
+      <tr><td><code>xs &lt; 30rem</code></td><td>项目网格从 1 列变 2 列</td></tr>
+      <tr><td><code>md &lt; 768px</code></td><td>后台导航转为横向滚动条；项目库搜索框下沉到第二行；表格列精简</td></tr>
+      <tr><td><code>lg &lt; 1024px</code></td><td>认证页隐藏左侧品牌面板，表单居中</td></tr>
+      <tr><td><code>sm &lt; 640px</code></td><td>批量操作按钮折叠为「⋯」菜单；按钮文案缩短（「新建项目」→「新建」）</td></tr>
+    </tbody>
+  </table>
+  <p>编辑器本身<strong>不做移动端适配</strong>——这是刻意的产品决策：时间轴 + 三栏的密度不适合触屏小屏，与其做半成品不如明确劝退并保留「仍然继续」的逃生口。</p>
+</section>
+
+<!-- ================= 18 状态与清单 ================= -->
+<section id="s18">
+  <div class="h-sec">
+    <span class="no">18</span>
+    <h2>状态与走查清单</h2>
+    <span class="en">States &amp; Checklist</span>
+  </div>
+
+  <h3>18.1 每个界面必须定义的状态</h3>
+  <table class="tbl">
+    <thead><tr><th>状态</th><th>要求</th></tr></thead>
+    <tbody>
+      <tr><td>加载中</td><td>用与最终内容同结构的骨架，不用转圈空屏</td></tr>
+      <tr><td>空</td><td>图标 + 标题 + 一句说明 + 一个主行动按钮</td></tr>
+      <tr><td>错误</td><td>说明发生了什么 + 下一步动作（重试 / 返回 / 复制错误）</td></tr>
+      <tr><td>无权限</td><td>居中提示 + 去登录或去申请</td></tr>
+      <tr><td>部分失败</td><td>降级提示但功能仍可用（如渲染器降级横幅）</td></tr>
+      <tr><td>禁用</td><td>统一 <code>opacity-50</code> + 禁用指针；能解释原因时用 Tooltip 补充</td></tr>
+      <tr><td>进行中</td><td>进度可量化时给百分比；不可量化时给不定态指示</td></tr>
+      <tr><td>成功</td><td>一句话 toast，不打断</td></tr>
+    </tbody>
+  </table>
+
+  <h3>18.2 交付走查清单</h3>
+  <div class="cols">
+    <div>
+      <h4>视觉</h4>
+      <ul>
+        <li>颜色只取自令牌，未出现裸 hex（品牌渐变与轨道色除外）</li>
+        <li>圆角取自 sm / md / lg / 2xl 四档，未出现中间值</li>
+        <li>图标统一 16px，笔宽一致</li>
+        <li>同一屏字重不超过三种</li>
+        <li>选中态在去掉颜色后仍可辨认</li>
+      </ul>
+      <h4>布局</h4>
+      <ul>
+        <li>面板内不出现横向滚动条</li>
+        <li>长文本有截断或换行策略（<code>truncate</code> / <code>line-clamp-2</code>）</li>
+        <li>分栏比例在最小 / 最大档下内容仍可用</li>
+        <li>滚动区隐藏滚动条但保留滚动能力（编辑器）或使用细滚动条（内容页）</li>
+      </ul>
+    </div>
+    <div>
+      <h4>交互</h4>
+      <ul>
+        <li>所有图标按钮有 <code>aria-label</code></li>
+        <li>破坏性操作有二次确认，且确认文案列出受影响对象</li>
+        <li>键盘可完成主路径（打开项目 → 编辑 → 导出）</li>
+        <li>异步操作有加载态、成功态、失败态</li>
+        <li>失败提示含可复制的原始信息（长任务）</li>
+        <li>快捷键提示从键位存储读取，未硬编码</li>
+      </ul>
+      <h4>一致性</h4>
+      <ul>
+        <li>同一动作在不同入口的命名一致（重命名 / 复制 / 删除）</li>
+        <li>项目 / 元素 / 模型的「删除」入口样式一致（弱化红字，非实心红）</li>
+        <li>文案全部走 i18n，无硬编码中文或英文</li>
+        <li>新增后台页面沿用「即刻生效」范式，不引入保存条</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>18.3 待补全项汇总</h3>
+  <div class="dots">
+    <span class="dot wip">转场面板 · 即将推出占位</span>
+    <span class="dot wip">调节面板 · 即将推出占位</span>
+    <span class="dot wip">冻结帧按钮 · 当前禁用</span>
+    <span class="dot no">GAP-01 营销色系与功能色系并存</span>
+    <span class="dot no">GAP-02 小字对比度</span>
+  </div>
+  <table class="tbl">
+    <thead><tr><th>项</th><th>现状</th><th>建议</th></tr></thead>
+    <tbody>
+      <tr><td>转场</td><td>标签存在但内容为「即将推出」文本占位</td><td>设计转场卡片：两段素材的对比预览 + 时长参数；与「特效」共用网格规格</td></tr>
+      <tr><td>调节</td><td>同上</td><td>可复用属性面板的参数控件族，提供全局调色参数（亮度/对比度/饱和度/色温…）</td></tr>
+      <tr><td>冻结帧</td><td>按钮渲染但 <code>disabled</code></td><td>补齐后应写入一条静帧元素，而非新轨道类型</td></tr>
+      <tr><td>参考线</td><td>预览工具条中的网格参考线入口已注释</td><td>恢复时沿用现有的 overlay 机制（<code>PreviewOverlayLayer</code>）以保持显隐一致</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= 19 附录 ================= -->
+<section id="s19">
+  <div class="h-sec">
+    <span class="no">19</span>
+    <h2>附录 · 代码对照</h2>
+    <span class="en">Appendix</span>
+  </div>
+  <p class="lede">设计稿中每条规格都能在下列文件中找到出处，便于实现端逐条核对。</p>
+
+  <table class="tbl">
+    <thead><tr><th>设计面</th><th>主要文件</th></tr></thead>
+    <tbody>
+      <tr><td>设计令牌（颜色 / 字号 / 圆角 / 动效）</td><td><code>apps/web/src/app/globals.css</code></td></tr>
+      <tr><td>站点信息与品牌</td><td><code>apps/web/src/site/brand.ts</code> · <code>site/social.ts</code></td></tr>
+      <tr><td>组件原语（40+）</td><td><code>apps/web/src/components/ui/*</code></td></tr>
+      <tr><td>区块 / 字段组合件</td><td><code>components/section.tsx</code> · <code>components/page-layout.tsx</code></td></tr>
+      <tr><td>落地页</td><td><code>components/header.tsx</code> · <code>components/landing/hero.tsx</code> · <code>components/footer.tsx</code></td></tr>
+      <tr><td>账户入口</td><td><code>components/account-area.tsx</code></td></tr>
+      <tr><td>项目库</td><td><code>app/projects/page.tsx</code> · <code>app/projects/store.ts</code></td></tr>
+      <tr><td>编辑器外壳</td><td><code>app/editor/[project_id]/page.tsx</code> · <code>editor/panel-store.ts</code> · <code>panels/layout.ts</code></td></tr>
+      <tr><td>编辑器顶栏</td><td><code>components/editor/editor-header.tsx</code></td></tr>
+      <tr><td>素材面板</td><td><code>components/editor/panels/assets/*</code>（工具列 <code>tabbar.tsx</code>，视图 <code>views/*</code>）</td></tr>
+      <tr><td>预览面板</td><td><code>preview/components/*</code> · <code>preview/zoom.ts</code> · <code>preview/preview-store.ts</code></td></tr>
+      <tr><td>属性面板</td><td><code>components/editor/panels/properties/*</code>（装配表 <code>registry.tsx</code>）</td></tr>
+      <tr><td>时间轴</td><td><code>timeline/components/*</code>（<code>layout.ts</code> 尺寸、<code>theme.ts</code> 轨道色、<code>timeline-toolbar.tsx</code> 工具条）</td></tr>
+      <tr><td>导出</td><td><code>components/editor/export-button.tsx</code> · <code>export/defaults.ts</code></td></tr>
+      <tr><td>AI 面板</td><td><code>components/editor/panels/assets/views/ai-*.tsx</code> · <code>ai-video-frame-picker.tsx</code> · <code>frame-picker-strip.tsx</code></td></tr>
+      <tr><td>计费</td><td><code>components/billing/balance-chip.tsx</code> · <code>app/api/billing/*</code></td></tr>
+      <tr><td>账户设置</td><td><code>app/settings/account/page.tsx</code></td></tr>
+      <tr><td>认证</td><td><code>app/(auth)/layout.tsx</code> · <code>app/(auth)/form-ui.tsx</code> · <code>auth/*</code></td></tr>
+      <tr><td>管理后台</td><td><code>app/admin/layout.tsx</code> · <code>app/admin/*/page.tsx</code> · <code>app/admin/enter/page.tsx</code></td></tr>
+      <tr><td>引导 / 快捷键 / 门槛 / 更新提示</td><td><code>components/editor/onboarding.tsx</code> · <code>actions/components/shortcuts-dialog.tsx</code> · <code>components/editor/mobile-gate.tsx</code> · <code>changelog/components/changelog-notification.tsx</code></td></tr>
+      <tr><td>国际化</td><td><code>locale/zh.ts</code> · <code>locale/en.ts</code> · <code>locale/locale-context.tsx</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note ok">
+    <span class="t">维护约定</span>
+    本稿以代码为准。当令牌、尺寸常量或组件变体发生变化时，请同步更新第 01、02 节与第 10 节的尺寸表——
+    这三处是设计稿里被引用最多、也最容易过期的部分。
+  </div>
+
+  <div class="foot">
+    MyCut UI 设计稿 v1.0 · 生成于 2026-10-12 · 对应代码快照 d954883 · 覆盖 apps/web 全部界面
+  </div>
+</section>
+
+</main>
+</div>
+</body>
+</html>

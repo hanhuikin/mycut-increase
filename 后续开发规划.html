@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyCut 后续开发规划 · 功能 / 框架 / 计划 / 部署</title>
+<style>
+  :root{
+    --bg:#0C0D10;
+    --panel:#14161B;
+    --panel-2:#181B21;
+    --line:#262A33;
+    --line-soft:#1E222A;
+    --ink:#E8EAF0;
+    --ink-2:#9BA1AD;
+    --ink-3:#6B7280;
+    --user:#6D7CFF;
+    --user-soft:#8A96FF;
+    --admin:#FFB224;
+    --admin-deep:#E89B00;
+    --ok:#3DDC97;
+    --danger:#FF5C5C;
+    --warn:#F5A623;
+    --font-display:"Segoe UI Variable Display","Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+    --font-body:system-ui,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    --font-mono:"Cascadia Code","Consolas","SF Mono",ui-monospace,monospace;
+    --r-lg:16px; --r-md:12px; --r-sm:8px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:24px}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:var(--font-body);font-size:14px;line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(109,124,255,.35)}
+
+  /* ---------- 布局骨架 ---------- */
+  .shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+  .rail{
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    border-right:1px solid var(--line-soft);
+    padding:28px 18px 28px 24px;
+    background:linear-gradient(180deg,#0E0F13,#0C0D10);
+  }
+  .main{padding:0 clamp(20px,5vw,72px) 120px;max-width:1120px}
+  .rail-brand{display:flex;align-items:center;gap:10px;margin-bottom:30px}
+  .rail-brand .mark{
+    width:26px;height:26px;border-radius:7px;flex:none;
+    background:conic-gradient(from 210deg,#6D7CFF,#9B6DFF,#6D7CFF);
+    position:relative;
+  }
+  .rail-brand .mark::after{
+    content:"";position:absolute;inset:7px;border-radius:3px;background:#0C0D10;
+  }
+  .rail-brand b{font-family:var(--font-display);font-size:15px;letter-spacing:.02em}
+  .rail nav a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--ink-2);text-decoration:none;font-size:13px;
+    padding:7px 10px;margin:1px -10px;border-radius:var(--r-sm);
+    transition:color .15s,background .15s;
+  }
+  .rail nav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+  .rail nav a .n{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-3)}
+  .rail nav a:hover .n{color:var(--user-soft)}
+
+  /* ---------- 顶部时间码标尺（签名装饰） ---------- */
+  .ruler{
+    height:34px;border-bottom:1px solid var(--line-soft);
+    background:repeating-linear-gradient(90deg,
+      transparent 0 79px, var(--line) 79px 80px),
+      repeating-linear-gradient(90deg,
+      transparent 0 15px, var(--line-soft) 15px 16px);
+    position:relative;
+  }
+  .ruler .tc{
+    position:absolute;right:0;top:0;height:100%;
+    display:flex;align-items:center;padding:0 4px 0 14px;
+    background:var(--bg);
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:.08em;
+  }
+  .ruler .ph{
+    position:absolute;left:64px;top:0;bottom:-1px;width:2px;background:var(--user);
+  }
+  .ruler .ph::before{
+    content:"";position:absolute;top:0;left:-4px;
+    border:5px solid transparent;border-top-color:var(--user);
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover{padding:72px 0 56px;border-bottom:1px solid var(--line-soft)}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;
+    color:var(--user-soft);text-transform:uppercase;
+  }
+  .cover h1{
+    font-family:var(--font-display);font-weight:700;
+    font-size:clamp(34px,5.4vw,54px);line-height:1.12;letter-spacing:-.02em;
+    margin:16px 0 14px;
+  }
+  .cover h1 .en{color:var(--ink-3);font-weight:600}
+  .cover .sub{color:var(--ink-2);font-size:15.5px;max-width:620px}
+  .cover .meta{
+    display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px;
+    font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+  }
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .legend .lg{
+    display:inline-flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:999px;
+    padding:5px 14px;font-size:12.5px;color:var(--ink-2);
+  }
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.u{background:var(--user)} .dot.a{background:var(--admin)}
+  .dot.s{background:var(--ink-3)} .dot.d{background:var(--danger)}
+  .dot.ok{background:var(--ok)}
+
+  /* ---------- 章节 ---------- */
+  .sec{padding:64px 0 8px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
+  .sec-head .no{
+    font-family:var(--font-mono);font-size:12px;color:var(--user-soft);
+    letter-spacing:.08em;
+  }
+  .sec-head h2{
+    font-family:var(--font-display);font-weight:700;font-size:26px;
+    letter-spacing:-.01em;
+  }
+  .sec-head .tag{
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+    border:1px solid var(--line);border-radius:999px;padding:2px 10px;
+  }
+  .sec > .desc{color:var(--ink-2);margin:6px 0 26px;max-width:760px}
+
+  /* ---------- 卡片网格 ---------- */
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-md);padding:18px 20px;
+  }
+  .card h3{
+    font-family:var(--font-display);font-size:15px;font-weight:600;
+    margin-bottom:6px;display:flex;align-items:center;gap:8px;
+  }
+  .card p{color:var(--ink-2);font-size:13px}
+  .card .k{
+    font-family:var(--font-mono);font-size:11px;color:var(--user-soft);
+    display:block;margin-bottom:4px;
+  }
+  .card ul{list-style:none;margin-top:8px}
+  .card li{
+    font-size:13px;color:var(--ink-2);padding:3px 0 3px 16px;position:relative;
+  }
+  .card li::before{
+    content:"";position:absolute;left:2px;top:11px;
+    width:5px;height:5px;border-radius:50%;background:var(--ink-3);
+  }
+  .card li b{color:var(--ink);font-weight:600}
+
+  /* ---------- 徽标 ---------- */
+  .badge{
+    display:inline-flex;align-items:center;gap:5px;
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.03em;
+    border-radius:999px;padding:2px 9px;border:1px solid var(--line);
+    color:var(--ink-2);flex:none;
+  }
+  .badge.done{color:var(--ok);border-color:rgba(61,220,151,.35);background:rgba(61,220,151,.07)}
+  .badge.plan{color:var(--user-soft);border-color:rgba(109,124,255,.35);background:rgba(109,124,255,.08)}
+  .badge.warn{color:var(--warn);border-color:rgba(245,166,35,.35);background:rgba(245,166,35,.07)}
+
+  /* ---------- 表格 ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+  th{
+    text-align:left;font-family:var(--font-mono);font-size:11px;
+    color:var(--ink-3);font-weight:600;letter-spacing:.06em;
+    padding:8px 12px;border-bottom:1px solid var(--line);
+    text-transform:uppercase;
+  }
+  td{padding:9px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink-2);vertical-align:top}
+  td b, td code{color:var(--ink)}
+  tr:hover td{background:rgba(255,255,255,.015)}
+  code{
+    font-family:var(--font-mono);font-size:12px;
+    background:rgba(109,124,255,.09);color:var(--user-soft);
+    border-radius:5px;padding:1px 6px;
+  }
+  .mono{font-family:var(--font-mono);font-size:12px}
+
+  /* ---------- 架构图（文本块） ---------- */
+  .arch{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:22px 24px;font-family:var(--font-mono);font-size:12.5px;
+    line-height:1.9;color:var(--ink-2);overflow-x:auto;white-space:pre;
+  }
+  .arch .hl{color:var(--user-soft)}
+  .arch .dim{color:var(--ink-3)}
+  .arch .ok{color:var(--ok)}
+  .arch .a{color:var(--admin)}
+
+  /* ---------- 阶段时间线 ---------- */
+  .phase{
+    display:grid;grid-template-columns:88px 1fr;gap:0;margin-bottom:14px;
+    border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;
+    background:var(--panel);
+  }
+  .phase .ph-tag{
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    gap:6px;padding:18px 0;background:var(--panel-2);
+    border-right:1px solid var(--line);
+  }
+  .phase .ph-tag .p{
+    font-family:var(--font-mono);font-weight:700;font-size:16px;
+  }
+  .phase .ph-tag .s{
+    font-size:10.5px;color:var(--ink-3);letter-spacing:.08em;
+  }
+  .p0{color:var(--ok)} .p1{color:var(--user-soft)} .p2{color:var(--admin)}
+  .p3{color:var(--warn)} .p4{color:var(--ink-2)}
+  .phase .ph-body{padding:16px 20px}
+  .phase .ph-body h4{
+    font-family:var(--font-display);font-size:15.5px;font-weight:600;margin-bottom:4px;
+  }
+  .phase .ph-body .goal{color:var(--ink-2);font-size:13px;margin-bottom:10px}
+  .task{
+    display:grid;grid-template-columns:110px 1fr;gap:6px 14px;
+    font-size:12.5px;padding:6px 0;border-top:1px dashed var(--line-soft);
+  }
+  .task:first-of-type{border-top:none}
+  .task .tk{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);padding-top:1px}
+  .task .td{color:var(--ink-2)}
+  .task .td code{font-size:11.5px}
+  .accept{
+    margin-top:10px;padding:10px 14px;border-radius:var(--r-sm);
+    background:rgba(61,220,151,.05);border:1px solid rgba(61,220,151,.18);
+    font-size:12.5px;color:var(--ink-2);
+  }
+  .accept b{color:var(--ok);font-weight:600;font-family:var(--font-mono);font-size:11px;margin-right:8px}
+
+  /* ---------- 决策点 ---------- */
+  .decision{
+    display:grid;grid-template-columns:26px 1fr;gap:10px;
+    padding:12px 0;border-top:1px solid var(--line-soft);
+  }
+  .decision:first-of-type{border-top:none}
+  .decision .dq{
+    width:24px;height:24px;border-radius:7px;flex:none;
+    background:rgba(245,166,35,.12);color:var(--warn);
+    font-family:var(--font-mono);font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .decision h5{font-size:13.5px;font-weight:600;margin-bottom:2px}
+  .decision p{font-size:12.5px;color:var(--ink-2)}
+  .decision .rec{color:var(--ok);font-weight:600}
+
+  /* ---------- 页脚 ---------- */
+  .foot{
+    margin-top:72px;padding:26px 0;border-top:1px solid var(--line-soft);
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+
+  @media (max-width:920px){
+    .shell{grid-template-columns:1fr}
+    .rail{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line-soft)}
+    .rail nav{display:flex;flex-wrap:wrap;gap:2px}
+    .g2,.g3{grid-template-columns:1fr}
+    .phase{grid-template-columns:64px 1fr}
+    .task{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-brand"><span class="mark"></span><b>MyCut</b></div>
+    <nav>
+      <a href="#s0"><span class="n">00</span>概览</a>
+      <a href="#s1"><span class="n">01</span>现有功能盘点</a>
+      <a href="#s2"><span class="n">02</span>技术框架</a>
+      <a href="#s3"><span class="n">03</span>目标架构</a>
+      <a href="#s4"><span class="n">04</span>后续开发计划</a>
+      <a href="#s5"><span class="n">05</span>部署方案</a>
+      <a href="#s6"><span class="n">06</span>风险与决策点</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="ruler">
+      <span class="ph"></span>
+      <span class="tc">ROADMAP · 2026-10</span>
+    </div>
+
+    <!-- ================= 封面 ================= -->
+    <header class="cover">
+      <div class="eyebrow">MyCut · Development Roadmap</div>
+      <h1>后续开发规划 <span class="en">/ Roadmap</span></h1>
+      <p class="sub">
+        面向四个目标：① 生成的图片素材对接 OSS 云端存储；② 素材按账号归属、可分享流转；
+        ③ 接入七牛云生图与生视频模型；④ 形成可上线的部署方案。所有规划均基于当前代码库现状，
+        与既有约定保持一致——协议族策略模式、密钥不出服务端、管理面板即时生效。
+      </p>
+      <div class="meta">
+        <span>date: 2026-10-21</span>
+        <span>base: hanhuikin/mycut @ d954883</span>
+        <span>status: 规划稿 v1</span>
+      </div>
+      <div class="legend">
+        <span class="lg"><span class="dot ok"></span>已实现</span>
+        <span class="lg"><span class="dot u"></span>规划中（P1-P4）</span>
+        <span class="lg"><span class="dot a"></span>决策点</span>
+        <span class="lg"><span class="dot s"></span>备选方案</span>
+      </div>
+    </header>
+
+    <!-- ================= 00 概览 ================= -->
+    <section class="sec" id="s0">
+      <div class="sec-head">
+        <span class="no">00</span>
+        <h2>概览</h2>
+        <span class="tag">SUMMARY</span>
+      </div>
+      <p class="desc">
+        当前项目是 OpenCut 视频编辑器的自建分支（Next.js 16 + React 19 + WASM 合成），
+        已叠加账号、管理、计费与 AI 生成体系。本节给出全局判断：哪些底座已就绪、哪些缺口需要补齐。
+      </p>
+      <div class="grid g3">
+        <div class="card">
+          <span class="k">现状 · 素材</span>
+          <h3><span class="badge done">本地</span>素材 100% 客户端</h3>
+          <p>文件存浏览器 OPFS，元数据存按项目隔离的 IndexedDB，服务端零存储。编辑器只认 <code>File</code> 对象——云端素材还原成 <code>File</code> 即可零改动接入。</p>
+        </div>
+        <div class="card">
+          <span class="k">现状 · 账号</span>
+          <h3><span class="badge done">就绪</span>账号 / 计费 / 审计</h3>
+          <p>users、credit_ledger、channels（密钥加密）、audit_log、RLS 齐备。缺口：无素材归属、分享、上传相关表。</p>
+        </div>
+        <div class="card">
+          <span class="k">现状 · AI</span>
+          <h3><span class="badge done">策略模式</span>缺文生图</h3>
+          <p>protocols 协议族 + DB 通道已落地，密钥 100% 服务端。已有视频生成 / 抠图 / 擦除 / 音乐，尚无文生图。</p>
+        </div>
+        <div class="card">
+          <span class="k">现状 · 部署</span>
+          <h3><span class="badge done">三套底座</span>Cloudflare 优先</h3>
+          <p>opennextjs-cloudflare + 外置 PG/Redis；Railway 与 Docker 自托管备选。无后台队列，AI 生成走请求内提交+轮询。</p>
+        </div>
+        <div class="card">
+          <span class="k">目标 · 1</span>
+          <h3>OSS 云端化</h3>
+          <p>自建对象存储私有空间，生成素材与上传素材统一落库，跨设备 / 跨项目可用。</p>
+        </div>
+        <div class="card">
+          <span class="k">目标 · 2</span>
+          <h3>归属与分享</h3>
+          <p>素材挂账号（user_id），分享链接 + 复制到我的库，合规下架兜底。</p>
+        </div>
+        <div class="card">
+          <span class="k">目标 · 3</span>
+          <h3>七牛云模型</h3>
+          <p>生图（AI Token API，gemini 系列）+ 生视频（Vidu），全部走管理面板配置，无代码硬编码。</p>
+        </div>
+        <div class="card">
+          <span class="k">目标 · 4</span>
+          <h3>可上线部署</h3>
+          <p>上传直传绕开 Workers 限制，私有空间签名 URL，成本与合规可控。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 01 现有功能 ================= -->
+    <section class="sec" id="s1">
+      <div class="sec-head">
+        <span class="no">01</span>
+        <h2>现有功能盘点</h2>
+        <span class="tag">FEATURES</span>
+      </div>
+      <p class="desc">
+        以「用户可感知的功能」为粒度盘点当前代码库。绿色为已实现；后续规划全部建立在这些底座之上。
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="k">EDITOR · 编辑器</span>
+          <h3>视频编辑</h3>
+          <ul>
+            <li><b>多轨时间轴</b>：主轨 / 叠轨 / 音频轨，拖拽导入素材</li>
+            <li><b>元素体系</b>：视频、图片、文字、贴纸、图形、特效、音频</li>
+            <li><b>剪辑操作</b>：裁剪、拆分、变速（retime）、隐藏 / 静音</li>
+            <li><b>关键帧动画</b>：位置 / 透明度 / 混合等参数动画</li>
+            <li><b>音频</b>：波形显示、音量线、素材静音</li>
+            <li><b>时间轴真胶片条</b>：视频片段逐格显示真实帧，播放头所指即预览帧（本迭代新增）</li>
+            <li><b>WASM 合成预览</b>：逐帧合成渲染，渲染失败自愈不冻屏</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">MEDIA · 素材</span>
+          <h3>素材管理</h3>
+          <ul>
+            <li><b>本地素材库</b>：网格 / 列表视图、搜索、排序、删除</li>
+            <li><b>导入管线</b>：图片缩略图、视频元数据（时长 / 尺寸 / 帧率 / 音频轨）、音频时长</li>
+            <li><b>浏览器存储</b>：OPFS 文件 + IndexedDB 元数据，配额检测与持久化申请</li>
+            <li><b>拖拽入轨</b>：素材面板直接拖进时间轴</li>
+            <li><b>AI 素材入库</b>：生成结果自动转为素材进库</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">ACCOUNT · 账号</span>
+          <h3>账号体系</h3>
+          <ul>
+            <li><b>注册 / 登录</b>：better-auth 邮箱密码，会话与设备管理</li>
+            <li><b>个人中心</b>：改密、两步验证、30 天内记住我</li>
+            <li><b>角色体系</b>：admin / user，封禁与解封（含期限）</li>
+            <li><b>管理提权</b>：二次密码校验，30 分钟签名 cookie</li>
+            <li><b>限流</b>：Redis Lua 滑动窗口，登录防爆破</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">BILLING · 计费</span>
+          <h3>点数计费</h3>
+          <ul>
+            <li><b>点数体系</b>：注册赠送 500 点（懒发放）</li>
+            <li><b>冻结 / 结算 / 退款</b>：任务前冻结，失败自动退回，<code>(kind, refId)</code> 幂等</li>
+            <li><b>定价模型</b>：按秒（720p/1080p）与按次（工具 / 音频），管理面板改价即时生效</li>
+            <li><b>Pro 门槛</b>：模型 requiresPro + 单用户授权（user_model_grants）</li>
+            <li><b>兑换码</b>：批量生成、单次核销</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">AI · 生成</span>
+          <h3>AI 能力</h3>
+          <ul>
+            <li><b>文生视频 / 图生视频</b>：seedance 系列，多供应商自动路由（Ark → fal → Atlas → WaveSpeed）</li>
+            <li><b>分镜模式</b>：storyboard 逐镜头设置起帧</li>
+            <li><b>参考帧取帧器</b>：大弹窗、播放头样式刮擦、Ctrl+滚轮缩放胶片条（本迭代新增）</li>
+            <li><b>图像工具</b>：AI 抠图、AI 擦除</li>
+            <li><b>音频生成</b>：音乐 / 音效</li>
+            <li><b>本地转写</b>：Whisper（Web Worker），不扣点</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">ADMIN · 管理</span>
+          <h3>管理面板</h3>
+          <ul>
+            <li><b>/admin/models</b>：模型开关、定价、Pro 标记、日限额</li>
+            <li><b>/admin/channels</b>：供应商通道增删、优先级路由、密钥加密入库</li>
+            <li><b>/admin/users</b>：封禁 / 解封、改角色、改套餐</li>
+            <li><b>/admin/billing</b>：加扣点（必填原因）、批量兑换码</li>
+            <li><b>/admin/audit</b>：全操作留痕（model_update / channel_* / credit_* …）</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 02 技术框架 ================= -->
+    <section class="sec" id="s2">
+      <div class="sec-head">
+        <span class="no">02</span>
+        <h2>技术框架</h2>
+        <span class="tag">STACK</span>
+      </div>
+      <p class="desc">
+        当前技术栈与关键架构决策。规划中的新增能力（OSS、生图、生视频）都落在既有分层的延长线上，不引入新范式。
+      </p>
+
+      <div class="card" style="margin-bottom:14px">
+        <span class="k">LAYERED VIEW · 分层视图</span>
+        <div class="arch"><span class="dim">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="hl">│  编辑器（客户端）                                              │</span>
+<span class="dim">│</span>  时间轴 / 素材面板 / AI 面板 / 预览渲染（WASM 合成）            <span class="dim">│</span>
+<span class="dim">│</span>  素材消费契约：<span class="hl">MediaAsset = { file: File, url?, 元数据 }</span>         <span class="dim">│</span>
+<span class="dim">├──────────────────────────────────────────────────────────────┤</span>
+<span class="hl">│  Next.js 16 App Router（Cloudflare Workers 运行时）            │</span>
+<span class="dim">│</span>  /api/ai/generate · /api/ai/poll —— 通道路由 + 计费冻结       <span class="dim">│</span>
+<span class="dim">│</span>  /api/admin/* · /api/billing/* · /api/auth/*                  <span class="dim">│</span>
+<span class="dim">│</span>  <span class="a">+ /api/assets/*（规划）上传凭证 · 元数据 · 签名下载 · 分享</span>        <span class="dim">│</span>
+<span class="dim">├──────────────────────────────────────────────────────────────┤</span>
+<span class="hl">│  服务层                                                       │</span>
+<span class="dim">│</span>  services/ai/protocols —— 协议族策略（ark · fal · atlas · wavespeed）<span class="dim">│</span>
+<span class="dim">│</span>  <span class="a">+ qiniu-image（生图）· + qiniu-video（Vidu）—— 规划</span>             <span class="dim">│</span>
+<span class="dim">│</span>  services/admin —— 通道（密钥 AES-256-GCM）· 模型目录 · 审计     <span class="dim">│</span>
+<span class="dim">│</span>  services/billing —— 冻结 / 结算 / 退款 / 兑换                   <span class="dim">│</span>
+<span class="dim">├──────────────────────────────────────────────────────────────┤</span>
+<span class="hl">│  数据层                                                       │</span>
+<span class="dim">│</span>  PostgreSQL（app schema + 全表 RLS）                          <span class="dim">│</span>
+<span class="dim">│</span>  <span class="a">+ media_assets · asset_shares —— 规划</span>                          <span class="dim">│</span>
+<span class="dim">│</span>  Redis —— 限流（Lua 滑动窗口）                                 <span class="dim">│</span>
+<span class="dim">├──────────────────────────────────────────────────────────────┤</span>
+<span class="hl">│  对象存储（规划）                                              │</span>
+<span class="dim">│</span>  自建对象存储（S3 兼容）私有空间 + 按需 CDN                    <span class="dim">│</span>
+<span class="dim">│</span>  上传：客户端直传（presigned URL）· 下载：短时效签名 URL        <span class="dim">│</span>
+<span class="dim">└──────────────────────────────────────────────────────────────┘</span></div>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="k">FRONTEND</span>
+          <h3>前端</h3>
+          <table>
+            <tr><th>层</th><th>选型</th></tr>
+            <tr><td><code>框架</code></td><td>Next.js 16 App Router · React 19 · TypeScript</td></tr>
+            <tr><td><code>样式</code></td><td>Tailwind v4 + shadcn/ui 风格组件 · CSS 变量设计 token</td></tr>
+            <tr><td><code>解码</code></td><td>mediabunny（WebCodecs）· 本地 Whisper（transformers.js）</td></tr>
+            <tr><td><code>合成</code></td><td>opencut-wasm（Rust → WASM）逐帧合成渲染</td></tr>
+            <tr><td><code>构建</code></td><td>Turborepo + Bun workspace</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <span class="k">BACKEND</span>
+          <h3>服务端</h3>
+          <table>
+            <tr><th>层</th><th>选型</th></tr>
+            <tr><td><code>账号</code></td><td>better-auth（邮箱密码 · 两步验证 · 会话）</td></tr>
+            <tr><td><code>ORM</code></td><td>Drizzle + PostgreSQL（app schema，全表 RLS）</td></tr>
+            <tr><td><code>缓存</code></td><td>Redis（ioredis · Lua 限流）</td></tr>
+            <tr><td><code>密钥</code></td><td>channels 表 AES-256-GCM 加密，主密钥 env</td></tr>
+            <tr><td><code>部署</code></td><td>opennextjs-cloudflare · Railway · Docker</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="k">CONVENTIONS · 既有约定（规划必须遵守）</span>
+        <ul>
+          <li><b>策略模式</b>：协议相同的厂商归一个 protocol 实现，通过模型 id 路由；状态词在策略内部归一（pending / done / failed），不向 UI 泄漏原始状态词。</li>
+          <li><b>密钥不出服务端</b>：供应商密钥只存 <code>channels.api_key_enc</code>，客户端只发 modelId + refId + 参数；管理面板返回的 ChannelView 永不含密钥。</li>
+          <li><b>管理面板交互</b>：/admin/* 编辑控件「即刻生效 + 直接增删实体」，不额外做保存条。</li>
+          <li><b>计费单点</b>：成本一律由服务端从 <code>ai_models</code> 重新计算（客户端不可信），冻结 / 结算走幂等账本。</li>
+          <li><b>全表 RLS</b>：新表必须开 RLS 并声明策略（归属行 / 分享行）。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= 03 目标架构 ================= -->
+    <section class="sec" id="s3">
+      <div class="sec-head">
+        <span class="no">03</span>
+        <h2>目标架构</h2>
+        <span class="tag">TARGET</span>
+      </div>
+      <p class="desc">
+        新增能力后的整体形态。核心原则：编辑器零改动、密钥不出服务端、归属即账号、小步可上线。
+      </p>
+
+      <div class="card">
+        <span class="k">DATA FLOW · 素材数据流</span>
+        <div class="arch"><span class="hl">① 上传 / 生成</span>
+  客户端 ──<span class="a">POST /api/assets/upload-token</span>──▶ 服务端签发限时 presigned 上传 URL（限定 key 前缀 u/&lt;user_id&gt;/…）
+  客户端 ──直传（S3 兼容 SDK / 裸 PUT）──▶ <span class="hl">自建 OSS 私有空间</span>
+  客户端 ──<span class="a">POST /api/assets/register</span>──▶ 服务端校验 key 归属 → 写 <span class="hl">media_assets</span> → 写 audit_log
+
+<span class="hl">② 消费</span>
+  <span class="a">GET /api/assets/&lt;id&gt;/file</span> → 校验归属 / 分享授权 → 私有签名 URL（短时效）
+  客户端下载为 Blob → 构造 File → 走现有 <span class="hl">addMediaAsset</span> 管线（编辑器零改动）
+
+<span class="hl">③ 分享</span>
+  素材 → 创建 asset_shares（token / view|copy / 过期时间）→ /share/a/&lt;token&gt;
+  复制 = 新建独立 media_assets 行（对象级拷贝，生命周期解耦）</div>
+      </div>
+
+      <div class="grid g3" style="margin-top:14px">
+        <div class="card">
+          <span class="k">DB · 新增表</span>
+          <h3>media_assets</h3>
+          <p>素材元数据与归属：<code>id · user_id · key(OSS键) · name · type · mime · size · width/height/duration · thumbnail_key · source(upload/ai_generate/share_copy) · created_at</code>。RLS：本人可读写，分享授权者只读。</p>
+        </div>
+        <div class="card">
+          <span class="k">DB · 新增表</span>
+          <h3>asset_shares</h3>
+          <p>分享记录：<code>id · asset_id · token(短随机) · permission(view/copy) · expires_at(可空=永久) · created_by · created_at</code>。撤销即删行，副本不受影响。</p>
+        </div>
+        <div class="card">
+          <span class="k">AI · 新增协议</span>
+          <h3>qiniu-image / qiniu-video</h3>
+          <p>七牛 AI Token API（生图，gemini 系列）与七牛大模型推理服务（Vidu 生视频）各实现一个 <code>Protocol</code>；通道与定价全部走管理面板，无代码硬编码。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 04 后续开发计划 ================= -->
+    <section class="sec" id="s4">
+      <div class="sec-head">
+        <span class="no">04</span>
+        <h2>后续开发计划</h2>
+        <span class="tag">PHASES</span>
+      </div>
+      <p class="desc">
+        五期递进，每期可独立上线。P0 是地基；P2/P3 与 P1 互不阻塞，可与 P0 并行推进。
+      </p>
+
+      <div class="phase">
+        <div class="ph-tag"><span class="p p0">P0</span><span class="s">OSS 基建</span></div>
+        <div class="ph-body">
+          <h4>素材云端化 · 自建 OSS</h4>
+          <p class="goal">生成的图片 / 视频素材可上传到 OSS，跨设备、跨项目可用；本地素材（OPFS）长期并存，可选「保存到云端」。</p>
+          <div class="task"><span class="tk">数据表</span><span class="td">新增 <code>media_assets</code>（归属 user_id + OSS key + 元数据），RLS：本人读写</span></div>
+          <div class="task"><span class="tk">上传凭证</span><span class="td"><code>POST /api/assets/upload-token</code>：登录校验 → 服务端签发限时 presigned 上传 URL（S3 兼容协议，限定 key 前缀 u/&lt;user_id&gt;/&lt;uuid&gt;.&lt;ext&gt; 与过期时间）→ 客户端直传，流量不过应用</span></div>
+          <div class="task"><span class="tk">元数据落库</span><span class="td"><code>POST /api/assets/register</code>：校验 key 归属后写库 + audit_log</span></div>
+          <div class="task"><span class="tk">签名下载</span><span class="td"><code>GET /api/assets/&lt;id&gt;/file</code>：校验归属 → 自建 OSS 私有签名 URL（短时效，支持范围下载）</span></div>
+          <div class="task"><span class="tk">生成接入</span><span class="td">现有 importGeneratedVideo 等落库点增加「同时上传 OSS」（默认开，可关）</span></div>
+          <div class="task"><span class="tk">管理</span><span class="td">/admin/assets：按用户筛选、删除下架</span></div>
+          <div class="task"><span class="tk">环境变量</span><span class="td"><code>OSS_ENDPOINT / OSS_ACCESS_KEY / OSS_SECRET_KEY / OSS_BUCKET / OSS_PUBLIC_DOMAIN</code> 进 zod schema</span></div>
+          <div class="accept"><b>验收</b>生成一张图 / 一段视频 → 自动出现在云端素材 → 换浏览器仍可拉回并拖进时间轴；本地素材不受影响。</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-tag"><span class="p p1">P1</span><span class="s">归属分享</span></div>
+        <div class="ph-body">
+          <h4>素材归属与分享</h4>
+          <p class="goal">素材是「我的」，可分享给他人查看 / 取用；含合规下架兜底。</p>
+          <div class="task"><span class="tk">面板视图</span><span class="td">素材面板 MediaView 加来源切换：本地 / 云端 / 分享给我的；云端素材带「分享」「保存到本地」操作</span></div>
+          <div class="task"><span class="tk">分享表</span><span class="td">新增 <code>asset_shares</code>（token / permission: view|copy / 过期时间），RLS 控制</span></div>
+          <div class="task"><span class="tk">分享页</span><span class="td"><code>/share/a/&lt;token&gt;</code>：登录可见详情 + 预览；copy 权限可「复制到我的素材库」——新建独立 media_assets 行（对象级拷贝）</span></div>
+          <div class="task"><span class="tk">分享管理</span><span class="td">创建（可选过期）、撤销、列表；audit_log 记 asset_share_create/revoke/copy</span></div>
+          <div class="task"><span class="tk">合规</span><span class="td">举报入口 → 管理面板一键下架（删分享 + 标记不可见，对象暂留 30 天）</span></div>
+          <div class="accept"><b>验收</b>A 分享给 B → B 预览并复制进自己的库；A 撤销后 B 的副本不受影响；无权限 403。</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-tag"><span class="p p2">P2</span><span class="s">七牛生图</span></div>
+        <div class="ph-body">
+          <h4>文生图 · 七牛 AI Token API</h4>
+          <p class="goal">补齐「AI 图片」能力：文生图面板 + 结果直接走 P0 的 OSS 链路。</p>
+          <div class="task"><span class="tk">协议</span><span class="td"><code>protocols/qiniu-image.ts</code>：提交 → 轮询 → 出图 URL；形状兼容则用 declareJsonProtocol 声明式配置</span></div>
+          <div class="task"><span class="tk">通道 / 模型</span><span class="td">管理面板新增 channel（protocol=qiniu-image，密钥加密入库）+ ai_models 行（kind=image 或 tool，pricePerCall）</span></div>
+          <div class="task"><span class="tk">面板</span><span class="td">assets 面板新增「AI 图片」tab：提示词 + 尺寸 / 比例 + 张数，轮询复用 services/ai/client.ts，结果缩略图网格</span></div>
+          <div class="task"><span class="tk">结果</span><span class="td">生成成功 → 下载为 File → 可选落 OSS → addMediaAsset；支持「发送到素材库」</span></div>
+          <div class="task"><span class="tk">计费</span><span class="td">复用 /api/ai/generate + /api/ai/poll：pricePerCall，失败自动退款</span></div>
+          <div class="accept"><b>验收</b>提示词生图成功且按张扣点；结果出现在云端素材；密钥只存在于管理面板。</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-tag"><span class="p p3">P3</span><span class="s">七牛生视频</span></div>
+        <div class="ph-body">
+          <h4>生视频 · 七牛大模型推理服务（Vidu）</h4>
+          <p class="goal">视频生成多一个国内直连供应商，与 seedance 链路并列。</p>
+          <div class="task"><span class="tk">协议</span><span class="td"><code>protocols/qiniu-video.ts</code>：实现 Protocol 接口（submit/poll），状态词归一 pending/done/failed</span></div>
+          <div class="task"><span class="tk">通道 / 模型</span><span class="td">管理面板配 channel + ai_models 行（kind=video，modes 含 text-to-video / image-to-video，按秒定价）</span></div>
+          <div class="task"><span class="tk">UI</span><span class="td">AI 视频面板零改动——模型下拉自动出现；图生视频沿用现有参考帧取帧器</span></div>
+          <div class="task"><span class="tk">计费</span><span class="td">现有按秒 freeze/settle 直接适用</span></div>
+          <div class="accept"><b>验收</b>启用通道后可选该模型生成；失败退款、审计、日限额全链路正常。</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-tag"><span class="p p4">P4</span><span class="s">部署运维</span></div>
+        <div class="ph-body">
+          <h4>部署与运维</h4>
+          <p class="goal">一套能上线的部署 + 成本 / 合规可控。</p>
+          <div class="task"><span class="tk">主推方案</span><span class="td">Cloudflare Workers（opennext）+ 外置 PG / Redis + 自建 OSS；上传直传，应用零大文件压力</span></div>
+          <div class="task"><span class="tk">OSS 配置</span><span class="td">私有空间 + 自定义域名 + 防盗链 + 生命周期策略（下架 30 天自动删）；缩略图：服务支持图片处理则服务端生成，否则客户端解码后随原图上传</span></div>
+          <div class="task"><span class="tk">成本控制</span><span class="td">单用户配额（按 media_assets 聚合 size）；签名 URL 短时效 + 客户端缓存（素材进 OPFS 即离线）</span></div>
+          <div class="task"><span class="tk">安全复查</span><span class="td">key 前缀注入校验、presigned URL scope 最小化、分享 token 限速（复用 Redis 限流）、内容审核（七牛审核 API 或人工下架）</span></div>
+          <div class="task"><span class="tk">监控</span><span class="td">/api/health/deep 已有；补素材链路指标（上传 / 下载失败率、OSS 存储量）</span></div>
+          <div class="accept"><b>验收</b>生产环境完成「生成 → 落库 → 分享 → 他人取用 → 下架」全流程演练。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="k">DEPENDENCIES · 依赖与节奏</span>
+        <div class="arch"><span class="hl">P0</span>（OSS 基建）─┬─▶ <span class="hl">P1</span>（归属分享）──▶ <span class="hl">P4</span>（上线）
+            ├─▶ <span class="a">P2</span>（生图，结果直接落 P0 链路）──┘
+            └─▶ <span class="a">P3</span>（生视频，仅新增协议+通道，可与 P2 并行）
+
+P0 完成即可上线（用户获得跨设备素材）；分享 / 生图 / 生视频各自独立加值。</div>
+      </div>
+    </section>
+
+    <!-- ================= 05 部署方案 ================= -->
+    <section class="sec" id="s5">
+      <div class="sec-head">
+        <span class="no">05</span>
+        <h2>部署方案</h2>
+        <span class="tag">DEPLOY</span>
+      </div>
+      <p class="desc">
+        三个既有部署底座全部兼容 OSS 方案；按用户群选主推。
+      </p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="k">方案 A · 主推</span>
+          <h3><span class="badge plan">Cloudflare</span> Workers</h3>
+          <ul>
+            <li>opennextjs-cloudflare 构建，wrangler 部署（已配置）</li>
+            <li>外置 PostgreSQL + Redis（Upstash / 自建）</li>
+            <li>自建 OSS：客户端直传，避开 Workers 请求体限制</li>
+            <li><b>适用</b>：海外 / 全球用户，边缘就近</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">方案 B · 国内首选</span>
+          <h3><span class="badge plan">Railway</span> / 国内主机</h3>
+          <ul>
+            <li>railway.toml 已配置，Docker 化部署</li>
+            <li>自定义域名 + CDN 加速（国内直连，自建 OSS 前置）</li>
+            <li>PG / Redis 与主机同区，延迟最低</li>
+            <li><b>适用</b>：用户以国内为主（当前实际情况）</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="k">方案 C · 兜底</span>
+          <h3><span class="badge">Docker</span> 自托管</h3>
+          <ul>
+            <li>docker-compose.yml 已含 db + redis + web 全套</li>
+            <li>任意云主机 / 内网可用，数据完全自持</li>
+            <li>serverless-redis-http 包装本地 Redis 兼容 Upstash</li>
+            <li><b>适用</b>：私有部署、离线场景</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="k">OSS · 自建对象存储对接清单（P0 落地）</span>
+        <table>
+          <tr><th>项</th><th>配置</th></tr>
+          <tr><td><code>空间</code></td><td>私有空间（<code>private</code>），不对外开放读权限</td></tr>
+          <tr><td><code>域名</code></td><td>自定义 HTTPS 域名（国内需备案）+ CDN 加速</td></tr>
+          <tr><td><code>上传</code></td><td>服务端签发 presigned 上传 URL（S3 兼容协议，限定 key 前缀 + 过期时间），客户端 SDK 直传</td></tr>
+          <tr><td><code>下载</code></td><td>私有签名 URL 短时效（默认 5 分钟），应用层代理或 302</td></tr>
+          <tr><td><code>缩略图</code></td><td>若自建服务支持图片处理则服务端生成，否则客户端解码生成后随原图一并上传（素材网格 / 分享页用）</td></tr>
+          <tr><td><code>生命周期</code></td><td>临时上传区 24h 自动清理；下架素材 30 天自动删除</td></tr>
+          <tr><td><code>防盗链</code></td><td>Referer 白名单 + token 校验</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= 06 风险与决策点 ================= -->
+    <section class="sec" id="s6">
+      <div class="sec-head">
+        <span class="no">06</span>
+        <h2>风险与决策点</h2>
+        <span class="tag">DECISIONS</span>
+      </div>
+      <p class="desc">
+        需要拍板的事项，均已给出推荐（<span class="rec">绿字</span>）。
+      </p>
+
+      <div class="card">
+        <div class="decision">
+          <div class="dq">1</div>
+          <div>
+            <h5>自建 OSS 的对接协议？</h5>
+            <p>按 S3 兼容协议（MinIO / SeaweedFS / 自研等）对接；<code>media_assets.key</code> 是纯对象键、签名逻辑集中在服务端一层，未来可平滑迁移。<span class="rec">推荐：S3 兼容协议。需确认：具体服务形态、是否支持 presigned URL、有无 CDN 与图片处理能力。</span></p>
+          </div>
+        </div>
+        <div class="decision">
+          <div class="dq">2</div>
+          <div>
+            <h5>分享「复制」的语义：对象拷贝还是引用计数？</h5>
+            <p>对象级拷贝：副本独立于原素材（撤销分享不影响副本），代价是重复存储；引用计数省空间但生命周期纠缠、下架复杂。<span class="rec">推荐：对象拷贝，P1 后评估去重。</span></p>
+          </div>
+        </div>
+        <div class="decision">
+          <div class="dq">3</div>
+          <div>
+            <h5>生图 / 生视频定价策略？</h5>
+            <p>七牛 MaaS 聚合多家（gemini 系列生图、Vidu 生视频），定价随上游浮动；<code>ai_models</code> 已支持管理面板改价。<span class="rec">推荐：上线初期加 20-30% 毛利，周度对账。</span></p>
+          </div>
+        </div>
+        <div class="decision">
+          <div class="dq">4</div>
+          <div>
+            <h5>部署目标：Cloudflare 还是国内？</h5>
+            <p>Workers 域名国内访问质量不稳定；用户主站在国内时，应自定义域名 + 国内 CDN 回源，或直接 Railway / 国内 Docker 主机。<span class="rec">推荐：用户以国内为主，优先 Railway 或国内主机 + CDN（自建 OSS 前置）。</span></p>
+          </div>
+        </div>
+        <div class="decision">
+          <div class="dq">5</div>
+          <div>
+            <h5>生成素材的内容合规？</h5>
+            <p>素材落库即发布，需要审核兜底。<span class="rec">推荐：上线前接七牛内容审核 API，或先人工巡检 + 举报下架。</span></p>
+          </div>
+        </div>
+        <div class="decision">
+          <div class="dq">6</div>
+          <div>
+            <h5>现有本地素材去留？</h5>
+            <p>编辑器继续支持纯本地模式（离线友好），云端是可选增强。<span class="rec">推荐：不强制迁移，云端素材提供「下载到本地」双向通道。</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>MyCut · 后续开发规划</span>
+      <span>2026-10-21 · v1</span>
+    </footer>
+  </main>
+</div>
+</body>
+</html>
