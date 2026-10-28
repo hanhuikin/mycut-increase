@@ -4,8 +4,8 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/web", "--", "--port", "4000"],
-      "port": 4000
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/web"],
+      "port": 3000
     },
     {
       "name": "web-attach",
