@@ -2,7 +2,7 @@ import {
 	type ChannelInput,
 	isValidBaseUrl,
 } from "@/services/admin/channels";
-import { getModel } from "@/services/admin/models";
+import { isValidModelId } from "@/services/admin/models";
 import { isProtocolId } from "@/services/ai/protocols";
 
 /**
@@ -12,9 +12,9 @@ import { isProtocolId } from "@/services/ai/protocols";
  * outside `channels.ts` itself (which `models.ts` imports, so reaching back for
  * `getModel` would be a cycle).
  *
- * Model keys must be real model ids: a mapping to a typo would silently never
- * match, which reads as "the channel is configured but nothing routes" — worth
- * refusing up front.
+ * Model keys only need a well-formed id: a mapping to a brand-new id is
+ * allowed — the channel service creates the missing model row (with the
+ * protocol's family as its kind) so the mapping routes immediately.
  */
 export async function parseChannelInput(
 	body: unknown,
@@ -55,8 +55,8 @@ export async function parseChannelInput(
 		if (typeof upstream !== "string" || !upstream.trim()) {
 			return { ok: false, error: `models.${modelId} must be a name` };
 		}
-		if (!(await getModel({ id: modelId }))) {
-			return { ok: false, error: `unknown_model: ${modelId}` };
+		if (!isValidModelId(modelId)) {
+			return { ok: false, error: `invalid_model_id: ${modelId}` };
 		}
 		models[modelId] = upstream.trim();
 	}

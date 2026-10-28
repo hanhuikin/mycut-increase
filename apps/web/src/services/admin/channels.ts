@@ -1,6 +1,6 @@
 import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { type ChannelModels, channels } from "@/db/schema";
+import { type ChannelModels, aiModels, channels } from "@/db/schema";
 import {
 	type JobFamily,
 	type Protocol,
@@ -18,6 +18,39 @@ const FAMILY_BY_KIND: Record<string, JobFamily | undefined> = {
 
 export function familyForKind(kind: string): JobFamily | undefined {
 	return FAMILY_BY_KIND[kind];
+}
+
+/** The model kind a protocol can serve, inferred from its families. */
+function kindForProtocol(protocol: Protocol): "video" | "tool" | "audio" {
+	if (protocol.families.includes("video")) return "video";
+	if (protocol.families.includes("image")) return "tool";
+	return "audio";
+}
+
+/**
+ * A channel may map a brand-new system model id — the panel lets admins type
+ * one in. Create the missing catalogue row (label = id, kind inferred from the
+ * protocol, enabled) so the mapping routes immediately; pricing stays null
+ * until configured on the models page.
+ */
+async function ensureModelsExist({
+	modelIds,
+	protocol,
+}: {
+	modelIds: string[];
+	protocol: Protocol;
+}): Promise<void> {
+	for (const id of modelIds) {
+		await db
+			.insert(aiModels)
+			.values({
+				id,
+				label: id,
+				kind: kindForProtocol(protocol),
+				enabled: true,
+			})
+			.onConflictDoNothing();
+	}
 }
 
 /** Blank is allowed (meaning "use the protocol's host"); otherwise http(s). */
@@ -190,6 +223,10 @@ export async function createChannel({
 	input: ChannelInput;
 	actor: string;
 }): Promise<ChannelView | null> {
+	const protocol = getProtocol(input.protocol);
+	if (protocol) {
+		await ensureModelsExist({ modelIds: Object.keys(input.models), protocol });
+	}
 	const key = input.apiKey.trim();
 	const id = crypto.randomUUID();
 	await db.insert(channels).values({
@@ -217,6 +254,10 @@ export async function updateChannel({
 	input: ChannelInput;
 	actor: string;
 }): Promise<ChannelView | null> {
+	const protocol = getProtocol(input.protocol);
+	if (protocol) {
+		await ensureModelsExist({ modelIds: Object.keys(input.models), protocol });
+	}
 	const key = input.apiKey.trim();
 	await db
 		.update(channels)

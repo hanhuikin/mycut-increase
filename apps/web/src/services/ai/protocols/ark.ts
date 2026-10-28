@@ -2,6 +2,7 @@ import {
 	type JobHandle,
 	type JobInput,
 	type JobState,
+	type ListModelsInput,
 	type PollCredentials,
 	type Protocol,
 	type SubmitResult,
@@ -104,5 +105,38 @@ export const arkProtocol: Protocol = {
 			return { state: "failed", error: `火山方舟: ${message}` };
 		}
 		return { state: "pending" };
+	},
+
+	// Ark is OpenAI-compatible at the base path: GET /v1/models lists the
+	// models this key can reach, so it doubles as the connectivity probe.
+	async listModels(input: ListModelsInput): Promise<string[]> {
+		const base = trimBase(input.baseUrl) || DEFAULT_BASE;
+		const response = await fetch(`${base}/models`, {
+			headers: { Authorization: `Bearer ${input.apiKey}` },
+		});
+		if (!response.ok) {
+			throw new Error(
+				`火山方舟拉取模型失败 (${response.status}): ${await response.text()}`,
+			);
+		}
+		const payload = await readJson(response);
+		let list: unknown;
+		if (payload && typeof payload === "object" && "data" in payload) {
+			list = payload.data;
+		}
+		if (!Array.isArray(list)) {
+			throw new Error(`火山方舟模型列表返回异常: ${JSON.stringify(payload)}`);
+		}
+		return list
+			.map((entry) =>
+				entry &&
+				typeof entry === "object" &&
+				"id" in entry &&
+				typeof entry.id === "string"
+					? entry.id
+					: "",
+			)
+			.filter((id) => Boolean(id))
+			.sort();
 	},
 };

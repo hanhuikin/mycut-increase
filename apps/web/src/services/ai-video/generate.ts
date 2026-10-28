@@ -93,6 +93,8 @@ export async function generateVideo(
 			const videoUrl = await pollJob({
 				modelId: options.modelId,
 				job,
+				resolution: options.resolution,
+				seconds: options.duration,
 				onProgress: options.onProgress,
 			});
 			return { success: true, videoUrl, protocol: job.protocol };

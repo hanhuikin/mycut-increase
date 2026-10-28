@@ -1,6 +1,7 @@
 import { arkProtocol } from "./ark";
 import { defineJsonProtocol } from "./declarative";
 import { falProtocol } from "./fal";
+import { modelinkProtocol } from "./modelink";
 import {
 	type JobFamily,
 	type Protocol,
@@ -38,6 +39,9 @@ const atlasProtocol = defineJsonProtocol({
 	doneStatuses: ["completed", "succeeded"],
 	failedStatuses: ["failed"],
 	errorPaths: [["data", "error"], ["error"]],
+	// OpenAI-compatible catalogue; doubles as the connectivity probe.
+	listModelsPath: "/v1/models",
+	modelIdPaths: [["data"]],
 });
 
 /**
@@ -71,6 +75,9 @@ const wavespeedProtocol = defineJsonProtocol({
 	],
 	doneStatuses: ["completed"],
 	failedStatuses: ["failed"],
+	// OpenAI-compatible catalogue; doubles as the connectivity probe.
+	listModelsPath: "/v1/models",
+	modelIdPaths: [["data"]],
 });
 
 /** Every protocol a channel can be configured with, in display order. */
@@ -79,6 +86,7 @@ export const PROTOCOLS: Protocol[] = [
 	falProtocol,
 	atlasProtocol,
 	wavespeedProtocol,
+	modelinkProtocol,
 ];
 
 export function getProtocol(id: string): Protocol | undefined {

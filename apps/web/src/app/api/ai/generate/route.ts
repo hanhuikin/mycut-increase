@@ -185,6 +185,7 @@ export async function POST(request: NextRequest) {
 			});
 			return NextResponse.json({
 				channelId: routed.channel.id,
+				channelName: routed.channel.name,
 				protocol: routed.protocol.id,
 				jobId: submitted.jobId,
 			});

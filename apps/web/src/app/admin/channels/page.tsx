@@ -13,6 +13,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogBody,
@@ -24,7 +25,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { useLocale } from "@/locale/locale-context";
 import {
@@ -63,8 +70,14 @@ interface ModelOption {
 }
 
 interface MappingDraft {
+	/** Stable row identity — the key must not change when the select does. */
+	uid: string;
 	modelId: string;
 	upstream: string;
+}
+
+function mappingUid(): string {
+	return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 interface ChannelDraft {
@@ -108,6 +121,7 @@ function draftFrom(channel: Channel | null): ChannelDraft {
 		priority: String(channel.priority),
 		enabled: channel.enabled,
 		mappings: Object.entries(channel.models).map(([modelId, upstream]) => ({
+			uid: mappingUid(),
 			modelId,
 			upstream,
 		})),
@@ -125,6 +139,10 @@ export default function AdminChannelsPage() {
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);
 	const [pendingDelete, setPendingDelete] = useState<Channel | null>(null);
+	const [probing, setProbing] = useState(false);
+	const [fetchedModels, setFetchedModels] = useState<string[]>([]);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const [modelPickerOpen, setModelPickerOpen] = useState(false);
 
 	const load = useCallback(async () => {
 		const [channelRes, modelRes] = await Promise.all([
@@ -165,6 +183,13 @@ export default function AdminChannelsPage() {
 		key: K,
 		value: ChannelDraft[K],
 	) => setDraft((current) => (current ? { ...current, [key]: value } : current));
+
+	// Mapping-row edits go through setDraft directly with functional
+	// updates: rapid keystrokes read the latest state instead of a stale
+	// render-time snapshot, so consecutive inputs can't overwrite each other.
+	const updateMappings = (
+		updater: (current: MappingDraft[]) => MappingDraft[],
+	) => setDraft((current) => (current ? { ...current, mappings: updater(current.mappings) } : current));
 
 	const submit = async () => {
 		if (!draft) return;
@@ -247,6 +272,74 @@ export default function AdminChannelsPage() {
 		}
 		await load();
 	};
+
+	// One probe call serves both actions: it fetches the vendor's model
+	// list, which proves the endpoint + key work. The typed key is passed
+	// transiently; for an edited channel with the key left blank the
+	// server reuses the stored one (never revealed to this page). The
+	// fetched names feed the multi-select picker next to the mappings.
+	const probe = async (options?: { openPickerAfter?: boolean }) => {
+		const openPickerAfter = options?.openPickerAfter ?? false;
+		if (!draft) return;
+		setProbing(true);
+		try {
+			const res = await fetch("/api/admin/channels/probe", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					protocol: draft.protocol,
+					baseUrl: draft.baseUrl,
+					apiKey: draft.apiKey,
+					channelId: draft.id ?? "",
+				}),
+			});
+			const body = (await res.json().catch(() => null)) as {
+				ok?: boolean;
+				models?: string[];
+				error?: string;
+			} | null;
+			if (isGateStatus(res.status)) {
+				setGateError(res.status);
+				return;
+			}
+			if (!res.ok || !body?.ok) {
+				const code = (body?.error ?? "").split(":")[0];
+				if (code === "list_unsupported") {
+					toast.error(t["admin.channels.list_unsupported"]);
+				} else if (code === "probe_timeout") {
+					toast.error(t["admin.channels.probe_timeout"]);
+				} else {
+					toast.error(
+						t["admin.channels.probe_failed"].replace(
+							"{error}",
+							body?.error ?? String(res.status),
+						),
+					);
+				}
+				return;
+			}
+			setFetchedModels(body.models ?? []);
+			if (openPickerAfter) {
+				setPickerOpen(true);
+			} else {
+				toast.success(
+					t["admin.channels.probe_ok"].replace(
+						"{count}",
+						String(body.models?.length ?? 0),
+					),
+				);
+			}
+		} catch {
+			toast.error(t["admin.channels.probe_failed"].replace("{error}", "network"));
+		} finally {
+			setProbing(false);
+		}
+	};
+
+	const pickerDisabled =
+		!draft?.protocol ||
+		!protocols.some((protocol) => protocol.id === draft.protocol);
+	const canProbe = !pickerDisabled && !probing;
 
 	const remove = async (channel: Channel) => {
 		const res = await fetch(
@@ -403,7 +496,13 @@ export default function AdminChannelsPage() {
 			<Dialog
 				open={draft !== null}
 				onOpenChange={(open) => {
-					if (!open) setDraft(null);
+					if (!open) {
+						setDraft(null);
+						// Picker state is page-level; a stale `open` would
+						// pop the pickers open the moment the dialog remounts.
+						setPickerOpen(false);
+						setModelPickerOpen(false);
+					}
 				}}
 			>
 				<DialogContent className="max-w-2xl">
@@ -475,6 +574,23 @@ export default function AdminChannelsPage() {
 								/>
 							</div>
 
+							<div className="flex flex-wrap items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={!canProbe}
+									onClick={() => void probe()}
+								>
+									{probing ? <Spinner className="size-3.5" /> : null}
+									{t["admin.channels.probe"]}
+								</Button>
+								{fetchedModels.length > 0 && (
+									<span className="text-muted-foreground font-mono text-[11.5px]">
+										{String(fetchedModels.length)} models
+									</span>
+								)}
+							</div>
+
 							<div className="flex flex-wrap items-end gap-4">
 								<div className="flex flex-col gap-1.5">
 									<Label>{t["admin.channels.field_priority"]}</Label>
@@ -511,36 +627,35 @@ export default function AdminChannelsPage() {
 								)}
 								{draft.mappings.map((mapping, index) => (
 									<div
-										key={`${mapping.modelId}-${index}`}
+										key={mapping.uid}
 										className="flex items-center gap-2"
 									>
-										<select
+										<Input
 											value={mapping.modelId}
 											onChange={(event) =>
-												update(
-													"mappings",
-													draft.mappings.map((entry, i) =>
+												updateMappings((currentMappings) =>
+													currentMappings.map((entry, i) =>
 														i === index
 															? { ...entry, modelId: event.target.value }
 															: entry,
 													),
 												)
 											}
-											className="border-border bg-input focus-visible:border-primary/50 h-7 min-w-40 rounded-md border px-2 font-mono text-[12.5px] outline-none"
-										>
-											<option value="">—</option>
+											size="sm"
+											className="min-w-40 font-mono"
+											list="mapping-model-suggestions"
+											placeholder={t["admin.channels.model_id_placeholder"]}
+										/>
+										<datalist id="mapping-model-suggestions">
 											{models.map((model) => (
-												<option key={model.id} value={model.id}>
-													{model.id}
-												</option>
+												<option key={model.id} value={model.id} />
 											))}
-										</select>
+										</datalist>
 										<Input
 											value={mapping.upstream}
 											onChange={(event) =>
-												update(
-													"mappings",
-													draft.mappings.map((entry, i) =>
+												updateMappings((currentMappings) =>
+													currentMappings.map((entry, i) =>
 														i === index
 															? { ...entry, upstream: event.target.value }
 															: entry,
@@ -556,9 +671,8 @@ export default function AdminChannelsPage() {
 											size="sm"
 											className="text-destructive h-7 px-2"
 											onClick={() =>
-												update(
-													"mappings",
-													draft.mappings.filter((_, i) => i !== index),
+												updateMappings((currentMappings) =>
+													currentMappings.filter((_, i) => i !== index),
 												)
 											}
 										>
@@ -566,19 +680,72 @@ export default function AdminChannelsPage() {
 										</Button>
 									</div>
 								))}
-								<Button
-									variant="outline"
-									size="sm"
-									className="self-start"
-									onClick={() =>
-										update("mappings", [
-											...draft.mappings,
-											{ modelId: "", upstream: "" },
-										])
-									}
-								>
-									{t["admin.channels.add_mapping"]}
-								</Button>
+								<div className="flex flex-wrap items-center gap-2">
+									<PickerPopover
+										open={modelPickerOpen}
+										onOpenChange={setModelPickerOpen}
+										title={t["admin.channels.add_mapping"]}
+										items={models.map((model) => model.id)}
+										disabled={models.length === 0}
+										onConfirm={(selectedIds) => {
+											if (!draft) return;
+											const existing = new Set(
+												draft.mappings.map((mapping) => mapping.modelId),
+											);
+											// The upstream name defaults to the system model
+											// id — most vendors use the same name — and
+											// stays editable.
+											const additions = selectedIds
+												.filter((id) => !existing.has(id))
+												.map((id) => ({
+													uid: mappingUid(),
+													modelId: id,
+													upstream: id,
+												}));
+											if (additions.length === 0) return;
+											updateMappings((currentMappings) => [
+											...currentMappings,
+											...additions,
+										]);
+										}}
+									/>
+									<PickerPopover
+										open={pickerOpen}
+										onOpenChange={(next) => {
+											// Opening with a stale/empty list triggers a
+											// fresh fetch first; the probe opens the
+											// picker on success.
+											if (next && fetchedModels.length === 0) {
+												void probe({ openPickerAfter: true });
+												return;
+											}
+											setPickerOpen(next);
+										}}
+										title={t["admin.channels.fetch_models"]}
+										items={fetchedModels}
+										disabled={!canProbe}
+										onConfirm={(selectedNames) => {
+											if (!draft) return;
+											const existing = new Set(
+												draft.mappings
+													.map((mapping) => mapping.upstream.trim())
+													.filter(Boolean),
+											);
+											const additions = selectedNames
+												.filter((name) => !existing.has(name))
+												.map((name) => ({
+													uid: mappingUid(),
+													modelId: "",
+													upstream: name,
+												}));
+											if (additions.length === 0) return;
+											updateMappings((currentMappings) => [
+											...currentMappings,
+											...additions,
+										]);
+										}}
+									/>
+								</div>
 							</div>
 
 							{formError && (
@@ -632,5 +799,153 @@ export default function AdminChannelsPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>
+	);
+}
+
+/**
+ * Multi-select popover over a list of items (upstream model names fetched
+ * from the vendor, or system model ids from the catalogue). Defaults to
+ * selecting everything; confirm hands the checked items to the caller.
+ */
+function PickerPopover({
+	open,
+	onOpenChange,
+	title,
+	items,
+	disabled,
+	onConfirm,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	title: string;
+	items: string[];
+	disabled: boolean;
+	onConfirm: (selected: string[]) => void;
+}) {
+	const { t } = useLocale();
+	const [query, setQuery] = useState("");
+	const [selected, setSelected] = useState<Set<string>>(new Set());
+
+	// Reset to "everything selected" whenever the picker opens.
+	const handleOpenChange = (next: boolean) => {
+		if (next) {
+			setQuery("");
+			setSelected(new Set(items));
+		}
+		onOpenChange(next);
+	};
+
+	const filtered = useMemo(
+		() =>
+			items.filter((item) =>
+				item.toLowerCase().includes(query.trim().toLowerCase()),
+			),
+		[items, query],
+	);
+	const allFilteredSelected =
+		filtered.length > 0 && filtered.every((item) => selected.has(item));
+
+	const toggle = (item: string) => {
+		setSelected((prev) => {
+			const next = new Set(prev);
+			if (next.has(item)) {
+				next.delete(item);
+			} else {
+				next.add(item);
+			}
+			return next;
+		});
+	};
+
+	return (
+		<Popover open={open} onOpenChange={handleOpenChange}>
+			<PopoverTrigger asChild>
+				<Button
+					variant="outline"
+					size="sm"
+					className="self-start"
+					disabled={disabled}
+				>
+					{title}
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent
+				className="z-300 w-80 p-2"
+				align="start"
+			>
+				<Input
+					value={query}
+					onChange={(event) => setQuery(event.target.value)}
+					size="sm"
+					className="mb-2 font-mono"
+					placeholder={t["admin.channels.search_models"]}
+				/>
+				<div className="mb-2 flex items-center justify-between px-1">
+					<button
+						type="button"
+						className="text-muted-foreground hover:text-foreground text-[11.5px]"
+						onClick={() =>
+							setSelected(
+								allFilteredSelected
+									? new Set(
+											[...selected].filter(
+												(item) => !filtered.includes(item),
+											),
+										)
+									: new Set([...selected, ...filtered]),
+							)
+						}
+					>
+						{allFilteredSelected
+							? t["admin.channels.clear"]
+							: t["admin.channels.select_all"]}
+					</button>
+					<span className="text-muted-foreground font-mono text-[11px]">
+						{selected.size}/{items.length}
+					</span>
+				</div>
+				<div className="max-h-56 overflow-y-auto pr-1">
+					{filtered.length === 0 ? (
+						<p className="text-muted-foreground px-1 py-3 text-center text-[12px]">
+							{t["admin.channels.fetch_empty"]}
+						</p>
+					) : (
+						filtered.map((item) => (
+							<label
+								key={item}
+								className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5"
+							>
+								<Checkbox
+									checked={selected.has(item)}
+									onCheckedChange={() => toggle(item)}
+								/>
+								<span className="truncate font-mono text-[12px]">
+									{item}
+								</span>
+							</label>
+						))
+					)}
+				</div>
+				<div className="mt-2 flex justify-end gap-2 border-t pt-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => onOpenChange(false)}
+					>
+						{t["admin.models.create_cancel"]}
+					</Button>
+					<Button
+						size="sm"
+						disabled={selected.size === 0}
+						onClick={() => {
+							onConfirm([...selected]);
+							onOpenChange(false);
+						}}
+					>
+						{t["admin.channels.add_selected"]}
+					</Button>
+				</div>
+			</PopoverContent>
+		</Popover>
 	);
 }

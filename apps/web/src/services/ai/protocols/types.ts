@@ -66,6 +66,30 @@ export interface PollCredentials {
 	apiKey: string;
 }
 
+/** What a list-models call needs; the channel router resolves the key. */
+export interface ListModelsInput {
+	apiKey: string;
+	baseUrl: string;
+}
+
+/** A synchronous image-generation request; the whole job resolves in one call. */
+export interface GenerateImageInput {
+	apiKey: string;
+	baseUrl: string;
+	/** Upstream model name — the channel's mapping for this model. */
+	model: string;
+	prompt: string;
+	/** e.g. "1024x1024", "1536x1024" — provider-dependent. */
+	size: string;
+	/** Number of images to produce. */
+	count: number;
+}
+
+/** A finished synchronous image job: JPEG dataURLs, one per requested image. */
+export interface GenerateImageResult {
+	dataUrls: string[];
+}
+
 export type JobState =
 	| { state: "pending" }
 	| { state: "done"; url: string }
@@ -82,6 +106,18 @@ export interface Protocol {
 	readonly defaultBaseUrl: string;
 	submit(input: JobInput): Promise<SubmitResult>;
 	poll(handle: JobHandle, credentials: PollCredentials): Promise<JobState>;
+	/**
+	 * Upstream model names this vendor offers. Doubles as the connectivity
+	 * probe: a successful call proves the endpoint + key work. Absent when
+	 * the vendor has no model-list endpoint — such channels can't be probed.
+	 */
+	listModels?(input: ListModelsInput): Promise<string[]>;
+	/**
+	 * Synchronous image generation — the entire job resolves in one call.
+	 * Only synchronous vendors implement this; the async submit/poll pair
+	 * remains the default shape.
+	 */
+	generateImage?(input: GenerateImageInput): Promise<GenerateImageResult>;
 }
 
 /** Strip trailing slashes so paths concatenate cleanly. */

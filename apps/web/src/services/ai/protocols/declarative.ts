@@ -3,10 +3,12 @@ import {
 	type JobHandle,
 	type JobInput,
 	type JobState,
+	type ListModelsInput,
 	type PollCredentials,
 	type Protocol,
 	type SubmitResult,
 	pickFirstString,
+	pickPath,
 	readJson,
 	trimBase,
 } from "./types";
@@ -42,6 +44,14 @@ export interface JsonProtocolSpec {
 	failedStatuses: string[];
 	/** Candidate paths to an error message. */
 	errorPaths?: Array<Array<string | number>>;
+	/**
+	 * Model-list endpoint (e.g. "/v1/models" for OpenAI-compatible vendors).
+	 * When set, `defineJsonProtocol` produces a `listModels` implementation;
+	 * the response must contain a string array at one of `modelIdPaths`.
+	 */
+	listModelsPath?: string;
+	/** Candidate paths to the model-name array in the list response. */
+	modelIdPaths?: Array<Array<string | number>>;
 }
 
 function fillPath(
@@ -129,5 +139,58 @@ export function defineJsonProtocol(spec: JsonProtocolSpec): Protocol {
 			}
 			return { state: "pending" };
 		},
+		...(spec.listModelsPath
+			? {
+					async listModels(input: ListModelsInput): Promise<string[]> {
+						const base = trimBase(input.baseUrl) || spec.defaultBaseUrl;
+						const response = await fetch(
+							`${base}${spec.listModelsPath}`,
+							{ headers: auth(input.apiKey) },
+						);
+						if (!response.ok) {
+							throw new Error(
+								`${spec.label} 拉取模型失败 (${response.status}): ${await response.text()}`,
+							);
+						}
+						const payload = await readJson(response);
+						const models = spec.modelIdPaths
+							? firstArray({ source: payload, paths: spec.modelIdPaths })
+							: Array.isArray(payload)
+								? payload
+								: undefined;
+						if (!models) {
+							throw new Error(
+								`${spec.label} 模型列表返回异常: ${JSON.stringify(payload)}`,
+							);
+						}
+						return models.map(modelNameFromEntry).filter(Boolean).sort();
+					},
+				}
+			: {}),
 	};
+}
+
+/** A catalogue entry is either a bare string or an `{ id | name }` object. */
+function modelNameFromEntry(entry: unknown): string {
+	if (typeof entry === "string") return entry;
+	if (entry && typeof entry === "object") {
+		if ("id" in entry && typeof entry.id === "string") return entry.id;
+		if ("name" in entry && typeof entry.name === "string") return entry.name;
+	}
+	return "";
+}
+
+/** First array found among the candidate paths. */
+function firstArray({
+	source,
+	paths,
+}: {
+	source: unknown;
+	paths: Array<Array<string | number>>;
+}): unknown[] | undefined {
+	for (const path of paths) {
+		const value = pickPath(source, path);
+		if (Array.isArray(value)) return value;
+	}
+	return undefined;
 }

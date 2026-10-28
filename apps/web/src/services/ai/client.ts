@@ -8,13 +8,30 @@
  * submit → poll and reports progress, and is shared by all three AI panels.
  */
 
+import { settleCredits } from "@/services/billing/client";
+
 /** Progress labels by protocol. Not localised — mirrors the server's wording. */
 const PROTOCOL_LABELS: Record<string, string> = {
 	ark: "火山方舟",
 	atlas: "Atlas Cloud",
 	wavespeed: "WaveSpeedAI",
 	"fal-queue": "fal.ai",
+	modelink: "七牛 Modelink",
 };
+
+/**
+ * The channel name beats the protocol label: a Qiniu channel on the fal
+ * protocol is not fal.ai, and the name is what the admin configured.
+ */
+export function jobLabel({
+	channelName,
+	protocol,
+}: {
+	channelName?: string | null;
+	protocol: string;
+}): string {
+	return channelName?.trim() || protocolLabel(protocol);
+}
 
 export function protocolLabel(protocolId: string): string {
 	return PROTOCOL_LABELS[protocolId] ?? protocolId;
@@ -47,6 +64,8 @@ export interface JobParams {
 export interface SubmittedJob {
 	/** The channel that accepted the job; used to exclude it when falling back. */
 	channelId: string;
+	/** The human-facing name of that channel, for progress labels. */
+	channelName?: string;
 	jobId: string;
 	protocol: string;
 	/** The ref this attempt was charged under — echoed back when polling. */
@@ -120,11 +139,13 @@ export async function submitJob({
 
 	const body = (await response.json()) as {
 		channelId: string;
+		channelName?: string;
 		protocol: string;
 		jobId: string;
 	};
 	return {
 		channelId: body.channelId,
+		channelName: body.channelName,
 		jobId: body.jobId,
 		protocol: body.protocol,
 		refId,
@@ -139,13 +160,18 @@ function sleep(ms: number): Promise<void> {
 export async function pollJob({
 	modelId,
 	job,
+	resolution,
+	seconds,
 	onProgress,
 }: {
 	modelId: string;
 	job: SubmittedJob;
+	resolution?: "480p" | "720p" | "1080p";
+	/** What was asked for — "auto" settles at the same 5s basis as the freeze. */
+	seconds?: number | "auto";
 	onProgress?: (status: string) => void;
 }): Promise<string> {
-	const label = protocolLabel(job.protocol);
+	const label = jobLabel({ channelName: job.channelName, protocol: job.protocol });
 	const maxPolls = MAX_POLLS_BY_PROTOCOL[job.protocol] ?? DEFAULT_MAX_POLLS;
 	const startedAt = Date.now();
 
@@ -174,6 +200,20 @@ export async function pollJob({
 
 		const state = (await response.json()) as PollState;
 		if (state.state === "done") {
+			// The freeze booked the estimate at submit time; close it out at what
+			// was actually produced. The settle route is idempotent per refId, and
+			// a failed call only leaves the freeze in place — never lose the
+			// finished artifact over it.
+			try {
+				await settleCredits({
+					refId: job.refId,
+					modelId,
+					resolution: resolution ?? "720p",
+					actualSeconds: typeof seconds === "number" ? seconds : undefined,
+				});
+			} catch (error) {
+				console.error("settle failed:", error);
+			}
 			return state.url;
 		}
 		if (state.state === "failed") {
@@ -201,7 +241,7 @@ export async function runJob({
 }): Promise<{ url: string; protocol: string }> {
 	onProgress?.("提交任务...");
 	const job = await submitJob(params);
-	onProgress?.(`${protocolLabel(job.protocol)}: 生成中...`);
+	onProgress?.(`${jobLabel({ channelName: job.channelName, protocol: job.protocol })}: 生成中...`);
 	const url = await pollJob({ modelId: params.modelId, job, onProgress });
 	return { url, protocol: job.protocol };
 }

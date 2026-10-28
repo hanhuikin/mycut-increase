@@ -4,12 +4,20 @@ import { consumeRateLimit } from "@/services/redis";
 const WINDOW_MS = 60_000;
 const LIMIT = 100; // requests per minute
 
-export async function checkRateLimit({ request }: { request: Request }) {
+export async function checkRateLimit({
+	request,
+	keySuffix = "",
+}: {
+	request: Request;
+	/** Optional per-route bucket; default shares the per-IP bucket. */
+	keySuffix?: string;
+}) {
 	const ip = clientIp({ request }) || "anonymous";
+	const key = keySuffix ? `${ip}:${keySuffix}` : ip;
 
 	try {
 		const allowed = await consumeRateLimit({
-			key: ip,
+			key,
 			limit: LIMIT,
 			windowMs: WINDOW_MS,
 		});
