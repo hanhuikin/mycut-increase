@@ -164,6 +164,34 @@ function getFilmstripWindow({
 	return { firstSlot, lastSlot, slotSeconds };
 }
 
+/**
+ * The media frame a tile's center maps to, plus its cache key. One source of
+ * truth for the decode effect and the render-side lookup — the two must
+ * always agree or tiles and time axis drift apart.
+ */
+function slotMediaTime({
+	mediaId,
+	slot,
+	filmstripWindow,
+	trimStartTicks,
+	rate,
+}: {
+	mediaId: string;
+	slot: number;
+	filmstripWindow: FilmstripWindow;
+	trimStartTicks: MediaTime;
+	rate: number;
+}): { key: string; seconds: number } {
+	const localTicks = Math.round(
+		(slot + 0.5) * filmstripWindow.slotSeconds * TICKS_PER_SECOND,
+	);
+	const mediaTicks = Math.round(Number(trimStartTicks) + localTicks * rate);
+	return {
+		key: cacheKey({ mediaId, timeTicks: mediaTicks }),
+		seconds: mediaTicks / TICKS_PER_SECOND,
+	};
+}
+
 export interface FilmstripArgs {
 	mediaId: string;
 	file: File | undefined;
@@ -194,45 +222,78 @@ export function useElementFilmstrip({
 	slotWidthPx,
 	containerRef,
 }: FilmstripArgs): Map<number, string> {
-	const [slots, setSlots] = useState<Map<number, string>>(new Map());
+	/**
+	 * Decoded frames keyed by cache key (`mediaId@mediaTicks`), NOT by slot
+	 * index: a slot index maps to a different media time after every zoom or
+	 * trim change, so index-keyed entries would keep showing frames from the
+	 * previous grid once the correct ones are already in `frameCache` (the
+	 * decode effect then has no misses and never overwrites them). Keying by
+	 * media time makes stale entries simply unmatchable.
+	 */
+	const [slots, setSlots] = useState<Map<string, string>>(new Map());
 	const generationRef = useRef(0);
-	/** Frame keys already enqueued (or known-cached) — dedupes batches. */
-	const handledKeysRef = useRef<Set<string>>(new Set());
+	/** The batch last enqueued — identical re-fires skip instead of aborting
+	 * the in-flight decode and re-enqueueing the very same frames. */
+	const lastBatchKeyRef = useRef<string | null>(null);
 	const [visiblePx, setVisiblePx] = useState<{
 		start: number;
 		end: number;
 	} | null>(null);
 
 	// Track the visible portion of this element inside the timeline
-	// viewport. Reacting to IntersectionObserver (root = the scroll
-	// container) keeps regenerations to scroll/zoom/resize moments only.
+	// viewport. Measured from geometry on scroll/resize — NOT via
+	// IntersectionObserver: an observer with the default threshold only
+	// fires when the intersection crosses zero, so during continuous
+	// scrolling or zooming it keeps reporting the pre-scroll rect and the
+	// decode window freezes wherever the clip first appeared. Everything
+	// the viewport then scrolls over has no tiles and shows the tiled
+	// poster thumbnail instead — a strip of identical frames.
 	useEffect(() => {
 		const node = containerRef.current;
 		if (!node) return;
 		const viewport = node.closest("[data-timeline-viewport]");
-		const observer = new IntersectionObserver(
-			(entries) => {
-				const entry = entries[0];
-				if (!entry) return;
-				const bounds = entry.boundingClientRect;
-				const intersect = entry.intersectionRect;
-				if (intersect.width <= 0) {
-					setVisiblePx(null);
-					return;
-				}
-				setVisiblePx({
-					start: Math.max(0, intersect.left - bounds.left),
-					end: intersect.left - bounds.left + intersect.width,
-				});
-			},
-			{
-				root: viewport instanceof Element ? viewport : null,
-				rootMargin: "0px 100px 0px 100px",
-			},
-		);
-		observer.observe(node);
-		return () => observer.disconnect();
-	}, [containerRef]);
+		if (!(viewport instanceof HTMLElement)) return;
+
+		/** Extra px decoded beyond each visible edge. */
+		const bufferPx = 100;
+		let frame = 0;
+
+		const measure = () => {
+			frame = 0;
+			const nodeRect = node.getBoundingClientRect();
+			const viewportRect = viewport.getBoundingClientRect();
+			const start = viewportRect.left - nodeRect.left;
+			const end = viewportRect.right - nodeRect.left;
+			const visibleStart = Math.max(0, start);
+			const visibleEnd = Math.min(nodeRect.width, end);
+			if (visibleEnd <= visibleStart) {
+				setVisiblePx(null);
+				return;
+			}
+			setVisiblePx({
+				start: Math.max(0, visibleStart - bufferPx),
+				end: Math.min(nodeRect.width, visibleEnd + bufferPx),
+			});
+		};
+
+		const schedule = () => {
+			if (frame === 0) frame = requestAnimationFrame(measure);
+		};
+
+		measure();
+		viewport.addEventListener("scroll", schedule, { passive: true });
+		const resizeObserver = new ResizeObserver(schedule);
+		resizeObserver.observe(node);
+		resizeObserver.observe(viewport);
+		window.addEventListener("resize", schedule);
+
+		return () => {
+			if (frame !== 0) cancelAnimationFrame(frame);
+			viewport.removeEventListener("scroll", schedule);
+			resizeObserver.disconnect();
+			window.removeEventListener("resize", schedule);
+		};
+	}, [containerRef, pixelsPerSecond, slotWidthPx, durationTicks]);
 
 	// Hold one pooled decoder for this element for its mounted lifetime.
 	const [extractorReady, setExtractorReady] = useState(false);
@@ -273,48 +334,73 @@ export function useElementFilmstrip({
 	// serially through the global queue.
 	useEffect(() => {
 		if (!enabled || !filmstripWindow) return;
-		const generation = ++generationRef.current;
-		const misses: Array<{ slot: number; seconds: number; key: string }> =
-			[];
+		// Compute misses BEFORE bumping the generation: re-runs that turn out
+		// to be no-ops (everything cached) must not abort the batch that is
+		// mid-flight — the abort only ever makes sense when a new window
+		// actually wants different frames.
+		const misses: Array<{ seconds: number; key: string }> = [];
 		for (
 			let slot = filmstripWindow.firstSlot;
 			slot <= filmstripWindow.lastSlot && misses.length < FILMSTRIP_MAX_SLOTS;
 			slot += 1
 		) {
-			const localTicks = Math.round(
-				(slot + 0.5) * filmstripWindow.slotSeconds * TICKS_PER_SECOND,
-			);
-			const mediaTicks = Math.round(
-				Number(trimStartTicks) + localTicks * rate,
-			);
-			const key = cacheKey({ mediaId, timeTicks: mediaTicks });
-			if (frameCache.has(key) || handledKeysRef.current.has(key)) {
+			const { key, seconds } = slotMediaTime({
+				mediaId,
+				slot,
+				filmstripWindow,
+				trimStartTicks,
+				rate,
+			});
+			if (frameCache.has(key)) {
 				continue;
 			}
-			handledKeysRef.current.add(key);
-			misses.push({
-				slot,
-				seconds: mediaTicks / TICKS_PER_SECOND,
-				key,
-			});
+			misses.push({ seconds, key });
 		}
 		if (misses.length === 0) return;
 
+		// The observer can re-fire with the same geometry (scroll restores,
+		// sub-pixel intersection changes) — identical batches are skipped so
+		// they don't abort and restart each other in a loop.
+		const batchKey = `${mediaId}:${filmstripWindow.firstSlot}:${filmstripWindow.lastSlot}:${filmstripWindow.slotSeconds}:${misses
+			.map((miss) => miss.key)
+			.join(",")}`;
+		if (lastBatchKeyRef.current === batchKey) {
+			return;
+		}
+		lastBatchKeyRef.current = batchKey;
+
+		const generation = ++generationRef.current;
+
 		enqueueFilmstripTask({
 			task: async () => {
-				if (generationRef.current !== generation) return;
+				if (generationRef.current !== generation) {
+					return;
+				}
 				const entry = pool.get(mediaId);
 				if (!entry) return;
 				// Drop decoded slots that fell far out of the window — the
 				// LRU frame cache still holds them for quick returns.
+				const retainedKeys = new Set<string>();
+				for (
+					let slot = filmstripWindow.firstSlot - 8;
+					slot <= filmstripWindow.lastSlot + 8;
+					slot += 1
+				) {
+					retainedKeys.add(
+						slotMediaTime({
+							mediaId,
+							slot,
+							filmstripWindow,
+							trimStartTicks,
+							rate,
+						}).key,
+					);
+				}
 				setSlots((prev) => {
-					const next = new Map<number, string>();
-					for (const [slot, url] of prev) {
-						if (
-							slot >= filmstripWindow.firstSlot - 8 &&
-							slot <= filmstripWindow.lastSlot + 8
-						) {
-							next.set(slot, url);
+					const next = new Map<string, string>();
+					for (const [key, url] of prev) {
+						if (retainedKeys.has(key)) {
+							next.set(key, url);
 						}
 					}
 					return next.size === prev.size ? prev : next;
@@ -330,17 +416,24 @@ export function useElementFilmstrip({
 						cacheSet({ key: miss.key, value: dataUrl });
 						setSlots((prev) => {
 							const next = new Map(prev);
-							next.set(miss.slot, dataUrl);
+							next.set(miss.key, dataUrl);
 							return next;
 						});
 					},
 				});
+				// An aborted batch leaves some of its keys undecoded; dropping
+				// the dedupe key lets a later return to this exact window
+				// re-enqueue just the remaining misses instead of skipping.
+				if (generationRef.current !== generation) {
+					lastBatchKeyRef.current = null;
+				}
 			},
 		});
 	}, [enabled, filmstripWindow, mediaId, trimStartTicks, rate]);
 
 	// Cache hits resolve during render: state slots first, then the module
-	// cache, windowed to the visible slot range.
+	// cache, windowed to the visible slot range. Both are keyed by media
+	// time, so entries decoded for a different zoom or trim never match.
 	const visibleSlots = useMemo(() => {
 		const result = new Map<number, string>();
 		if (!filmstripWindow) return result;
@@ -349,14 +442,14 @@ export function useElementFilmstrip({
 			slot <= filmstripWindow.lastSlot && result.size < FILMSTRIP_MAX_SLOTS;
 			slot += 1
 		) {
-			const localTicks = Math.round(
-				(slot + 0.5) * filmstripWindow.slotSeconds * TICKS_PER_SECOND,
-			);
-			const key = cacheKey({
+			const { key } = slotMediaTime({
 				mediaId,
-				timeTicks: Math.round(Number(trimStartTicks) + localTicks * rate),
+				slot,
+				filmstripWindow,
+				trimStartTicks,
+				rate,
 			});
-			const decoded = slots.get(slot) ?? frameCache.get(key);
+			const decoded = slots.get(key) ?? frameCache.get(key);
 			if (decoded !== undefined) {
 				result.set(slot, decoded);
 			}

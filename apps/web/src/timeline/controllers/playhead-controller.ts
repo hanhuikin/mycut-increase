@@ -152,8 +152,10 @@ export class PlayheadController {
 			currentTime: null,
 		};
 		this.config.setScrubbing(true);
-		// No element-edge snapping on initial ruler click — avoids a jarring jump.
-		this.scrub({ event, isElementSnappingEnabled: false });
+		// No element-edge snapping on initial ruler click — avoids a jarring
+		// jump. Frame snap yes: a click must land frame-aligned immediately,
+		// before any mouseup race can leave a sub-frame resting position.
+		this.scrub({ event, isElementSnappingEnabled: false, frameSnap: true });
 		this.activate();
 	}
 
@@ -225,16 +227,21 @@ export class PlayheadController {
 	}
 
 	/**
-	 * Converts pointer position to a frame-snapped timeline time and seeks.
-	 * `isElementSnappingEnabled` controls element-edge snapping; frame-level snapping
-	 * is always applied.
+	 * Converts pointer position to a timeline time and seeks. Element-edge
+	 * snapping is pixel-thresholded; frame snapping only applies when
+	 * `frameSnap` is set — during an active drag the raw time is kept so the
+	 * playhead tracks the cursor exactly at any zoom (a frame can span
+	 * hundreds of pixels at high zoom, and frame-snapping there reads as a
+	 * dead drag). The drag is frame-settled in `handleMouseUp`.
 	 */
 	private scrub({
 		event,
 		isElementSnappingEnabled,
+		frameSnap = false,
 	}: {
 		event: MouseEvent | ReactMouseEvent;
 		isElementSnappingEnabled: boolean;
+		frameSnap?: boolean;
 	}): void {
 		const ruler = this.config.getRulerEl();
 		if (!ruler) return;
@@ -249,11 +256,13 @@ export class PlayheadController {
 			zoomLevel,
 			duration,
 		});
-		const frameTime = snapSeekMediaTime({ time: rawTime, duration, fps });
+		const targetTime = frameSnap
+			? snapSeekMediaTime({ time: rawTime, duration, fps })
+			: rawTime;
 
 		const time = (() => {
 			if (!isElementSnappingEnabled || this.config.isShiftHeld())
-				return frameTime;
+				return targetTime;
 
 			const snapPoints = buildTimelineSnapPoints({
 				sources: [
@@ -270,11 +279,11 @@ export class PlayheadController {
 				],
 			});
 			const result = resolveTimelineSnap({
-				targetTime: frameTime,
+				targetTime,
 				snapPoints,
 				maxSnapDistance: getTimelineSnapThresholdInTicks({ zoomLevel }),
 			});
-			return result.snapPoint ? result.snappedTime : frameTime;
+			return result.snapPoint ? result.snappedTime : targetTime;
 		})();
 
 		if (this.session.kind === "scrubbing") {
@@ -299,17 +308,27 @@ export class PlayheadController {
 		this.config.setScrubbing(false);
 
 		if (session.currentTime !== null) {
-			this.config.seek(session.currentTime);
+			// The drag seeks raw (unsnapped) times so the playhead tracks the
+			// cursor; settle onto the frame grid once it is released.
+			const fps = this.config.getActiveProjectFps();
+			const finalTime = fps
+				? snapSeekMediaTime({
+						time: session.currentTime,
+						duration: this.config.duration,
+						fps,
+					})
+				: session.currentTime;
+			this.config.seek(finalTime);
 			this.config.setTimelineViewState({
 				zoomLevel: this.config.zoomLevel,
 				scrollLeft: this.config.getTracksScrollEl()?.scrollLeft ?? 0,
-				playheadTime: session.currentTime,
+				playheadTime: finalTime,
 			});
 		}
 
 		// Ruler click without drag: snap to clicked position on mouseup.
 		if (session.didStartFromRuler && !session.hasMoved) {
-			this.scrub({ event, isElementSnappingEnabled: false });
+			this.scrub({ event, isElementSnappingEnabled: false, frameSnap: true });
 		}
 
 		this.session = { kind: "idle" };

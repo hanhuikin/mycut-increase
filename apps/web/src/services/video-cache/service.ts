@@ -12,6 +12,10 @@ interface VideoSinkData {
 	iterator: AsyncGenerator<WrappedCanvas, void, unknown> | null;
 	currentFrame: WrappedCanvas | null;
 	nextFrame: WrappedCanvas | null;
+	/** The video track's own packet span, not the container max — seeks clamp
+	 * to this so a longer audio track (or header duration) can't push seeks
+	 * past the last decodable frame, where nothing can decode. */
+	videoDurationSeconds: number;
 	lastTime: number;
 	prefetching: boolean;
 	prefetchPromise: Promise<void> | null;
@@ -37,6 +41,15 @@ export class VideoCache {
 		const sinkData = this.sinks.get(mediaId);
 		if (!sinkData) return null;
 
+		// Clamp into the video track's packet span: a playhead past the last
+		// video packet (longer audio tail, generous header duration) must hold
+		// the last real frame, not come back empty. The epsilon keeps the seek
+		// inside the final frame instead of on its exact end boundary.
+		const clampedTime = Math.max(
+			0,
+			Math.min(time, Math.max(0, sinkData.videoDurationSeconds - 0.001)),
+		);
+
 		const generation = (this.seekGenerations.get(mediaId) ?? 0) + 1;
 		this.seekGenerations.set(mediaId, generation);
 
@@ -45,7 +58,7 @@ export class VideoCache {
 			if (this.seekGenerations.get(mediaId) !== generation) {
 				return sinkData.currentFrame ?? null;
 			}
-			return this.resolveFrame({ sinkData, time });
+			return this.resolveFrame({ sinkData, time: clampedTime });
 		});
 		this.frameChain.set(
 			mediaId,
@@ -278,6 +291,10 @@ export class VideoCache {
 				throw new Error("Video codec not supported for decoding");
 			}
 
+			// Packet-based span of the video track itself — audio tails and
+			// header durations don't count (see getFrameAt's clamp).
+			const videoDurationSeconds = await videoTrack.computeDuration();
+
 			const sink = new CanvasSink(videoTrack, {
 				poolSize: 3,
 				fit: "contain",
@@ -289,6 +306,7 @@ export class VideoCache {
 				iterator: null,
 				currentFrame: null,
 				nextFrame: null,
+				videoDurationSeconds,
 				lastTime: -1,
 				prefetching: false,
 				prefetchPromise: null,

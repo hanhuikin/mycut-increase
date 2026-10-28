@@ -323,14 +323,16 @@ export function Timeline() {
 		onSnapPointChange: handleSnapPointChange,
 	});
 
-	const { handleRulerMouseDown: handlePlayheadRulerMouseDown } =
-		useTimelinePlayhead({
-			zoomLevel,
-			rulerRef,
-			rulerScrollRef,
-			tracksScrollRef,
-			playheadRef,
-		});
+	const {
+		handleRulerMouseDown: handlePlayheadRulerMouseDown,
+		handlePlayheadMouseDown,
+	} = useTimelinePlayhead({
+		zoomLevel,
+		rulerRef,
+		rulerScrollRef,
+		tracksScrollRef,
+		playheadRef,
+	});
 
 	const { isDragOver, dropTarget, dragProps } = useTimelineDragDrop({
 		containerRef: tracksContainerRef,
@@ -578,11 +580,10 @@ export function Timeline() {
 					<TimelinePlayhead
 						zoomLevel={zoomLevel}
 						hasHorizontalScrollbar={hasHorizontalScrollbar}
-						rulerRef={rulerRef}
-						rulerScrollRef={rulerScrollRef}
 						tracksScrollRef={tracksScrollRef}
 						timelineRef={timelineRef}
 						playheadRef={playheadRef}
+						onPlayheadMouseDown={handlePlayheadMouseDown}
 						isSnappingToPlayhead={
 							showSnapIndicator && currentSnapPoint?.type === "playhead"
 						}

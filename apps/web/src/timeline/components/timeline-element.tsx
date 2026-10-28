@@ -1111,10 +1111,10 @@ function TiledMediaContent({
 	const trackHeight = getTrackHeight({ type: track.type });
 	const tileWidth = trackHeight * THUMBNAIL_ASPECT_RATIO;
 
-	// Real filmstrip for video clips: the poster tile below stays as the
-	// loading placeholder, decoded frames overwrite it as they land. Hook
-	// runs unconditionally (before the early return below); images pass no
-	// file, which disables the hook.
+	// Real filmstrip for video clips. Images are their own content and stay
+	// tiled as the layer itself; video clips get a neutral placeholder,
+	// because a tiled poster thumbnail reads as a strip of identical frames
+	// and claims a wrong time for every tile that has not decoded yet.
 	const filmstripLayerRef = useRef<HTMLDivElement | null>(null);
 	const filmstripSlots = useElementFilmstrip({
 		mediaId: element.mediaId,
@@ -1141,14 +1141,17 @@ function TiledMediaContent({
 		<>
 			<div
 				ref={filmstripLayerRef}
-				className="absolute inset-0"
+				className="absolute inset-0 pointer-events-none"
 				style={{
 					backgroundColor: "var(--muted)",
-					backgroundImage: `url(${imageUrl})`,
-					backgroundRepeat: "repeat-x",
-					backgroundSize: `${tileWidth}px ${trackHeight}px`,
-					backgroundPosition: "left center",
-					pointerEvents: "none",
+					...(isVideo
+						? {}
+						: {
+								backgroundImage: `url(${imageUrl})`,
+								backgroundRepeat: "repeat-x",
+								backgroundSize: `${tileWidth}px ${trackHeight}px`,
+								backgroundPosition: "left center",
+							}),
 				}}
 			/>
 			{isVideo && filmstripSlots.size > 0 && (

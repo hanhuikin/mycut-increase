@@ -8,7 +8,6 @@ import {
 	timelineTimeToSnappedPixels,
 } from "@/timeline";
 import { useScrollPosition } from "@/timeline/hooks/use-scroll-position";
-import { useTimelinePlayhead } from "@/timeline/hooks/use-timeline-playhead";
 import {
 	addMediaTime,
 	maxMediaTime,
@@ -25,22 +24,21 @@ import { TIMELINE_LAYERS } from "./layers";
 interface TimelinePlayheadProps {
 	zoomLevel: number;
 	hasHorizontalScrollbar: boolean;
-	rulerRef: React.RefObject<HTMLDivElement | null>;
-	rulerScrollRef: React.RefObject<HTMLDivElement | null>;
 	tracksScrollRef: React.RefObject<HTMLDivElement | null>;
 	timelineRef: React.RefObject<HTMLDivElement | null>;
 	playheadRef?: React.RefObject<HTMLDivElement | null>;
+	/** Owned by the timeline's single PlayheadController instance. */
+	onPlayheadMouseDown: (event: React.MouseEvent) => void;
 	isSnappingToPlayhead?: boolean;
 }
 
 export function TimelinePlayhead({
 	zoomLevel,
 	hasHorizontalScrollbar,
-	rulerRef,
-	rulerScrollRef,
 	tracksScrollRef,
 	timelineRef,
 	playheadRef: externalPlayheadRef,
+	onPlayheadMouseDown,
 	isSnappingToPlayhead = false,
 }: TimelinePlayheadProps) {
 	const { t } = useLocale();
@@ -49,13 +47,6 @@ export function TimelinePlayhead({
 	const internalPlayheadRef = useRef<HTMLDivElement>(null);
 	const playheadRef = externalPlayheadRef || internalPlayheadRef;
 
-	const { handlePlayheadMouseDown } = useTimelinePlayhead({
-		zoomLevel,
-		rulerRef,
-		rulerScrollRef,
-		tracksScrollRef,
-		playheadRef,
-	});
 	const { height: timelineHeight } = useContainerSize({ containerRef: timelineRef });
 	const { height: tracksHeight } = useContainerSize({
 		containerRef: tracksScrollRef,
@@ -130,7 +121,7 @@ export function TimelinePlayhead({
 				type="button"
 				aria-label={t["timeline.drag_playhead"]}
 				className={`pointer-events-auto absolute top-1 left-1/2 size-3 -translate-x-1/2 transform cursor-col-resize rounded-full border-2 shadow-xs ${isSnappingToPlayhead ? "bg-primary border-primary" : "bg-primary border-primary/50"}`}
-				onMouseDown={handlePlayheadMouseDown}
+				onMouseDown={onPlayheadMouseDown}
 			/>
 		</div>
 	);

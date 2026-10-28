@@ -23,6 +23,23 @@ export type VideoFileData = {
 	thumbnailUrl: string | null;
 };
 
+/**
+ * Clamps a seek time into the decodable video span. The span end is the last
+ * packet's exact end timestamp — a seek landing on it matches no packet, so
+ * the clamp keeps a 1ms epsilon inside the final frame and every request
+ * beyond the span holds the last real frame.
+ */
+function clampToVideoSpan({
+	seconds,
+	videoSpanSeconds,
+}: {
+	seconds: number;
+	videoSpanSeconds: number;
+}): number {
+	const bound = Math.max(0, videoSpanSeconds - 0.001);
+	return Math.min(Math.max(seconds, 0), bound);
+}
+
 export async function readVideoFile({
 	file,
 }: {
@@ -118,7 +135,10 @@ export class VideoFrameExtractor {
 				input.dispose();
 				return null;
 			}
-			const duration = await input.computeDuration();
+			// The video track's own packet span, not the container max: generated
+			// clips routinely carry an audio track (or header duration) that runs
+			// past the last video packet, and seeks into that tail return null.
+			const duration = await track.computeDuration();
 			const sink = (await track.canDecode()) ? new VideoSampleSink(track) : null;
 			return new VideoFrameExtractor({
 				input,
@@ -144,7 +164,7 @@ export class VideoFrameExtractor {
 		if (!this.sink) {
 			return null;
 		}
-		const time = Math.min(Math.max(seconds, 0), this.durationSeconds);
+		const time = clampToVideoSpan({ seconds, videoSpanSeconds: this.durationSeconds });
 		const frame = await this.sink.getSample(time);
 		if (!frame) {
 			return null;
@@ -190,7 +210,7 @@ export class VideoFrameExtractor {
 		const order = seconds
 			.map((value, index) => ({
 				index,
-				time: Math.min(Math.max(value, 0), this.durationSeconds),
+				time: clampToVideoSpan({ seconds: value, videoSpanSeconds: this.durationSeconds }),
 			}))
 			.sort((left, right) => left.time - right.time);
 		let position = 0;
