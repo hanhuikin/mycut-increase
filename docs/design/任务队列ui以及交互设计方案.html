@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 视频生成任务队列 · UI 与交互设计方案</title>
+<style>
+  :root{
+    --bg:#0d0d11;
+    --panel:#17171d;
+    --panel-2:#1d1d24;
+    --panel-3:#232330;
+    --border:#2a2a33;
+    --border-soft:#22222b;
+    --text:#ececf0;
+    --text-2:#a8a8b3;
+    --text-3:#71717d;
+    --primary:#4d7cff;
+    --primary-soft:rgba(77,124,255,.14);
+    --green:#3ecf8e;
+    --green-soft:rgba(62,207,142,.12);
+    --red:#ff5c66;
+    --red-soft:rgba(255,92,102,.12);
+    --amber:#ffb454;
+    --amber-soft:rgba(255,180,84,.12);
+    --purple:#a78bfa;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px;line-height:1.7;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:48px 32px 96px}
+  a{color:var(--primary);text-decoration:none}
+
+  /* ---------- 文档头部 ---------- */
+  .doc-head{margin-bottom:40px}
+  .doc-head h1{font-size:26px;line-height:1.35;margin:0 0 10px;font-weight:600}
+  .doc-head .sub{color:var(--text-2);font-size:13px}
+  .meta-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .chip{
+    font-size:12px;color:var(--text-2);border:1px solid var(--border);
+    border-radius:999px;padding:2px 10px;background:var(--panel);
+  }
+  .chip b{color:var(--text);font-weight:500}
+
+  /* ---------- 章节 ---------- */
+  section{margin-top:56px}
+  h2{
+    font-size:18px;font-weight:600;margin:0 0 6px;
+    display:flex;align-items:center;gap:10px;
+  }
+  h2 .no{
+    font-size:12px;color:var(--primary);background:var(--primary-soft);
+    border-radius:6px;padding:1px 8px;font-weight:500;letter-spacing:.5px;
+  }
+  .sec-desc{color:var(--text-2);font-size:13px;margin:0 0 18px;max-width:820px}
+  h3{font-size:14.5px;font-weight:600;margin:26px 0 10px;color:var(--text)}
+  p{margin:8px 0;color:var(--text-2)}
+  p b,li b{color:var(--text);font-weight:500}
+
+  /* ---------- 卡片与网格 ---------- */
+  .card{
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:18px 20px;
+  }
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:860px){.grid-2{grid-template-columns:1fr}}
+  ul.tight{margin:6px 0;padding-left:20px;color:var(--text-2)}
+  ul.tight li{margin:4px 0}
+  ul.tight li::marker{color:var(--text-3)}
+
+  /* ---------- 问题/目标列表 ---------- */
+  .pain{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  @media(max-width:860px){.pain{grid-template-columns:1fr}}
+  .pain .item{border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--panel)}
+  .pain .item .t{font-weight:500;font-size:13.5px;margin-bottom:4px;display:flex;gap:8px;align-items:center}
+  .pain .item .d{font-size:13px;color:var(--text-2)}
+  .tag{font-size:11px;border-radius:5px;padding:1px 7px;font-weight:500;white-space:nowrap}
+  .tag.red{color:var(--red);background:var(--red-soft)}
+  .tag.blue{color:var(--primary);background:var(--primary-soft)}
+  .tag.green{color:var(--green);background:var(--green-soft)}
+  .tag.amber{color:var(--amber);background:var(--amber-soft)}
+  .tag.gray{color:var(--text-2);background:var(--panel-3)}
+
+  /* ---------- 状态机 ---------- */
+  .fsm{display:flex;flex-wrap:wrap;gap:0;align-items:stretch;margin-top:14px}
+  .fsm .node{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:9px;
+    padding:10px 14px;min-width:118px;
+  }
+  .fsm .node .st{font-weight:500;font-size:13.5px;display:flex;align-items:center;gap:7px}
+  .fsm .node .en{font-size:11px;color:var(--text-3);margin-top:2px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+  .dot.blue{background:var(--primary)}.dot.amber{background:var(--amber)}
+  .dot.purple{background:var(--purple)}.dot.green{background:var(--green)}
+  .dot.red{background:var(--red)}.dot.gray{background:var(--text-3)}
+  .fsm .arrow{
+    color:var(--text-3);display:flex;align-items:center;padding:0 10px;
+    font-size:16px;position:relative;
+  }
+  .fsm .arrow span{font-size:11px;color:var(--text-3);position:absolute;top:-16px;left:50%;transform:translateX(-50%);white-space:nowrap}
+  .fsm-note{margin-top:34px}
+
+  /* ---------- 线框图 ---------- */
+  .frame-row{display:flex;flex-direction:column;gap:14px;margin-top:10px}
+  .frame-cap{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .frame-cap .n{
+    color:var(--primary);font-size:12px;background:var(--primary-soft);
+    border-radius:6px;padding:1px 8px;font-weight:500;
+  }
+  .frame-cap .t{font-weight:600;font-size:13.5px}
+  .frame-cap .d{color:var(--text-3);font-size:12.5px}
+
+  /* 编辑器模拟外壳 */
+  .editor{
+    background:#101015;border:1px solid var(--border);border-radius:12px;
+    overflow:hidden;font-size:12.5px;
+  }
+  .ed-body{display:flex;min-height:430px}
+  .ed-rail{
+    width:46px;background:#131318;border-right:1px solid var(--border-soft);
+    display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:12px;flex:none;
+  }
+  .ed-rail .ri{
+    width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--text-3);font-size:13px;position:relative;
+  }
+  .ed-rail .ri.active{background:var(--primary-soft);color:var(--primary)}
+  .badge{
+    position:absolute;top:-3px;right:-4px;background:var(--primary);color:#fff;
+    font-size:10px;line-height:1;border-radius:8px;padding:2px 5px;font-weight:600;
+  }
+  .badge.pulse{box-shadow:0 0 0 0 rgba(77,124,255,.5);animation:pulse 2s infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(77,124,255,.45)}
+    70%{box-shadow:0 0 0 6px rgba(77,124,255,0)}
+    100%{box-shadow:0 0 0 0 rgba(77,124,255,0)}
+  }
+  .ed-panel{
+    width:288px;background:#141419;border-right:1px solid var(--border-soft);
+    padding:14px 16px;flex:none;
+  }
+  .ed-panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .ed-panel .ph .ttl{font-weight:600;font-size:13.5px}
+  .entry-btn{
+    display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);
+    border:1px solid var(--border);background:var(--panel-2);border-radius:7px;padding:4px 9px;
+  }
+  .entry-btn .cnt{color:var(--primary);font-weight:600}
+  .entry-btn .spin{
+    width:9px;height:9px;border-radius:50%;border:1.5px solid var(--border);
+    border-top-color:var(--primary);animation:rot 1s linear infinite;
+  }
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .ed-canvas{
+    flex:1;background:#0c0c10;display:flex;align-items:center;justify-content:center;
+    color:var(--text-3);font-size:12px;border-right:1px solid var(--border-soft);
+  }
+  .ed-props{width:210px;background:#141419;padding:14px;flex:none;color:var(--text-3);font-size:12px}
+
+  /* 抽屉 */
+  .drawer{
+    position:absolute;top:0;right:0;bottom:0;width:344px;
+    background:#16161c;border-left:1px solid var(--border);
+    display:flex;flex-direction:column;
+  }
+  .dr-head{
+    padding:13px 16px;border-bottom:1px solid var(--border-soft);
+    display:flex;justify-content:space-between;align-items:center;flex:none;
+  }
+  .dr-head .t{font-weight:600;font-size:13.5px}
+  .dr-head .x{color:var(--text-3);font-size:14px}
+  .dr-body{overflow:hidden;flex:1;padding:12px 14px}
+  .group-label{
+    font-size:11px;color:var(--text-3);margin:10px 2px 8px;display:flex;gap:8px;align-items:center;
+  }
+  .group-label .ln{flex:1;height:1px;background:var(--border-soft)}
+
+  /* 任务卡 */
+  .task{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:9px;
+    padding:11px 12px;margin-bottom:9px;cursor:pointer;
+  }
+  .task:hover{border-color:#3a3a46}
+  .task .r1{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .task .model{font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .task .status{font-size:11px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .task .r2{font-size:12px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .task .r3{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:6px}
+  .task .r3 .ops{display:flex;gap:10px}
+  .task .r3 .ops span{color:var(--primary)}
+  .prog{
+    margin-top:8px;height:4px;border-radius:3px;background:#26262e;overflow:hidden;position:relative;
+  }
+  .prog .fill{
+    position:absolute;left:0;top:0;bottom:0;background:var(--primary);border-radius:3px;
+  }
+  .prog .fill.indet{
+    width:36%;animation:slide 1.6s ease-in-out infinite;
+  }
+  @keyframes slide{0%{left:-36%}100%{left:100%}}
+  .mini-shots{display:flex;gap:5px;margin-top:8px}
+  .mini-shots .shot{
+    flex:1;height:30px;border-radius:6px;background:#23232c;display:flex;
+    align-items:center;justify-content:center;font-size:11px;
+  }
+  .mini-shots .shot.ok{background:var(--green-soft);color:var(--green)}
+  .mini-shots .shot.run{background:var(--primary-soft);color:var(--primary)}
+  .mini-shots .shot.err{background:var(--red-soft);color:var(--red)}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;font-size:11px;
+    border-radius:999px;padding:2px 9px;font-weight:500;
+  }
+  .pill.blue{color:var(--primary);background:var(--primary-soft)}
+  .pill.green{color:var(--green);background:var(--green-soft)}
+  .pill.red{color:var(--red);background:var(--red-soft)}
+  .pill.amber{color:var(--amber);background:var(--amber-soft)}
+  .pill.gray{color:var(--text-2);background:var(--panel-3)}
+
+  /* 详情抽屉 */
+  .dsec{border-top:1px solid var(--border-soft);padding:12px 0}
+  .dsec .dt{font-size:11px;color:var(--text-3);margin-bottom:8px;letter-spacing:.5px}
+  .kv{display:grid;grid-template-columns:76px 1fr;gap:4px 12px;font-size:12px}
+  .kv .k{color:var(--text-3)}
+  .kv .v{color:var(--text-2)}
+  .kv .v.hl{color:var(--text)}
+  .tl{position:relative;padding-left:18px}
+  .tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border)}
+  .tl .step{position:relative;padding:3px 0;font-size:12px;color:var(--text-2)}
+  .tl .step::before{
+    content:"";position:absolute;left:-17px;top:9px;width:7px;height:7px;border-radius:50%;
+    background:var(--text-3);
+  }
+  .tl .step.done::before{background:var(--green)}
+  .tl .step.run::before{background:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .tl .step.err::before{background:var(--red)}
+  .tl .step .tt{color:var(--text-3);font-size:11px;margin-left:6px}
+  .tl .step .sub{display:block;color:var(--text-3);font-size:11px;padding-left:0;margin-top:1px}
+  .err-box{
+    background:var(--red-soft);border:1px solid rgba(255,92,102,.25);border-radius:8px;
+    padding:9px 11px;font-size:12px;color:var(--red);margin-top:8px;line-height:1.55;
+  }
+  .err-box .sub{color:var(--text-2);font-size:11.5px;display:block;margin-top:3px}
+  .btn-row{display:flex;gap:8px;margin-top:10px}
+  .btn{
+    font-size:12px;border-radius:8px;padding:6px 12px;border:1px solid var(--border);
+    background:var(--panel-2);color:var(--text);cursor:pointer;
+  }
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:500}
+  .btn.ghost{background:transparent;color:var(--text-2)}
+  .video-prev{
+    height:132px;border-radius:9px;background:linear-gradient(135deg,#1c2b4d,#12203a 55%,#0e1830);
+    display:flex;align-items:center;justify-content:center;color:#9db8f0;font-size:12px;
+    position:relative;overflow:hidden;
+  }
+  .video-prev .play{
+    width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
+  }
+  .video-prev .dur{
+    position:absolute;right:8px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;
+    font-size:10.5px;border-radius:4px;padding:1px 6px;
+  }
+
+  /* toast */
+  .toast{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:18px;
+    background:#20202a;border:1px solid var(--border);border-radius:10px;
+    padding:9px 14px;font-size:12.5px;display:flex;gap:14px;align-items:center;
+    box-shadow:0 8px 28px rgba(0,0,0,.45);white-space:nowrap;
+  }
+  .toast .dot2{width:7px;height:7px;border-radius:50%}
+  .toast .act{color:var(--primary);cursor:pointer}
+
+  .relative{position:relative}
+
+  /* ---------- 规格表 ---------- */
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:10px}
+  th,td{border-bottom:1px solid var(--border-soft);padding:9px 12px;text-align:left;vertical-align:top}
+  th{color:var(--text-3);font-weight:500;font-size:11.5px;white-space:nowrap}
+  td{color:var(--text-2)}
+  td .hl{color:var(--text)}
+  th{background:var(--panel);border-top:1px solid var(--border-soft)}
+  tr:last-child td{border-bottom:1px solid var(--border)}
+  code{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:5px;
+    font-size:11.5px;padding:1px 6px;color:#c9d7ff;font-family:ui-monospace,Consolas,monospace;
+  }
+  pre{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:9px;
+    padding:14px 16px;overflow:auto;font-size:12px;line-height:1.6;color:var(--text-2);
+  }
+  pre code{border:none;background:none;padding:0}
+  .flow-note{font-size:12px;color:var(--text-3);margin-top:8px}
+
+  /* ---------- 分期 ---------- */
+  .phase{display:flex;gap:12px;margin-top:10px}
+  .phase .col{flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--panel)}
+  .phase .col .h{font-weight:600;font-size:13px;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+  .phase ul{margin:0;padding-left:18px;color:var(--text-2);font-size:12.5px}
+  .phase li{margin:3px 0}
+
+  /* ---------- v2 布局方案增补 ---------- */
+  .variant{margin-top:26px;border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:18px 20px}
+  .variant .vh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px}
+  .variant .vh .vn{font-size:12px;font-weight:600;color:var(--primary);background:var(--primary-soft);border-radius:6px;padding:2px 9px}
+  .variant .vh .vt{font-weight:600;font-size:14.5px}
+  .variant .vh .rec{font-size:11px;border-radius:5px;padding:1px 8px;font-weight:500}
+  .variant .vh .rec.star{color:var(--green);background:var(--green-soft)}
+  .variant .vh .rec.plain{color:var(--text-3);background:var(--panel-3)}
+  .pc{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+  .pc .pro,.pc .con{font-size:12px;border-radius:7px;padding:7px 10px;line-height:1.6;flex:1;min-width:250px}
+  .pc .pro{background:var(--green-soft)}
+  .pc .con{background:var(--red-soft)}
+  .pc .pro b,.pc .con b{display:block;margin-bottom:2px;font-size:11px;letter-spacing:.5px;font-weight:500}
+  .pc .pro{color:var(--text-2)}
+  .pc .con{color:var(--text-2)}
+  .pc .pro b{color:var(--green)}
+  .pc .con b{color:var(--red)}
+
+  /* 任务坞（方案 C） */
+  .dock{
+    position:absolute;right:16px;bottom:12px;display:flex;gap:8px;align-items:center;
+    background:#1b1b22;border:1px solid var(--border);border-radius:999px;
+    padding:5px 7px 5px 5px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  .chip-t{
+    display:flex;align-items:center;gap:8px;background:#23232c;
+    border:1px solid var(--border);border-radius:999px;padding:4px 10px 4px 5px;cursor:pointer;
+  }
+  .ring{
+    width:22px;height:22px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:9.5px;color:#fff;
+  }
+  .ring.run{background:conic-gradient(var(--primary) 0 62%,#2e2e38 62% 100%)}
+  .ring.q{background:conic-gradient(var(--amber) 0 25%,#2e2e38 25% 100%)}
+  .ring.done{background:var(--green)}
+  .chip-t .m{font-size:11.5px;font-weight:500;color:var(--text)}
+  .chip-t .s{font-size:10.5px;color:var(--text-3)}
+  .dock .more{font-size:11px;color:var(--text-2);padding:4px 8px;cursor:pointer}
+
+  /* 面板内 tab（方案 D） */
+  .seg{display:flex;background:#23232c;border-radius:8px;padding:2px;gap:2px;margin-bottom:10px}
+  .seg .sg{flex:1;text-align:center;font-size:11px;border-radius:6px;padding:3px 0;color:var(--text-2);cursor:pointer}
+  .seg .sg.on{background:#2c2c38;color:var(--text);font-weight:500}
+
+  /* 头部下拉（方案 E） */
+  .hdr{
+    height:42px;background:#101015;border-bottom:1px solid var(--border-soft);
+    display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 14px;
+  }
+  .hdr .hbtn{font-size:11.5px;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:4px 12px;cursor:pointer}
+  .hdr .hbtn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .hdr .bell{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-2);position:relative;cursor:pointer;font-size:12px}
+  .noti{
+    position:absolute;top:46px;right:110px;width:352px;background:#16161c;
+    border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.5);
+    overflow:hidden;z-index:5;
+  }
+  .noti .nh{padding:11px 14px;border-bottom:1px solid var(--border-soft);font-weight:600;font-size:13px;display:flex;justify-content:space-between}
+
+  .callout{
+    border-left:3px solid var(--primary);background:var(--primary-soft);
+    border-radius:0 9px 9px 0;padding:10px 14px;font-size:12.5px;color:var(--text-2);margin-top:14px;
+  }
+  .callout b{color:var(--text)}
+  .empty{
+    text-align:center;color:var(--text-3);font-size:12px;padding:36px 0;
+  }
+  .empty .ico{font-size:22px;margin-bottom:6px;opacity:.6}
+  .footer-note{margin-top:64px;color:var(--text-3);font-size:12px;border-top:1px solid var(--border-soft);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-head">
+    <h1>AI 视频生成任务队列 · UI 与交互设计方案</h1>
+    <div class="sub">解决"离开生成面板即丢失生成状态"的问题：把生成过程升级为用户可见、可追踪、可回查的任务队列。</div>
+    <div class="meta-row">
+      <span class="chip">版本 <b>v2（增补布局方案）</b></span>
+      <span class="chip">范围 <b>UI / 交互 / 状态机 / 数据草案</b></span>
+      <span class="chip">适用 <b>AI 视频面板 · 单任务与分镜批次</b></span>
+      <span class="chip">关联 <b>ai-video.tsx · /api/ai/generate · /api/ai/poll</b></span>
+    </div>
+  </div>
+
+  <!-- ============ 1 背景 ============ -->
+  <section>
+    <h2><span class="no">01</span>背景与问题</h2>
+    <p class="sec-desc">当前生成流程完全由 AI 视频面板组件持有：提交、轮询、渠道回退、结果入库都在 <code>ai-video.tsx</code> + <code>generate.ts</code> 的组件作用域内完成。由此产生四类可感知的问题：</p>
+    <div class="pain">
+      <div class="item">
+        <div class="t"><span class="tag red">状态丢失</span>切换面板即失去进度</div>
+        <div class="d"><code>isGenerating</code> 等全部是组件局部 state，切到素材 / 时间线面板后组件卸载，轮询循环随之终止，用户无法再知道任务是否完成、是否失败。</div>
+      </div>
+      <div class="item">
+        <div class="t"><span class="tag red">无回查能力</span>历史生成不可追溯</div>
+        <div class="d">生成结束后只有一次性 toast / 素材入库，没有"我之前生成过什么、用了哪个渠道、花了多少点、为什么失败"的记录。</div>
+      </div>
+      <div class="item">
+        <div class="t"><span class="tag amber">刷新即中断</span>页面刷新任务失联</div>
+        <div class="d">jobId、渠道信息、exclude 列表都在前端内存，刷新后客户端无法重新接上上游任务，点数已冻结却看不到结果。</div>
+      </div>
+      <div class="item">
+        <div class="t"><span class="tag amber">批次不可见</span>分镜多镜头缺全局视图</div>
+        <div class="d">分镜模式串行生成 N 个镜头（"镜头 i/N"），用户只能停在面板里盯着进度文案，中途切走就不知道整体完成到第几个。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 目标 ============ -->
+  <section>
+    <h2><span class="no">02</span>设计目标</h2>
+    <div class="card">
+      <ul class="tight">
+        <li><b>后台可持续</b> — 提交后任务与面板解耦，切换任意面板、打开其他抽屉，状态都持续更新。</li>
+        <li><b>随处可达</b> — 全局入口（角标计数）+ 一键打开任务队列，任何界面 1 次点击看到所有任务状态。</li>
+        <li><b>可回查</b> — 每个任务保留完整档案：参数、渠道、状态时间线、失败原因、点数消耗 / 退还。</li>
+        <li><b>可操作</b> — 完成后可直接预览并插入素材库 / 时间线；失败后可带原因一键重试。</li>
+        <li><b>克制</b> — 不打断创作流：进行中不弹窗骚扰，完成 / 失败用轻 toast + 角标提示，详情按需展开。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 3 方案总览 ============ -->
+  <section>
+    <h2><span class="no">03</span>方案总览与信息架构</h2>
+    <p class="sec-desc">新增一层<b>全局任务层</b>（与面板解耦），由三个 UI 承载：</p>
+    <div class="card">
+      <ul class="tight">
+        <li><b>① 入口与角标</b> — 左侧功能栏"AI 视频"图标与面板头部各一个入口，进行中时显示数量角标并呼吸提示；点击打开任务队列抽屉。</li>
+        <li><b>② 任务队列抽屉</b>（列表态）— 覆盖在编辑器右侧，分"进行中 / 历史"两组，卡片即状态；点击卡片进入详情。</li>
+        <li><b>③ 任务详情抽屉</b> — 单任务的完整档案：参数、状态时间线（含渠道回退）、失败原因明细、完成预览与操作。</li>
+      </ul>
+      <p style="margin-top:10px">生成流程的归属变化：<b>提交与轮询上收到全局任务层</b>（配合服务端任务表），AI 视频面板只负责"发起生成"和"接收完成回调"，不再持有轮询生命周期。</p>
+    </div>
+  </section>
+
+  <!-- ============ 4 状态机 ============ -->
+  <section>
+    <h2><span class="no">04</span>任务状态机</h2>
+    <p class="sec-desc">一个任务（单生成或分镜镜头）在生命周期内有 6 个用户可见状态。渠道回退（exclude 重试）是<b>内部过程</b>，只体现在详情时间线里，不产生额外状态。</p>
+    <div class="fsm">
+      <div class="node"><div class="st"><span class="dot blue"></span>提交中</div><div class="en">submitting</div></div>
+      <div class="arrow">→<span>拿到 jobId</span></div>
+      <div class="node"><div class="st"><span class="dot amber"></span>排队中</div><div class="en">queued</div></div>
+      <div class="arrow">→<span>上游开始</span></div>
+      <div class="node"><div class="st"><span class="dot purple"></span>生成中</div><div class="en">generating</div></div>
+      <div class="arrow">→<span>出片</span></div>
+      <div class="node"><div class="st"><span class="dot green"></span>已完成</div><div class="en">succeeded</div></div>
+    </div>
+    <div class="fsm fsm-note">
+      <div class="node" style="border-color:rgba(255,92,102,.35)"><div class="st"><span class="dot red"></span>已失败</div><div class="en">failed · 任一阶段</div></div>
+      <div class="arrow">→<span>全部渠道尝试穷尽 / 上游失败</span></div>
+      <div class="node" style="margin-left:24px"><div class="st"><span class="dot gray"></span>已退点</div><div class="en">refunded（随失败自动）</div></div>
+      <div class="node" style="margin-left:24px;border-style:dashed"><div class="st"><span class="dot gray"></span>已取消</div><div class="en">canceled · 二期</div></div>
+    </div>
+    <div class="callout">
+      <b>口径约定：</b>"进行中" = submitting / queued / generating 三态之和，角标计数与队列分组都以此为准。失败任务若因渠道回退最终成功，则只显示"已完成"，回退过程记入详情时间线。
+    </div>
+  </section>
+
+  <!-- ============ 5 线框图 ============ -->
+  <section>
+    <h2><span class="no">05</span>UI 线框图</h2>
+    <p class="sec-desc">以下为按 MyCut 编辑器现有视觉（深色、蓝色主色、右抽屉形态）绘制的高保真线框。数据为示意。</p>
+
+    <div class="frame-row">
+      <div class="frame-cap"><span class="n">F1</span><span class="t">入口与角标</span><span class="d">左侧栏图标角标 + 面板头部任务入口；左侧栏处于其他面板时仍可见角标</span></div>
+      <div class="editor">
+        <div class="ed-body">
+          <div class="ed-rail">
+            <div class="ri">⌘</div>
+            <div class="ri">♪</div>
+            <div class="ri">T</div>
+            <div class="ri">☺</div>
+            <div class="ri">✂</div>
+            <div class="ri" style="color:var(--text)">»</div>
+            <div class="ri active">▤<span class="badge pulse">2</span></div>
+            <div class="ri">🖼</div>
+            <div class="ri">♫</div>
+            <div class="ri">⚙</div>
+          </div>
+          <div class="ed-panel">
+            <div class="ph">
+              <span class="ttl">AI 视频</span>
+              <span class="entry-btn"><span class="spin"></span>任务 <span class="cnt">2</span></span>
+            </div>
+            <div style="color:var(--text-3);font-size:11.5px;line-height:1.8">
+              文生视频 | 图生视频<br><br>
+              模型<br>
+              <span style="color:var(--text-2)">Seedance 2.5 ▾</span><br><br>
+              视频描述<br>
+              <span style="color:var(--text-3)">描述你想生成的视频内容…</span><br><br>
+              <span style="color:var(--text-3)">（面板可继续发起新的生成，不互相阻塞）</span>
+            </div>
+          </div>
+          <div class="ed-canvas">预览画布</div>
+          <div class="ed-props">属性面板<br><br>这里是空的</div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--border-soft);color:var(--text-3);font-size:11px">
+          角标规则：进行中任务数（分镜批次按未完成镜头数计）；≥1 时显示并呼吸，=0 隐藏。点击入口 / 图标 → 打开任务队列抽屉（F2）。
+        </div>
+      </div>
+    </div>
+
+    <div class="frame-row">
+      <div class="frame-cap"><span class="n">F2</span><span class="t">任务队列抽屉（列表态）</span><span class="d">右侧覆盖抽屉；"进行中"置顶实时刷新，"历史"按时间倒序，点卡片进详情</span></div>
+      <div class="editor relative">
+        <div class="ed-body" style="min-height:472px">
+          <div class="ed-rail">
+            <div class="ri">⌘</div><div class="ri">♪</div><div class="ri">T</div><div class="ri">☺</div>
+            <div class="ri">✂</div><div class="ri">»</div><div class="ri active">▤</div><div class="ri">🖼</div><div class="ri">♫</div><div class="ri">⚙</div>
+          </div>
+          <div class="ed-canvas" style="filter:brightness(.55)">预览画布（被抽屉覆盖，压暗）</div>
+          <div class="drawer">
+            <div class="dr-head"><span class="t">生成任务</span><span style="display:flex;gap:12px;align-items:center"><span class="pill gray">全部 · 清空记录</span><span class="x">✕</span></span></div>
+            <div class="dr-body">
+              <div class="group-label">进行中 · 2<span class="ln"></span></div>
+              <div class="task">
+                <div class="r1">
+                  <span class="model"><span class="dot purple"></span>Seedance 2.5</span>
+                  <span class="status pill blue"><span class="dot purple"></span>生成中 00:42</span>
+                </div>
+                <div class="r2">潜水员跟鱼群互动，阳光穿透水面…</div>
+                <div class="prog"><div class="fill" style="width:62%"></div></div>
+                <div class="r3"><span>720p · 16:9 · 5s</span><span class="ops"><span>详情</span></span></div>
+              </div>
+              <div class="task">
+                <div class="r1">
+                  <span class="model"><span class="dot purple"></span>Veo 3.1</span>
+                  <span class="status pill amber"><span class="dot amber"></span>排队中</span>
+                </div>
+                <div class="r2">城市夜景延时摄影，车流光轨…</div>
+                <div class="prog"><div class="fill indet"></div></div>
+                <div class="r3"><span>720p · 16:9 · 8s</span><span class="ops"><span>详情</span></span></div>
+              </div>
+              <div class="task">
+                <div class="r1">
+                  <span class="model"><span class="dot purple"></span>分镜批次 · 4 镜头</span>
+                  <span class="status pill blue">2/4 完成</span>
+                </div>
+                <div class="mini-shots">
+                  <div class="shot ok">✓1</div><div class="shot ok">✓2</div>
+                  <div class="shot run">⟳3</div><div class="shot">4</div>
+                </div>
+                <div class="r3"><span>Seedance 2.5 · 720p</span><span class="ops"><span>详情</span></span></div>
+              </div>
+              <div class="group-label">今天<span class="ln"></span></div>
+              <div class="task" style="opacity:.92">
+                <div class="r1">
+                  <span class="model"><span class="dot green"></span>Kling v2.6</span>
+                  <span class="status pill green">已完成</span>
+                </div>
+                <div class="r2">产品特写旋转展示，纯色背景…</div>
+                <div class="r3"><span>14:32 · 10s · 消耗 12 点</span><span class="ops"><span>详情</span><span>插入时间线</span></span></div>
+              </div>
+              <div class="task">
+                <div class="r1">
+                  <span class="model"><span class="dot red"></span>MiniMax H3</span>
+                  <span class="status pill red">已失败</span>
+                </div>
+                <div class="r2">赛博朋克街道霓虹雨夜…</div>
+                <div class="r3"><span>13:58 · 已退回 12 点</span><span class="ops"><span>详情</span><span>重试</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame-row">
+      <div class="frame-cap"><span class="n">F3</span><span class="t">任务详情 · 进行中</span><span class="d">参数档案 + 状态时间线；渠道回退记录折叠在时间线内</span></div>
+      <div class="editor relative" style="min-height:auto">
+        <div style="display:flex;justify-content:flex-end;background:#101015;padding:18px 18px">
+          <div class="drawer" style="position:static;width:344px;border:1px solid var(--border);border-radius:12px">
+            <div class="dr-head"><span class="t">任务详情</span><span class="x">✕</span></div>
+            <div class="dr-body" style="padding:0 16px 14px">
+              <div class="dsec" style="border-top:none">
+                <div class="video-prev"><div class="play">▶</div><span style="margin-left:10px">生成中 · 预览不可用</span><span class="dur">00:42</span></div>
+              </div>
+              <div class="dsec">
+                <div class="dt">参数</div>
+                <div class="kv">
+                  <span class="k">模型</span><span class="v hl">Seedance 2.5</span>
+                  <span class="k">模式</span><span class="v">图生视频（起始帧已上传）</span>
+                  <span class="k">描述</span><span class="v">潜水员跟鱼群互动…</span>
+                  <span class="k">时长 / 画质</span><span class="v">5 秒 · 720p · 16:9 · 含音频</span>
+                  <span class="k">预计消耗</span><span class="v">12 点（已冻结）</span>
+                  <span class="k">提交时间</span><span class="v">今天 15:02</span>
+                </div>
+              </div>
+              <div class="dsec">
+                <div class="dt">状态时间线</div>
+                <div class="tl">
+                  <div class="step done">提交成功 <span class="tt">15:02 · 七牛国内</span></div>
+                  <div class="step done">上游排队 <span class="tt">15:02 – 15:03</span></div>
+                  <div class="step run">生成中 <span class="tt">已进行 42 秒（预估 1–3 分钟）</span></div>
+                  <div class="step" style="color:var(--text-3)">完成入库</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame-row">
+      <div class="frame-cap"><span class="n">F4</span><span class="t">任务详情 · 失败</span><span class="d">错误摘要 + 各渠道尝试明细（折叠）+ 退点标注 + 重试</span></div>
+      <div class="editor relative" style="min-height:auto">
+        <div style="display:flex;justify-content:flex-end;background:#101015;padding:18px 18px">
+          <div class="drawer" style="position:static;width:344px;border:1px solid var(--border);border-radius:12px">
+            <div class="dr-head"><span class="t">任务详情</span><span class="x">✕</span></div>
+            <div class="dr-body" style="padding:0 16px 14px">
+              <div class="dsec" style="border-top:none">
+                <div class="kv">
+                  <span class="k">模型</span><span class="v hl">MiniMax H3</span>
+                  <span class="k">模式</span><span class="v">图生视频（本地取帧）</span>
+                  <span class="k">提交时间</span><span class="v">今天 13:58</span>
+                  <span class="k">消耗</span><span class="v"><span class="pill green">已退回 12 点</span></span>
+                </div>
+              </div>
+              <div class="dsec">
+                <div class="dt">失败原因</div>
+                <div class="err-box">
+                  所有渠道均提交失败：起始图仅支持公网 http(s) 图片链接
+                  <span class="sub">图生视频使用本地取帧图片时，请改用 Seedance / Kling / Vidu / Veo，或为 MiniMax 配置公网图片地址。</span>
+                </div>
+                <div class="flow-note" style="margin-top:10px">渠道尝试明细（默认折叠，点击展开）：</div>
+                <div class="tl" style="margin-top:6px">
+                  <div class="step err">七牛国内 · MiniMax H3 <span class="tt">13:58</span><span class="sub">400 image_url validation failed: invalid or unsafe URL</span></div>
+                  <div class="step err">七牛海外 · MiniMax H3 <span class="tt">13:58</span><span class="sub">400 同上（同一网关行为）</span></div>
+                </div>
+              </div>
+              <div class="btn-row">
+                <button class="btn primary" type="button">改用推荐模型重试</button>
+                <button class="btn ghost" type="button">删除记录</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frame-row">
+      <div class="frame-cap"><span class="n">F5</span><span class="t">完成态与 Toast 引导</span><span class="d">成功默认自动入库（沿用现状）；详情提供预览、插时间线、同参数再生成</span></div>
+      <div class="editor relative">
+        <div class="ed-body" style="min-height:300px">
+          <div class="ed-rail">
+            <div class="ri">⌘</div><div class="ri">♪</div><div class="ri">T</div><div class="ri">☺</div>
+            <div class="ri">✂</div><div class="ri">»</div><div class="ri active">▤</div><div class="ri">🖼</div><div class="ri">♫</div><div class="ri">⚙</div>
+          </div>
+          <div class="ed-canvas">预览画布</div>
+          <div class="drawer">
+            <div class="dr-head"><span class="t">生成任务</span><span class="x">✕</span></div>
+            <div class="dr-body">
+              <div class="task">
+                <div class="video-prev" style="height:104px;margin-bottom:9px"><div class="play">▶</div><span style="margin-left:10px">产品特写旋转展示</span><span class="dur">0:10</span></div>
+                <div class="r1">
+                  <span class="model"><span class="dot green"></span>Kling v2.6</span>
+                  <span class="status pill green">已完成</span>
+                </div>
+                <div class="r3"><span>720p · 10s · 消耗 12 点</span><span>今天 14:32</span></div>
+                <div class="btn-row">
+                  <button class="btn primary" type="button">插入时间线</button>
+                  <button class="btn" type="button">已在素材库 ✓</button>
+                  <button class="btn ghost" type="button">同参数再生成</button>
+                </div>
+              </div>
+              <div class="empty"><div class="ico">◌</div>没有更早的任务了</div>
+            </div>
+          </div>
+        </div>
+        <div class="toast">
+          <span class="dot2" style="background:var(--green)"></span>
+          视频生成完成，已加入素材库
+          <span class="act">查看任务</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6 交互规格 ============ -->
+  <section>
+    <h2><span class="no">06</span>交互规格</h2>
+
+    <h3>6.1 各状态的行为约定</h3>
+    <table>
+      <tr><th>状态</th><th>卡片展示</th><th>可用操作</th><th>自动行为</th></tr>
+      <tr>
+        <td><span class="hl">提交中</span></td>
+        <td>模型名 + 不定进度条</td>
+        <td>详情</td>
+        <td>超时 15s 未拿到 jobId → 转入失败（沿用现有提交超时）</td>
+      </tr>
+      <tr>
+        <td><span class="hl">排队中</span></td>
+        <td>不定进度条 + "排队中"</td>
+        <td>详情</td>
+        <td>轮询间隔 5s；>2 分钟仍排队时在详情时间线标注"上游较慢"</td>
+      </tr>
+      <tr>
+        <td><span class="hl">生成中</span></td>
+        <td>已用时长计时 + 进度条（无真实百分比，按模型均时估个进度，标注"预估"）</td>
+        <td>详情</td>
+        <td>完成 → 自动入库（现状逻辑）+ toast + 角标 -1</td>
+      </tr>
+      <tr>
+        <td><span class="hl">已完成</span></td>
+        <td>视频缩略卡 + 消耗点数</td>
+        <td>插入时间线 / 在素材库查看 / 同参数再生成 / 删除记录</td>
+        <td>结果 URL 为 7 天有效签名地址，详情内标注"请尽快下载"，素材库已有本地副本则不受影响</td>
+      </tr>
+      <tr>
+        <td><span class="hl">已失败</span></td>
+        <td>红色状态 + 首行原因摘要</td>
+        <td>查看明细 / 重试 / 删除记录</td>
+        <td>冻结点数自动退回并标注；toast 提示失败 + "查看原因"</td>
+      </tr>
+      <tr>
+        <td><span class="hl">已取消</span>（二期）</td>
+        <td>灰色状态</td>
+        <td>重新生成 / 删除记录</td>
+        <td>调用上游 cancel_url，已生成部分不收费（以渠道文档为准）</td>
+      </tr>
+    </table>
+
+    <h3>6.2 关键交互规则</h3>
+    <div class="card">
+      <ul class="tight">
+        <li><b>发起生成</b>：提交成功后面板<b>不强制跳转</b>，仅在面板按钮区给出轻提示（"已提交，可在任务队列查看"）；用户可立即再次发起（并发任务上限 3 个进行中，超出时按钮禁用并提示，防误刷渠道）。</li>
+        <li><b>离开面板</b>：进行中时切换面板 / 打开其他抽屉，不弹任何打断；左侧栏角标与 toast 承担提醒。生成与面板解耦后轮询由全局任务层持有。</li>
+        <li><b>打开队列抽屉</b>：进行中分组置顶并按剩余等待时间排序；历史按时间倒序；抽屉打开期间轮询间隔提升到 3s，关闭回落 8s。</li>
+        <li><b>完成时若正停留在队列抽屉</b>：对应卡片原地变为"已完成"并短暂高亮，不自动跳转详情。</li>
+        <li><b>失败时</b>：toast"生成失败：&lt;首行原因&gt; · 查看原因"点击直达详情；渠道明细默认折叠，避免普通用户被 400 报文淹没（F4）。</li>
+        <li><b>重试</b>：以原参数重新走一遍提交（新任务、新计费冻结）；"改用推荐模型重试"仅在失败原因为渠道类错误时出现，按渠道覆盖度推荐可用模型。</li>
+        <li><b>删除记录</b>：仅删展示记录（二次确认），不影响已入库素材；进行中任务不可删除。</li>
+        <li><b>权限</b>：任务按用户隔离，列表与详情都只返回本人数据（沿用现有 <code>getSessionUser</code> 鉴权）。</li>
+      </ul>
+    </div>
+
+    <h3>6.3 边界场景</h3>
+    <table>
+      <tr><th>场景</th><th>行为</th></tr>
+      <tr><td><span class="hl">页面刷新 / 关闭再打开</span></td><td>进行中任务由服务端持久化，重新打开后队列自动恢复并继续出状态（依赖 07 节的任务表 + 服务端轮询上收，为<b>落地前置</b>）。</td></tr>
+      <tr><td><span class="hl">登出再登录（同账号）</span></td><td>同上，按用户维度恢复。</td></tr>
+      <tr><td><span class="hl">分镜批次中途某镜头失败</span></td><td>批次卡片显示 n/m 完成 + 失败镜头角标；批次不自动终止，后续镜头照常；详情内逐镜头展示，失败镜头可单独重试。</td></tr>
+      <tr><td><span class="hl">渠道回退成功</span></td><td>用户无感：状态仍是"生成中"，详情时间线多一条"渠道回退：七牛国内 → 七牛海外"。</td></tr>
+      <tr><td><span class="hl">上游 7 天签名链接过期</span></td><td>已完成任务详情提示"原始链接已过期"；素材库本地副本仍可用（下载入库即已落本地）。</td></tr>
+      <tr><td><span class="hl">无网络 / 轮询失败</span></td><td>状态旁标注"同步中…，上次更新 15:04"，不误报失败；恢复后自动补齐。</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ 7 数据草案 ============ -->
+  <section>
+    <h2><span class="no">07</span>数据与同步（落地前置）</h2>
+    <p class="sec-desc">要满足"刷新可恢复、离开可追踪"，任务必须落库，且"轮询 + 渠道回退"要从客户端上收到服务端。草案如下：</p>
+
+    <h3>7.1 任务表 <code>generation_tasks</code></h3>
+    <pre><code>id              text pk
+user_id         text  → app.users        -- 隔离
+batch_id        text?                    -- 分镜批次父 id（单任务为 null）
+batch_index     int?                     -- 批次内序号
+model_id        text  → app.ai_models
+prompt          text
+params          jsonb                    -- {mode,duration,resolution,aspect,audio,cameraMovement}
+start_image     text?                    -- data URL 存对象存储（二期；一期不落）
+status          text                     -- submitting|queued|generating|succeeded|failed|canceled
+channel_id      text?                    -- 最终成功 / 最后尝试的渠道
+protocol        text?
+upstream_job_id text?
+cancel_url      text?                    -- 二期取消用（提交时顺手保存）
+video_url       text?
+error_summary   text?                    -- 首行人类可读原因
+error_details   jsonb?                   -- 各渠道尝试数组 [{channel,message,at}]
+points_frozen   int                      -- 冻结点数
+points_settled  int?                     -- 实扣；null 且 failed = 已退回
+created_at / started_at / finished_at  timestamptz</code></pre>
+
+    <h3>7.2 接口与轮询上收</h3>
+    <div class="card">
+      <ul class="tight">
+        <li><code>POST /api/ai/generate</code> 改造：提交即落任务行（submitting），拿到 jobId 后补齐渠道信息转 queued；客户端改为返回 taskId。</li>
+        <li><code>GET /api/ai/tasks</code> / <code>GET /api/ai/tasks/:id</code>：本人任务列表 / 详情。<b>惰性同步</b>（一期推荐）：读取时对 active 任务就地调 <code>/api/ai/poll</code> 同步上游状态、执行渠道回退与结算 / 退点，再返回最新状态——不需要独立 worker。</li>
+        <li>前端：全局 <code>TaskQueueProvider</code>（context）持有一个 5–8s 的轮询循环调 tasks 接口，驱动角标、抽屉与 toast；AI 视频面板只消费状态并发起生成。</li>
+        <li>二期可选：SSE / 长轮询推送状态变化；独立 worker 定时同步，摆脱"无人打开页面时不同步"的限制。</li>
+      </ul>
+    </div>
+    <div class="callout">
+      <b>兼容性</b>：现有 <code>/api/ai/generate</code> 的计费冻结 / 结算 / 退款、渠道路由、<code>exclude</code> 回退逻辑全部保留，只是执行主体从客户端循环移到服务端同步过程；分镜批次即"一次提交 N 个任务行 + 同一 batch_id"。
+    </div>
+  </section>
+
+  <!-- ============ 8 分期 ============ -->
+  <section>
+    <h2><span class="no">08</span>分期范围</h2>
+    <div class="phase">
+      <div class="col">
+        <div class="h"><span class="tag blue">一期</span>可见 · 可追踪 · 可回查</div>
+        <ul>
+          <li>generation_tasks 表 + generate/poll 上收 + tasks 接口</li>
+          <li>全局 TaskQueueProvider、角标、队列抽屉、详情抽屉</li>
+          <li>六状态机、失败原因与渠道明细、退点标注、重试</li>
+          <li>分镜批次聚合展示</li>
+          <li>刷新 / 重开恢复</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="h"><span class="tag gray">二期</span>可控性 · 体验增强</div>
+        <ul>
+          <li>取消任务（cancel_url 已在提交时保存）</li>
+          <li>状态推送（SSE）替代前端轮询</li>
+          <li>起始帧落对象存储，配合 MiniMax 公网图限制</li>
+          <li>历史搜索 / 按模型筛选、导出记录</li>
+          <li>队列并发上限可配置（管理面板）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:18px">
+      <b>开放问题</b>：① 生成结果是否保留"自动插入素材库"默认行为，还是改为完成后由用户手动入库（影响磁盘占用与计费感知）；② 失败记录保留时长（建议 30 天随清理策略）；③ 并发上限数值（建议进行中 3、每日上限沿用模型 dailyLimit）。
+    </div>
+  </section>
+
+  <!-- ============ 9 布局方案 ============ -->
+  <section>
+    <h2><span class="no">09</span>布局位置备选方案（v2 增补）</h2>
+    <p class="sec-desc">
+      一期实现采用了"右侧全高抽屉"（见 05 节 F2）。实测发现两个问题：<b>遮挡属性面板与导出按钮区</b>、全高形态对"瞄一眼进度"这种高频轻需求来说过重。本章给出 5 个布局位置的备选，可单独采用，也可组合（如 C + D）。
+      所有方案共享同一份任务数据与状态机（04 节），仅容器不同——切换成本低。
+    </p>
+
+    <!-- A -->
+    <div class="variant">
+      <div class="vh">
+        <span class="vn">方案 A</span>
+        <span class="vt">右侧全高抽屉（一期现状）</span>
+        <span class="rec plain">基线</span>
+      </div>
+      <p style="margin:0">覆盖编辑器整个右缘（含头部导出区下方至时间轴上缘），列表 + 详情两级。</p>
+      <div class="pc">
+        <div class="pro"><b>优点</b>空间充裕：详情、时间线、渠道明细都能完整展开；与属性面板同侧，阅读动线一致；一期已实现，零改造。</div>
+        <div class="con"><b>实测问题</b>遮住属性面板与导出按钮；全高形态对"瞄一眼"过重；打开时必遮挡，无法与参数调节并存。</div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="variant">
+      <div class="vh">
+        <span class="vn">方案 B</span>
+        <span class="vt">属性区宽度的中部抽屉（改良现状）</span>
+        <span class="rec plain">保守改良</span>
+      </div>
+      <p style="margin:0">仍是右缘抽屉，但<b>不再全高</b>：顶部从编辑器头部之下开始、底部到时间轴上缘为止，宽度与属性面板一致（约 300px）。头部导出区与时间轴完全不被遮挡。</p>
+      <div class="editor relative">
+        <div class="hdr">
+          <span class="hbtn">发送反馈</span><span class="hbtn primary">导出</span>
+        </div>
+        <div class="ed-body" style="min-height:300px">
+          <div class="ed-rail">
+            <div class="ri">⌘</div><div class="ri">♪</div><div class="ri">T</div><div class="ri">☺</div>
+            <div class="ri">✂</div><div class="ri">»</div><div class="ri active">▤<span class="badge">1</span></div><div class="ri">🖼</div><div class="ri">♫</div><div class="ri">⚙</div>
+          </div>
+          <div class="ed-panel" style="opacity:.45"><span style="font-size:11px">AI 视频（被压暗，仍可见轮廓）</span></div>
+          <div class="ed-canvas" style="opacity:.45">预览画布</div>
+          <div class="drawer-mid">
+            <div class="dr-head"><span class="t">生成任务 · 进行中 1</span><span class="x">✕</span></div>
+            <div class="dr-body" style="padding:10px 12px">
+              <div class="task">
+                <div class="r1">
+                  <span class="model"><span class="dot purple"></span>Seedance 2.5</span>
+                  <span class="status pill blue"><span class="dot purple"></span>生成中 00:42</span>
+                </div>
+                <div class="r2">潜水员跟鱼群互动…</div>
+                <div class="prog"><div class="fill" style="width:62%"></div></div>
+              </div>
+              <div class="group-label">今天<span class="ln"></span></div>
+              <div class="task" style="opacity:.85">
+                <div class="r1">
+                  <span class="model"><span class="dot green"></span>Kling v2.6</span>
+                  <span class="status pill green">已完成</span>
+                </div>
+                <div class="r3"><span>14:32 · 10s</span><span class="ops"><span>详情</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:9px 16px;border-top:1px solid var(--border-soft)">
+          <div class="prog" style="height:6px;border-radius:4px"><div class="fill" style="width:100%"></div></div>
+          <div style="color:var(--text-3);font-size:10.5px;margin-top:5px">时间轴区域始终完整可见、可操作</div>
+        </div>
+      </div>
+      <div class="pc">
+        <div class="pro"><b>优点</b>解决现状两大痛点（导出区、时间轴被遮）；信息密度不变，详情仍完整；从现状改造量最小（加两个定位约束）。</div>
+        <div class="con"><b>缺点</b>打开时仍遮属性面板；"瞄一眼"还是要点开抽屉。</div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="variant">
+      <div class="vh">
+        <span class="vn">方案 C</span>
+        <span class="vt">底部任务坞（时间轴右上角悬浮胶囊）</span>
+        <span class="rec star">★ 推荐（主载体）</span>
+      </div>
+      <p style="margin:0">
+        时间轴区域右下角悬浮一个<b>胶囊坞</b>：每个进行中任务是一枚紧凑 chip（进度环 + 模型名 + 已用时），完成变绿 ✓ 后停留 3 秒自动滑出。点击 chip 或"更多"弹出<b>上方浮层</b>：列表 + 详情（复用现有抽屉内容，但浮层尺寸自适应、点外部关闭）。
+        不遮挡任何面板，编辑与等待并存——这是浏览器下载坞、会议软件的成熟形态。
+      </p>
+      <div class="editor relative">
+        <div class="ed-body" style="min-height:286px">
+          <div class="ed-rail">
+            <div class="ri">⌘</div><div class="ri">♪</div><div class="ri">T</div><div class="ri">☺</div>
+            <div class="ri">✂</div><div class="ri">»</div><div class="ri active">▤<span class="badge">2</span></div><div class="ri">🖼</div><div class="ri">♫</div><div class="ri">⚙</div>
+          </div>
+          <div class="ed-panel" style="opacity:.9"><span style="font-size:11px;color:var(--text-3)">AI 视频<br>（继续编辑，不遮挡）</span></div>
+          <div class="ed-canvas">预览画布（完全可见）</div>
+          <div class="ed-props"><span style="font-size:11px">属性面板（完全可见）</span></div>
+        </div>
+        <div style="position:relative;padding:8px 12px 14px;border-top:1px solid var(--border-soft)">
+          <div style="color:var(--text-3);font-size:10.5px;margin-bottom:26px">时间轴（轨道正常操作，进度不中断）</div>
+          <div class="dock">
+            <div class="chip-t">
+              <span class="ring run">62%</span>
+              <span class="m">Seedance 2.5</span>
+              <span class="s">00:42</span>
+            </div>
+            <div class="chip-t">
+              <span class="ring q">…</span>
+              <span class="m">Veo 3.1</span>
+              <span class="s">排队</span>
+            </div>
+            <span class="more">全部 ›</span>
+          </div>
+        </div>
+      </div>
+      <div class="pc">
+        <div class="pro"><b>优点</b>零遮挡，随时可见；chip 即状态，完成态自动消隐不打扰；点击才展开详情，"瞄一眼"成本最低；与时间轴/画布操作完全并存。</div>
+        <div class="con"><b>缺点</b>chip 信息密度低（只放得下模型名+进度），完整详情仍需浮层；任务很多时 chip 需收纳（&gt;3 折叠为计数）。</div>
+      </div>
+    </div>
+
+    <!-- D -->
+    <div class="variant">
+      <div class="vh">
+        <span class="vn">方案 D</span>
+        <span class="vt">素材面板新增"任务"标签页</span>
+        <span class="rec star">★ 推荐（常驻入口）</span>
+      </div>
+      <p style="margin:0">
+        左侧 tab 栏新增"任务"tab（AI 视频下方），任务列表作为<b>面板内的一等公民</b>：与素材、AI 视频平级的信息架构。面板内顶部用分段控件在"列表 / 详情"间切换，卡片与交互复用现有一期实现。
+        角标仍挂在左侧栏图标上负责召回。
+      </p>
+      <div class="editor">
+        <div class="ed-body" style="min-height:330px">
+          <div class="ed-rail">
+            <div class="ri">⌘</div><div class="ri">♪</div><div class="ri">T</div><div class="ri">☺</div>
+            <div class="ri">✂</div><div class="ri">»</div><div class="ri active">▤</div><div class="ri">🖼</div><div class="ri">♫</div><div class="ri">⚙</div>
+          </div>
+          <div class="ed-panel">
+            <div class="ph"><span class="ttl">任务</span><span style="font-size:10.5px;color:var(--text-3)">清空记录</span></div>
+            <div class="seg">
+              <span class="sg on">列表</span><span class="sg">详情</span>
+            </div>
+            <div class="task" style="margin-bottom:7px">
+              <div class="r1">
+                <span class="model"><span class="dot purple"></span>Seedance 2.5</span>
+                <span class="status pill blue"><span class="dot purple"></span>生成中 01:12</span>
+              </div>
+              <div class="r2">潜水员跟鱼群互动…</div>
+              <div class="prog"><div class="fill" style="width:74%"></div></div>
+              <div class="r3"><span>720p · 5s</span><span class="ops"><span>详情</span></span></div>
+            </div>
+            <div class="task" style="opacity:.85">
+              <div class="r1">
+                <span class="model"><span class="dot green"></span>Kling v2.6</span>
+                <span class="status pill green">已完成</span>
+              </div>
+              <div class="r3"><span>今天 14:32</span><span class="ops"><span>插入时间线</span></span></div>
+            </div>
+          </div>
+          <div class="ed-canvas">预览画布（完全可见）</div>
+          <div class="ed-props"><span style="font-size:11px">属性面板</span></div>
+        </div>
+      </div>
+      <div class="pc">
+        <div class="pro"><b>优点</b>信息架构最正统（任务与素材同级，"生成的东西去哪了"有固定家）；零遮挡；空间适中且可随面板拖宽；移动端/窄屏下表现最好。</div>
+        <div class="con"><b>缺点</b>切到其他 tab / 面板时不可见（需 rail 角标 + 方案 C 的坞兜底）；详情在窄面板里偏挤（长渠道明细建议弹层）。</div>
+      </div>
+    </div>
+
+    <!-- E -->
+    <div class="variant">
+      <div class="vh">
+        <span class="vn">方案 E</span>
+        <span class="vt">头部通知中心下拉</span>
+        <span class="rec plain">备选</span>
+      </div>
+      <p style="margin:0">
+        编辑器头部（发送反馈 / 导出旁）加任务铃铛，点击下拉通知面板（宽约 350px，列表 + 点击展开详情）。所有页面形态（首页、项目列表）都可复用同一入口，为二期"导出进度 / 系统通知"预留同一容器。
+      </p>
+      <div class="editor relative">
+        <div class="hdr">
+          <span class="hbtn">发送反馈</span>
+          <span class="hbtn primary">导出</span>
+          <span class="bell">🔔<span class="badge">1</span></span>
+        </div>
+        <div style="position:relative">
+          <div class="noti">
+            <div class="nh"><span>生成任务</span><span style="font-size:11px;color:var(--text-3)">清空记录</span></div>
+            <div style="padding:10px 12px">
+              <div class="task">
+                <div class="r1">
+                  <span class="model"><span class="dot purple"></span>Seedance 2.5</span>
+                  <span class="status pill blue"><span class="dot purple"></span>生成中 01:12</span>
+                </div>
+                <div class="r2">潜水员跟鱼群互动…</div>
+                <div class="prog"><div class="fill" style="width:74%"></div></div>
+              </div>
+              <div class="task" style="opacity:.85">
+                <div class="r1">
+                  <span class="model"><span class="dot red"></span>MiniMax H3</span>
+                  <span class="status pill red">已失败</span>
+                </div>
+                <div class="r3"><span>13:58 · 已退点</span><span class="ops"><span>详情</span><span>重试</span></span></div>
+              </div>
+            </div>
+          </div>
+          <div style="height:180px;background:#101015;opacity:.4;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px">页面内容（被下拉覆盖）</div>
+        </div>
+      </div>
+      <div class="pc">
+        <div class="pro"><b>优点</b>全局入口，编辑器内外通用；为后续通知类功能（导出完成、审核结果）提供统一容器；与头部现有按钮动线一致。</div>
+        <div class="con"><b>缺点</b>下拉高度受限（长列表要内部滚动）；覆盖画布上方区域，与预览交互有点击冲突；"任务"放头部在信息架构上偏"系统通知"而非"创作内容"。</div>
+      </div>
+    </div>
+
+    <!-- 对比 -->
+    <h3 style="margin-top:30px">横向对比与推荐</h3>
+    <table>
+      <tr><th>方案</th><th>遮挡</th><th>随手可见</th><th>详情承载</th><th>改造量</th><th>适用</th></tr>
+      <tr><td>A 右侧全高抽屉（现状）</td><td class="text-destructive">大（属性+导出区）</td><td>需点开</td><td class="hl">最好</td><td>无</td><td>仅详情场景</td></tr>
+      <tr><td>B 中部抽屉</td><td>中（属性）</td><td>需点开</td><td>好</td><td>小</td><td>想保留现状形态时</td></tr>
+      <tr><td><span class="hl">C 底部任务坞</span></td><td class="hl">无</td><td class="hl">始终可见</td><td>中（浮层承载）</td><td>中</td><td class="hl">进行中状态的日常跟踪</td></tr>
+      <tr><td><span class="hl">D 面板"任务"标签页</span></td><td class="hl">无</td><td>切 tab 后需召回</td><td>中（窄面板）</td><td>中</td><td class="hl">历史回查 / 批次管理</td></tr>
+      <tr><td>E 头部下拉</td><td>小（局部浮层）</td><td>全局</td><td>中</td><td>中</td><td>编辑器外页面复用（二期）</td></tr>
+    </table>
+    <div class="callout">
+      <b>推荐组合：C + D</b>。方案 C（任务坞）承载"进行中的实时跟踪"——编辑时永远看得见、零遮挡；方案 D（任务标签页）承载"历史与批次管理"——任务有固定的家，信息架构成立。一期已有的右侧全高抽屉退役为"详情浮层"的实现细节（点 chip / 卡片后的展开层，宽度自适应）。角标（左栏 + AI 视频面板头部）在两种方案下都保留。
+    </div>
+    <div class="callout" style="border-left-color:var(--text-3);background:var(--panel-2)">
+      <b>切换成本</b>：五个方案共享 <code>useTaskQueue()</code> 的同一份数据与动作（提交 / 列表 / 详情 / 删除 / 批次插入），差异只在容器组件——选定后约一天内可完成迁移，且随时可再换。
+    </div>
+  </section>
+
+  <div class="footer-note">
+    MyCut · AI 视频任务队列 UI / 交互设计方案 v2 — 01–08 章为一期实现依据；09 章为布局位置备选（待选型）。 线框为示意稿，落地时沿用现有组件体系（Drawer / Select / ToggleRow / pill 状态色）实现。
+  </div>
+</div>
+</body>
+</html>
