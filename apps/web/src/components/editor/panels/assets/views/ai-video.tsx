@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { useEditor } from "@/editor/use-editor";
 import { useLocale } from "@/locale/locale-context";
 import type { LocaleKey } from "@/locale";
-import { generateVideo, type VideoGenResult } from "@/services/ai-video/generate";
 import { AiVideoMediaPickerDialog } from "./ai-video-media-picker";
 import { AiVideoFramePickerDialog } from "./ai-video-frame-picker";
 import type { MediaAsset } from "@/media/types";
@@ -26,14 +25,13 @@ import {
 	type CameraMovement,
 	type VideoGenMode,
 } from "@/services/ai-video/models";
-import { readVideoFile } from "@/media/mediabunny";
 import {
 	estimateCost,
 	useBilling,
 } from "@/services/billing/client";
 import { BalanceChip, RedeemForm } from "@/components/billing/balance-chip";
-import { buildElementFromMedia } from "@/timeline/element-utils";
-import { mediaTimeFromSeconds } from "@/wasm";
+import { useTaskQueue } from "@/components/editor/task-queue/provider";
+import { useAssetsPanelStore } from "../assets-panel-store";
 import { generateUUID } from "@/utils/id";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -64,19 +62,8 @@ interface Shot {
 	imageTimeLabel?: string;
 }
 
-/**
- * A run the server refused before it spent anything: no credits, a Pro-only
- * model, or the model's daily cap. Carries the reason so the runner can answer
- * with the credit dialog or the matching message.
- */
-class RefusedError extends Error {
-	constructor(
-		readonly code: string,
-		readonly cost?: number,
-		readonly balance?: number,
-	) {
-		super(code);
-	}
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
 }
 
 const REFUSAL_KEY: Record<string, LocaleKey> = {
@@ -84,19 +71,6 @@ const REFUSAL_KEY: Record<string, LocaleKey> = {
 	daily_limit: "billing.error.daily_limit",
 	unauthenticated: "billing.error.unauthenticated",
 };
-
-/** Turns a generation that never started into the error the runner expects. */
-function generationError({
-	result,
-	fallback,
-}: {
-	result: VideoGenResult;
-	fallback: string;
-}): Error {
-	return result.code
-		? new RefusedError(result.code, result.cost, result.balance)
-		: new Error(result.error ?? fallback);
-}
 
 const DURATIONS: Duration[] = [4, 5, 8, 10, 12, 15, "auto"];
 const SHOT_DURATIONS: ShotDuration[] = [4, 5, 8, 10];
@@ -145,7 +119,6 @@ const readImageAsDataUrl = ({ file }: { file: File }): Promise<string | null> =>
 	});
 
 export function AIVideoView() {
-	const editor = useEditor();
 	const activeProject = useEditor((e) => e.project.getActiveOrNull());
 	const { t } = useLocale();
 
@@ -207,12 +180,24 @@ export function AIVideoView() {
 	const [progress, setProgress] = useState("");
 
 	const billing = useBilling();
+	const taskQueue = useTaskQueue();
+	const { setActiveTab } = useAssetsPanelStore();
 
 	/** Video models the billing API exposes for the current mode. */
+	/** Video models the billing API exposes for the current mode. In i2v,
+	 * models whose gateway only takes public http(s) start images are hidden:
+	 * a locally picked frame is a data: URI they reject outright, so showing
+	 * them would just end in all_channels_failed. */
 	const availableModels = useMemo(
 		() =>
 			[...billing.models.values()].filter(
-				(model) => model.kind === "video" && model.modes.includes(mode),
+				(model) =>
+					model.kind === "video" &&
+					model.modes.includes(mode) &&
+					!(
+						mode === "image-to-video" &&
+						model.startImagePolicy === "public-url-only"
+					),
 			),
 		[billing.models, mode],
 	);
@@ -259,33 +244,7 @@ export function AIVideoView() {
 	 * only needs the balance refreshed. A refusal — no credits, Pro-only, over
 	 * the model's daily cap — comes back as a code and is answered here.
 	 */
-	const runGeneration = async ({
-		run,
-	}: {
-		run: () => Promise<void>;
-	}): Promise<boolean> => {
-		try {
-			await run();
-			await billing.refreshBalance();
-			return true;
-		} catch (error) {
-			if (error instanceof RefusedError && error.code === "insufficient") {
-				setInsufficient({
-					cost: error.cost ?? 0,
-					balance: error.balance ?? 0,
-				});
-				return false;
-			}
-			if (error instanceof RefusedError) {
-				const key = REFUSAL_KEY[error.code];
-				if (key) {
-					toast.error(t[key]);
-					return false;
-				}
-			}
-			throw error;
-		}
-	};
+
 
 	const handleModeChange = (nextMode: string) => {
 		// The effect above re-selects a valid model for the new mode.
@@ -461,262 +420,40 @@ export function AIVideoView() {
 	};
 
 	/**
-	 * Pulls the finished video through the download proxy, registers it as a media
-	 * asset and drops it on the timeline. Returns the clip length so a storyboard
-	 * run can lay the next shot down after this one.
+	 * 提交到后台任务队列。UI 只负责发起与即时反馈；轮询、渠道回退、结算退款、
+	 * 入库与状态展示全部由 TaskQueueProvider / 服务端接管。
 	 */
-	const importGeneratedVideo = async ({
-		videoUrl,
-		name,
-		startSeconds,
-		fallbackSeconds,
+	const MAX_CONCURRENT_TASKS = 3;
+
+	const runSubmission = async ({
+		run,
 	}: {
-		videoUrl: string;
-		name: string;
-		startSeconds: number;
-		fallbackSeconds: number;
-	}): Promise<number> => {
-		if (!activeProject) {
-			throw new Error(t["ai_video.no_project"]);
-		}
-
-		setProgress(t["ai_video.downloading"]);
-		// Proxied server-side: the TOS URLs carry no CORS headers.
-		const proxyUrl = `/api/media/download?url=${encodeURIComponent(videoUrl)}`;
-		const response = await fetch(proxyUrl);
-		if (!response.ok) {
-			throw new Error(
-				t["ai_video.download_failed"].replace(
-					"{status}",
-					String(response.status),
-				),
-			);
-		}
-
-		const blob = await response.blob();
-		const file = new File([blob], `${name}.mp4`, { type: "video/mp4" });
-
-		let thumbnailUrl: string | undefined;
-		let videoDuration: number | undefined;
-		let width: number | undefined;
-		let height: number | undefined;
+		run: () => Promise<void>;
+	}): Promise<boolean> => {
 		try {
-			const videoData = await readVideoFile({ file });
-			thumbnailUrl = videoData.thumbnailUrl ?? undefined;
-			videoDuration = videoData.duration;
-			width = videoData.width;
-			height = videoData.height;
-		} catch (err) {
-			console.warn("读取视频缩略图失败，将使用占位符:", err);
-		}
-
-		const asset = await editor.media.addMediaAsset({
-			projectId: activeProject.metadata.id,
-			asset: {
-				name,
-				file,
-				type: "video",
-				// The preview's scene builder skips assets without one, and storage
-				// only mints URLs when re-loading a project — so this run needs it.
-				url: URL.createObjectURL(file),
-				thumbnailUrl,
-				duration: videoDuration,
-				width,
-				height,
-			},
-		});
-
-		const clipSeconds = videoDuration ?? fallbackSeconds;
-
-		if (asset) {
-			editor.timeline.insertElement({
-				element: buildElementFromMedia({
-					mediaId: asset.id,
-					mediaType: "video",
-					name,
-					duration: mediaTimeFromSeconds({ seconds: clipSeconds }),
-					startTime: mediaTimeFromSeconds({ seconds: startSeconds }),
-				}),
-				placement: { mode: "auto", trackType: "video" },
-			});
-		}
-
-		return clipSeconds;
-	};
-
-	const runStoryboard = async (): Promise<void> => {
-		if (isImageStoryboard) {
-			// 图生视频分镜：每个镜头都必须有起始帧；运动描述可留空（与单图模式一致，走兜底指令）。
-			const missingImageIndex = shots.findIndex((shot) => !shot.imageDataUrl);
-			if (missingImageIndex !== -1) {
-				toast.error(
-					t["ai_video.storyboard_no_image"].replace(
-						"{index}",
-						String(missingImageIndex + 1),
-					),
-				);
-				return;
+			await run();
+			await billing.refreshBalance();
+			return true;
+		} catch (error) {
+			if (!(error instanceof Error) || !isRecord(error)) {
+				throw error;
 			}
-		} else {
-			const emptyIndex = shots.findIndex((shot) => !shot.prompt.trim());
-			if (emptyIndex !== -1) {
-				toast.error(
-					t["ai_video.storyboard_empty_shot"].replace(
-						"{index}",
-						String(emptyIndex + 1),
-					),
-				);
-				return;
+			const code = typeof error.code === "string" ? error.code : undefined;
+			const cost = typeof error.cost === "number" ? error.cost : undefined;
+			const balance =
+				typeof error.balance === "number" ? error.balance : undefined;
+			if (code === "insufficient") {
+				setInsufficient({ cost: cost ?? 0, balance: balance ?? 0 });
+				return false;
 			}
-		}
-
-		let startSeconds = 0;
-		let successCount = 0;
-		const failures: string[] = [];
-
-		for (const [index, shot] of shots.entries()) {
-			setProgress(
-				t["ai_video.storyboard_progress"]
-					.replace("{current}", String(index + 1))
-					.replace("{total}", String(shots.length)),
-			);
-
-			try {
-				// 图生视频分镜的空描述与单图模式一致：发一条兜底指令，方舟拒绝空 prompt。
-				const shotPrompt = isImageStoryboard
-					? shot.prompt.trim() || t["ai_video.image_default_prompt"]
-					: shot.prompt.trim();
-
-				const ran = await runGeneration({
-					run: async () => {
-						const result = await generateVideo({
-							prompt: applyCameraMovement({
-								prompt: shotPrompt,
-								movement: cameraMovement,
-							}),
-							duration: shot.duration,
-							resolution,
-							aspectRatio,
-							generateAudio: selectedModel?.supportsAudio
-								? generateAudio
-								: false,
-							modelId: selectedModel?.id ?? "",
-							imageUrl: isImageStoryboard ? shot.imageDataUrl : undefined,
-							onProgress: (msg) =>
-								setProgress(
-									`${t["ai_video.storyboard_progress"]
-										.replace("{current}", String(index + 1))
-										.replace("{total}", String(shots.length))} ${msg}`,
-								),
-						});
-
-						if (!result.success || !result.videoUrl) {
-							throw generationError({
-								result,
-								fallback: t["ai_video.failed"],
-							});
-						}
-
-						const clipSeconds = await importGeneratedVideo({
-							videoUrl: result.videoUrl,
-							name: `${t["ai_video.shot_asset_name"].replace(
-								"{index}",
-								String(index + 1),
-							)}-${Date.now()}`,
-							startSeconds,
-							fallbackSeconds: shot.duration,
-						});
-
-						startSeconds += clipSeconds;
-						successCount += 1;
-					},
-				});
-				// 被拒（余额不足 / 需专业版 / 超日限额）：后续镜头同样过不去，直接中止。
-				if (!ran) {
-					return;
+			if (code) {
+				const key = REFUSAL_KEY[code];
+				if (key) {
+					toast.error(t[key]);
+					return false;
 				}
-			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : t["toast.please_try_again"];
-				failures.push(
-					t["ai_video.storyboard_shot_failed"]
-						.replace("{index}", String(index + 1))
-						.replace("{error}", message),
-				);
 			}
-		}
-
-		if (successCount === 0) {
-			toast.error(t["ai_video.storyboard_all_failed"], {
-				description: failures.join("\n"),
-			});
-			return;
-		}
-
-		if (failures.length > 0) {
-			toast.warning(
-				t["ai_video.storyboard_partial"]
-					.replace("{success}", String(successCount))
-					.replace("{total}", String(shots.length)),
-				{ description: failures.join("\n") },
-			);
-			return;
-		}
-
-		toast.success(t["ai_video.added_to_timeline"]);
-		setShots([createShot()]);
-	};
-
-	const runSingleGeneration = async (): Promise<void> => {
-		const basePrompt =
-			mode === "image-to-video" ? motionPrompt.trim() : prompt.trim();
-		const seconds = duration === "auto" ? 5 : duration;
-
-		const ran = await runGeneration({
-			run: async () => {
-				const result = await generateVideo({
-					prompt: applyCameraMovement({
-						// Ark rejects an empty prompt, so an image-only run still needs an
-						// instruction the model can act on.
-						prompt: basePrompt || t["ai_video.image_default_prompt"],
-						movement: cameraMovement,
-					}),
-					duration,
-					resolution,
-					aspectRatio,
-					generateAudio: selectedModel?.supportsAudio ? generateAudio : false,
-					modelId: selectedModel?.id ?? "",
-					imageUrl:
-						mode === "image-to-video" ? (imageDataUrl ?? undefined) : undefined,
-					onProgress: (msg) => setProgress(msg),
-				});
-
-				if (!result.success || !result.videoUrl) {
-					// Thrown so the runner can answer a refusal; the outer
-					// handleGenerate catch owns every other failure.
-					throw generationError({
-						result,
-						fallback: t["ai_video.failed"],
-					});
-				}
-
-				await importGeneratedVideo({
-					videoUrl: result.videoUrl,
-					name: `${t["ai_video.asset_name"]}-${Date.now()}`,
-					startSeconds: 0,
-					fallbackSeconds: seconds,
-				});
-
-				toast.success(t["ai_video.added_to_timeline"]);
-				if (mode === "image-to-video") {
-					setMotionPrompt("");
-				} else {
-					setPrompt("");
-				}
-			},
-		});
-		if (!ran) {
-			return; // refused — the dialog or toast is already up
+			throw error;
 		}
 	};
 
@@ -733,15 +470,93 @@ export function AIVideoView() {
 			toast.error(t["ai_video.no_prompt"]);
 			return;
 		}
+		if (taskQueue.activeCount >= MAX_CONCURRENT_TASKS) {
+			toast.error(t["task_queue.limit_reached"]);
+			return;
+		}
 
 		setIsGenerating(true);
 		setProgress("");
 
 		try {
 			if (isStoryboard) {
-				await runStoryboard();
+				const batchId = generateUUID();
+				let submitted = 0;
+				for (let index = 0; index < shots.length; index++) {
+					const shot = shots[index];
+					setProgress(
+						t["task_queue.submitting_shot"]
+							.replace("{index}", String(index + 1))
+							.replace("{total}", String(shots.length)),
+					);
+					const shotPrompt = isImageStoryboard
+						? shot.prompt.trim() || t["ai_video.image_default_prompt"]
+						: shot.prompt.trim();
+					const ran = await runSubmission({
+						run: async () => {
+							await taskQueue.submitVideo({
+								modelId: selectedModel?.id ?? "",
+								prompt: applyCameraMovement({
+									prompt: shotPrompt,
+									movement: cameraMovement,
+								}),
+								duration: shot.duration,
+								resolution,
+								aspectRatio,
+								generateAudio: selectedModel?.supportsAudio
+									? generateAudio
+									: false,
+								imageUrl: isImageStoryboard
+									? (shot.imageDataUrl ?? undefined)
+									: undefined,
+								batchId,
+								batchIndex: index,
+							});
+						},
+					});
+					if (!ran) {
+						return; // refused — the dialog or toast is already up
+					}
+					submitted += 1;
+				}
+				toast.success(
+					t["task_queue.batch_submitted"].replace("{count}", String(submitted)),
+				);
 			} else {
-				await runSingleGeneration();
+				const basePrompt =
+					mode === "image-to-video" ? motionPrompt.trim() : prompt.trim();
+				const ran = await runSubmission({
+					run: async () => {
+						await taskQueue.submitVideo({
+							modelId: selectedModel?.id ?? "",
+							prompt: applyCameraMovement({
+								// Ark rejects an empty prompt, so an image-only run still
+								// needs an instruction the model can act on.
+								prompt: basePrompt || t["ai_video.image_default_prompt"],
+								movement: cameraMovement,
+							}),
+							duration,
+							resolution,
+							aspectRatio,
+							generateAudio: selectedModel?.supportsAudio
+								? generateAudio
+								: false,
+							imageUrl:
+								mode === "image-to-video"
+									? (imageDataUrl ?? undefined)
+									: undefined,
+						});
+					},
+				});
+				if (!ran) {
+					return; // refused — the dialog or toast is already up
+				}
+				toast.success(t["task_queue.toast_submitted"]);
+				if (mode === "image-to-video") {
+					setMotionPrompt("");
+				} else {
+					setPrompt("");
+				}
 			}
 		} catch (error) {
 			console.error("视频生成失败:", error);
@@ -762,8 +577,10 @@ export function AIVideoView() {
 				? singleSourceAsset
 				: (shots.find((shot) => shot.id === frameTarget)?.sourceAsset ?? null);
 
+
 	const isGenerateDisabled =
 		isGenerating ||
+		taskQueue.activeCount >= 3 ||
 		proLocked ||
 		// The catalogue loads asynchronously; nothing to run until it lands.
 		!selectedModel ||
@@ -1105,10 +922,24 @@ export function AIVideoView() {
 			title={t["tab.ai_video"]}
 			actions={
 				billing.signedIn ? (
-					<BalanceChip
-						balance={billing.balance}
-						onRedeemed={billing.refreshBalance}
-					/>
+					<div className="flex items-center gap-1.5">
+						<button
+							type="button"
+							className="hover:bg-accent relative flex items-center gap-1 rounded-md px-2 py-1 text-xs"
+							onClick={() => setActiveTab("task")}
+						>
+							{t["task_queue.entry"]}
+							{taskQueue.activeCount > 0 && (
+								<span className="bg-primary text-primary-foreground absolute -top-1 -right-1.5 min-w-4 rounded-full px-1 text-[10px] leading-4 font-semibold">
+									{taskQueue.activeCount}
+								</span>
+							)}
+						</button>
+						<BalanceChip
+							balance={billing.balance}
+							onRedeemed={billing.refreshBalance}
+						/>
+					</div>
 				) : undefined
 			}
 		>

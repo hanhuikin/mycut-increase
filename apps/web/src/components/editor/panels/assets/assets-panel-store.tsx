@@ -6,20 +6,20 @@ import {
 	ClosedCaptionIcon,
 	Folder03Icon,
 	Happy01Icon,
-	HeadphonesIcon,
 	MagicWand05Icon,
 	MusicNote01Icon,
 	TextIcon,
 	Settings01Icon,
 	SlidersHorizontalIcon,
 	Video02Icon,
+	Clock01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import type { Translations } from "@/locale";
 
 export const TAB_KEYS = [
 	"media",
-	"sounds",
+
 	"text",
 	"stickers",
 	"effects",
@@ -27,6 +27,7 @@ export const TAB_KEYS = [
 	"captions",
 	"adjustment",
 	"ai-video",
+	"task",
 	"ai-tools",
 	"ai-audio",
 	"settings",
@@ -44,10 +45,6 @@ export const getTabConfig = (t: Translations) => ({
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
 		label: t["tab.media"],
-	},
-	sounds: {
-		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
-		label: t["tab.sounds"],
 	},
 	text: {
 		icon: createHugeiconsIcon({ icon: TextIcon }),
@@ -76,6 +73,10 @@ export const getTabConfig = (t: Translations) => ({
 	"ai-video": {
 		icon: createHugeiconsIcon({ icon: Video02Icon }),
 		label: t["tab.ai_video"],
+	},
+	task: {
+		icon: createHugeiconsIcon({ icon: Clock01Icon }),
+		label: t["tab.task_queue"],
 	},
 	"ai-tools": {
 		icon: createHugeiconsIcon({ icon: MagicWand05Icon }),

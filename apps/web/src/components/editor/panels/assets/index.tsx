@@ -7,11 +7,11 @@ import { TabBar } from "./tabbar";
 import { Captions } from "@/subtitles/components/assets-view";
 import { MediaView } from "./views/assets";
 import { SettingsView } from "./views/settings";
-import { SoundsView } from "@/sounds/components/assets-view";
 import { StickersView } from "@/stickers/components/assets-view";
 import { TextView } from "@/text/components/assets-view";
 import { EffectsView } from "@/effects/components/assets-view";
 import { AIVideoView } from "./views/ai-video";
+import { TaskQueueView } from "@/components/editor/task-queue/task-queue-view";
 import { AIToolsView } from "./views/ai-tools";
 import { AIAudioView } from "./views/ai-audio";
 
@@ -20,7 +20,6 @@ export function AssetsPanel() {
 
 	const viewMap: Record<Tab, React.ReactNode> = {
 		media: <MediaView />,
-		sounds: <SoundsView />,
 		text: <TextView />,
 		stickers: <StickersView />,
 		effects: <EffectsView />,
@@ -36,6 +35,7 @@ export function AssetsPanel() {
 			</div>
 		),
 		"ai-video": <AIVideoView />,
+		task: <TaskQueueView />,
 		"ai-tools": <AIToolsView />,
 		"ai-audio": <AIAudioView />,
 		settings: <SettingsView />,

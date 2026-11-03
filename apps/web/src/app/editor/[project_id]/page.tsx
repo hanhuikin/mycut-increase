@@ -12,6 +12,9 @@ import { Timeline } from "@/timeline/components";
 import { PreviewPanel } from "@/preview/components";
 import { EditorHeader } from "@/components/editor/editor-header";
 import { EditorProvider } from "@/components/providers/editor-provider";
+import {
+	TaskQueueProvider,
+} from "@/components/editor/task-queue/provider";
 import { Onboarding } from "@/components/editor/onboarding";
 import { MigrationDialog } from "@/project/components/migration-dialog";
 import { usePanelStore } from "@/editor/panel-store";
@@ -43,16 +46,18 @@ export default function Editor() {
 	return (
 		<MobileGate>
 			<EditorProvider projectId={projectId}>
-				<div className="bg-background flex h-screen w-screen flex-col overflow-hidden">
-					<DegradedRendererBanner />
-					<EditorHeader />
-					<div className="min-h-0 min-w-0 flex-1">
-						<EditorLayout />
+				<TaskQueueProvider>
+					<div className="bg-background relative flex h-screen w-screen flex-col overflow-hidden">
+						<DegradedRendererBanner />
+						<EditorHeader />
+						<div className="min-h-0 min-w-0 flex-1">
+							<EditorLayout />
+						</div>
+						<Onboarding />
+						<MigrationDialog />
+						<ChangelogNotification />
 					</div>
-					<Onboarding />
-					<MigrationDialog />
-					<ChangelogNotification />
-				</div>
+				</TaskQueueProvider>
 			</EditorProvider>
 		</MobileGate>
 	);

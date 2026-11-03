@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import { estimateModelCost, getModel, hasModelGrant } from "@/services/admin/models";
+import { createTask, submitAttempt, type TaskSubmitParams } from "@/services/ai/tasks";
 import {
 	familyForKind,
 	resolveChannelChain,
@@ -74,13 +75,17 @@ export async function POST(request: NextRequest) {
 	}
 
 	// The freeze is keyed on this, and a replay of the same key would book no
-	// second charge — so a ref is usable exactly once.
+	// second charge — so a ref is usable exactly once. Video tasks mint their
+	// own per-attempt refs server-side, so only legacy callers need one here.
+	const family = familyForKind(model.kind);
 	const refId = typeof raw.refId === "string" ? raw.refId : "";
-	if (!refId) {
-		return NextResponse.json({ error: "refId_required" }, { status: 400 });
-	}
-	if (await hasFrozenRef({ refId })) {
-		return NextResponse.json({ error: "refId_reused" }, { status: 409 });
+	if (family !== "video") {
+		if (!refId) {
+			return NextResponse.json({ error: "refId_required" }, { status: 400 });
+		}
+		if (await hasFrozenRef({ refId })) {
+			return NextResponse.json({ error: "refId_reused" }, { status: 409 });
+		}
 	}
 
 	if (
@@ -91,7 +96,6 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({ error: "pro_required" }, { status: 403 });
 	}
 
-	const family = familyForKind(model.kind);
 	if (!family) {
 		// `local` models run in the browser and must never reach the server.
 		return NextResponse.json({ error: "model_not_remote" }, { status: 400 });
@@ -113,6 +117,61 @@ export async function POST(request: NextRequest) {
 	}
 
 	const imageUrl = typeof raw.imageUrl === "string" ? raw.imageUrl : undefined;
+
+	// 视频任务走任务队列：落库、由服务端轮询/回退/结算，浏览器凭 taskId 查状态。
+	// tool/audio（抹除、抠像、配乐等）保持既有"提交返回 jobId、客户端轮询"的轻流程。
+	const taskParams: TaskSubmitParams = {
+		prompt: typeof raw.prompt === "string" ? raw.prompt : "",
+		duration: duration ?? "auto",
+		resolution: parseResolution(raw.resolution),
+		aspectRatio:
+			typeof raw.aspectRatio === "string" ? raw.aspectRatio : undefined,
+		generateAudio: raw.generateAudio === true,
+		imageUrl,
+	};
+
+	if (family === "video") {
+		const attempt = await submitAttempt({
+			userId: user.id,
+			model,
+			params: taskParams,
+			exclude: [],
+			cost,
+		});
+		if (!attempt.ok) {
+			const insufficient =
+				!attempt.ok && attempt.error === "余额不足";
+			return NextResponse.json(
+				{
+					error: insufficient ? "insufficient" : "all_channels_failed",
+					details: attempt.attemptErrors.map(
+						(entry) => `${entry.channel}: ${entry.message}`,
+					),
+					...(insufficient
+						? { cost, balance: await getBalance({ userId: user.id }) }
+						: {}),
+				},
+				{ status: insufficient ? 402 : 502 },
+			);
+		}
+		const batchId =
+			typeof raw.batchId === "string" && raw.batchId ? raw.batchId : null;
+		const batchIndex =
+			typeof raw.batchIndex === "number" && Number.isFinite(raw.batchIndex)
+				? Math.round(raw.batchIndex)
+				: null;
+		const taskId = await createTask({
+			userId: user.id,
+			modelId: model.id,
+			prompt: taskParams.prompt,
+			params: taskParams,
+			batchId,
+			batchIndex,
+			attempt,
+		});
+		return NextResponse.json({ taskId, status: "queued" });
+	}
+
 	const chain = await resolveChannelChain({
 		modelId: model.id,
 		kind: model.kind,
@@ -156,10 +215,10 @@ export async function POST(request: NextRequest) {
 		}
 	}
 
-	// A verbatim body is honoured only for tool/audio jobs. `model` is stripped
-	// so a caller cannot redirect the job away from its routed endpoint.
+	// A verbatim body is honoured only for tool/audio jobs — video never
+	// reaches this point (it returned above), so the guard is structural.
 	const passthrough =
-		family !== "video" && typeof raw.input === "object" && raw.input !== null
+		typeof raw.input === "object" && raw.input !== null
 			? { ...(raw.input as Record<string, unknown>) }
 			: undefined;
 	if (passthrough) {
