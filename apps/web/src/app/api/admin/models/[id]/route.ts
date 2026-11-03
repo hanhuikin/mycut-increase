@@ -118,6 +118,17 @@ function sanitize(body: Record<string, unknown>): Sanitized {
 		);
 	}
 
+	if ("startImagePolicy" in body) {
+		const value = body.startImagePolicy;
+		if (value !== "any" && value !== "public-url-only") {
+			return {
+				ok: false,
+				error: "startImagePolicy must be 'any' or 'public-url-only'",
+			};
+		}
+		patch.startImagePolicy = value;
+	}
+
 	if (Object.keys(patch).length === 0) {
 		return { ok: false, error: "no editable fields supplied" };
 	}

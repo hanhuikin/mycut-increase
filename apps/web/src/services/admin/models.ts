@@ -13,6 +13,12 @@ export interface AdminModelConfig {
 	kind: "video" | "tool" | "audio" | "local";
 	modes: VideoGenMode[];
 	supportsAudio: boolean;
+	/**
+	 * Whether image-to-video accepts a locally picked start frame. Models
+	 * behind gateways that only take public http(s) image URLs are filtered
+	 * out of the i2v picker instead of failing after submit.
+	 */
+	startImagePolicy: "any" | "public-url-only";
 	maxDuration: number;
 	pricePerSecond720: number | null;
 	pricePerSecond1080: number | null;
@@ -34,6 +40,7 @@ export type EditableModelFields = Partial<
 		| "descriptionKey"
 		| "modes"
 		| "supportsAudio"
+		| "startImagePolicy"
 		| "maxDuration"
 		| "pricePerSecond720"
 		| "pricePerSecond1080"
@@ -56,6 +63,7 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		kind: "video",
 		modes: ["text-to-video", "image-to-video"],
 		supportsAudio: true,
+		startImagePolicy: "any",
 		maxDuration: 15,
 		pricePerSecond720: 10,
 		pricePerSecond1080: 25,
@@ -73,6 +81,7 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		kind: "video",
 		modes: ["text-to-video"],
 		supportsAudio: false,
+		startImagePolicy: "any",
 		maxDuration: 10,
 		pricePerSecond720: 5,
 		pricePerSecond1080: null,
@@ -90,6 +99,7 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		kind: "tool",
 		modes: [],
 		supportsAudio: false,
+		startImagePolicy: "any",
 		maxDuration: 15,
 		pricePerSecond720: null,
 		pricePerSecond1080: null,
@@ -107,6 +117,7 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		kind: "tool",
 		modes: [],
 		supportsAudio: false,
+		startImagePolicy: "any",
 		maxDuration: 15,
 		pricePerSecond720: null,
 		pricePerSecond1080: null,
@@ -124,6 +135,7 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		kind: "audio",
 		modes: [],
 		supportsAudio: false,
+		startImagePolicy: "any",
 		maxDuration: 30,
 		pricePerSecond720: null,
 		pricePerSecond1080: null,
@@ -141,6 +153,7 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		kind: "local",
 		modes: [],
 		supportsAudio: false,
+		startImagePolicy: "any",
 		maxDuration: 15,
 		pricePerSecond720: null,
 		pricePerSecond1080: null,
@@ -198,6 +211,10 @@ function toConfig(row: typeof aiModels.$inferSelect): AdminModelConfig {
 		kind: row.kind as AdminModelConfig["kind"],
 		modes: row.modes,
 		supportsAudio: row.supportsAudio,
+		startImagePolicy:
+			row.startImagePolicy === "public-url-only"
+				? "public-url-only"
+				: "any",
 		maxDuration: row.maxDuration,
 		pricePerSecond720: row.pricePerSecond720,
 		pricePerSecond1080: row.pricePerSecond1080,
@@ -218,6 +235,7 @@ export interface PublicModelConfig {
 	kind: AdminModelConfig["kind"];
 	modes: VideoGenMode[];
 	supportsAudio: boolean;
+	startImagePolicy: "any" | "public-url-only";
 	maxDuration: number;
 	pricePerSecond720: number | null;
 	pricePerSecond1080: number | null;
@@ -241,6 +259,7 @@ export function toPublicModel(model: AdminModelConfig): PublicModelConfig {
 		kind: model.kind,
 		modes: model.modes,
 		supportsAudio: model.supportsAudio,
+		startImagePolicy: model.startImagePolicy,
 		maxDuration: model.maxDuration,
 		pricePerSecond720: model.pricePerSecond720,
 		pricePerSecond1080: model.pricePerSecond1080,

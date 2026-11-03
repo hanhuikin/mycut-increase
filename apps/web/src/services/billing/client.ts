@@ -10,6 +10,12 @@ export interface BillingModel {
 	/** Generation modes (video models); empty for tools and audio. */
 	modes: string[];
 	supportsAudio: boolean;
+	/**
+	 * Whether image-to-video accepts a locally picked start frame. The AI
+	 * panel hides "public-url-only" models in i2v mode — their gateways
+	 * reject data: URIs outright, so a locally picked frame cannot run there.
+	 */
+	startImagePolicy: "any" | "public-url-only";
 	maxDuration: number;
 	labelKey: string | null;
 	descriptionKey: string | null;

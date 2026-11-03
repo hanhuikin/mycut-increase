@@ -64,6 +64,20 @@
       "when": 1790582290341,
       "tag": "0008_demonic_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793698112547,
+      "tag": "0009_famous_ben_grimm",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793702064294,
+      "tag": "0010_cloudy_richard_fisk",
+      "breakpoints": true
     }
   ]
 }

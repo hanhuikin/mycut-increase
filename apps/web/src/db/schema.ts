@@ -116,6 +116,17 @@ export const aiModels = appSchema.table("ai_models", {
 		.default(sql`'[]'::jsonb`)
 		.notNull(),
 	supportsAudio: boolean("supports_audio").default(false).notNull(),
+	/**
+	 * Whether image-to-video accepts a locally picked start frame. Some
+	 * gateways reject every non-http(s) image_url ("invalid or unsafe URL" —
+	 * data: URIs and bare base64 alike), so a frame picked in the editor
+	 * cannot run there; the AI panel hides such models in i2v mode instead of
+	 * failing after submit.
+	 */
+	startImagePolicy: text("start_image_policy")
+		.$type<"any" | "public-url-only">()
+		.default("any")
+		.notNull(),
 	maxDuration: integer("max_duration").default(15).notNull(),
 	/** Points per second for 720p; null for per-call billing. */
 	pricePerSecond720: integer("price_per_second_720"),
@@ -133,6 +144,8 @@ export const aiModels = appSchema.table("ai_models", {
 		.$defaultFn(() => new Date())
 		.notNull(),
 }).enableRLS();
+
+export type TAiModel = typeof aiModels.$inferSelect;
 
 /** System model id → the name this channel calls that model upstream. */
 export type ChannelModels = Record<string, string>;
@@ -179,6 +192,76 @@ export const channels = appSchema.table(
 		index("channels_enabled_priority_idx").on(table.enabled, table.priority),
 	],
 ).enableRLS();
+
+/**
+ * One AI video generation, persisted so its status survives panel switches,
+ * page reloads and re-logins. Submitted once per channel attempt: a channel
+ * fallback replaces the row's channel/job/ref in place (the abandoned
+ * attempt's freeze was refunded when it failed).
+ */
+export const generationTasks = appSchema.table(
+	"generation_tasks",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		/** Same batch → shots of one storyboard run; null for single tasks. */
+		batchId: text("batch_id"),
+		batchIndex: integer("batch_index"),
+		modelId: text("model_id").notNull(),
+		prompt: text("prompt").default("").notNull(),
+		/** {mode,duration,resolution,aspect,audio,cameraMovement} — no image data. */
+		params: jsonb("params")
+			.$type<{
+				mode: "text-to-video" | "image-to-video";
+				duration: number | "auto";
+				resolution: string;
+				aspect: string | null;
+				audio: boolean;
+			}>()
+			.default(sql`'{}'::jsonb`)
+			.notNull(),
+		/** submitting → queued → generating → succeeded | failed | canceled */
+		status: text("status").default("submitting").notNull(),
+		/** The attempt this row currently points at. */
+		channelId: text("channel_id"),
+		protocol: text("protocol"),
+		upstreamJobId: text("upstream_job_id"),
+		refId: text("ref_id"),
+		/** Channel ids this task already tried and gave up on. */
+		excludedChannels: jsonb("excluded_channels")
+			.$type<string[]>()
+			.default(sql`'[]'::jsonb`)
+			.notNull(),
+		/** Has a start frame → poll failures must not fall back (silent drop). */
+		hasStartImage: boolean("has_start_image").default(false).notNull(),
+		videoUrl: text("video_url"),
+		errorSummary: text("error_summary"),
+		/** [{channel,message,at}] — per-attempt failure records for the drawer. */
+		errorDetails: jsonb("error_details")
+			.$type<Array<{ channel: string; message: string; at: string }>>()
+			.default(sql`'[]'::jsonb`)
+			.notNull(),
+		pointsFrozen: integer("points_frozen").default(0).notNull(),
+		pointsSettled: integer("points_settled"),
+		createdAt: timestamp("created_at")
+			.$defaultFn(() => new Date())
+			.notNull(),
+		startedAt: timestamp("started_at"),
+		finishedAt: timestamp("finished_at"),
+		updatedAt: timestamp("updated_at")
+			.$defaultFn(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("generation_tasks_user_idx").on(table.userId, table.createdAt),
+		index("generation_tasks_status_idx").on(table.status),
+		index("generation_tasks_batch_idx").on(table.batchId),
+	],
+).enableRLS();
+
+export type TGenerationTask = typeof generationTasks.$inferSelect;
 
 /**
  * Append-only credit ledger. The balance is always

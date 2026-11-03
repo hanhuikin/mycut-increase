@@ -1,0 +1,1 @@
+ALTER TABLE "app"."ai_models" ADD COLUMN "start_image_policy" text DEFAULT 'any' NOT NULL;
