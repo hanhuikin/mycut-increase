@@ -38,6 +38,34 @@ export async function POST(request: NextRequest) {
 	const channelId = typeof raw.channelId === "string" ? raw.channelId : "";
 	const jobId = typeof raw.jobId === "string" ? raw.jobId : "";
 	const refId = typeof raw.refId === "string" ? raw.refId : "";
+
+	/**
+	 * The caller stopped waiting (its own poll budget ran out). The job may
+	 * still be rendering upstream, but nobody is listening any more, so the
+	 * freeze for this attempt goes back. Handled before the channel lookups:
+	 * an abandoned task must not be held hostage by a channel disabled since.
+	 */
+	if (raw.release === true) {
+		if (!refId) {
+			return NextResponse.json({ error: "invalid_handle" }, { status: 400 });
+		}
+		try {
+			await refundTask({
+				userId: user.id,
+				refId,
+				note: "生成超时，已退回点数",
+				modelId: modelId || null,
+			});
+		} catch (error) {
+			console.error("release refund failed:", error);
+			return NextResponse.json({ error: "refund_failed" }, { status: 500 });
+		}
+		return NextResponse.json({
+			state: "failed",
+			error: "生成超时，已退回点数",
+		});
+	}
+
 	if (!modelId || !channelId || !jobId) {
 		return NextResponse.json({ error: "invalid_handle" }, { status: 400 });
 	}

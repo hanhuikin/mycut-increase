@@ -42,12 +42,33 @@ export type PollState =
 	| { state: "done"; url: string }
 	| { state: "failed"; error: string };
 
+/** Poll every 2s while a job is young, then back off to 5s once it is long. */
 const POLL_INTERVAL_MS = 2000;
-/** Ark renders long clips; the others cap out around five minutes. */
-const DEFAULT_MAX_POLLS = 150;
+const POLL_INTERVAL_LONG_MS = 5000;
+/** Polls spent at the fast interval before backing off (~2 minutes). */
+const POLL_INTERVAL_SWITCH_AFTER = 60;
+
+/**
+ * Poll budgets, in polls (the wall-clock total depends on the interval mix).
+ *
+ * A 150-poll (5 minute) budget used to apply to every non-Ark protocol, but
+ * queue gateways are not five-minute services — Seedance 2.5 renders up to 30
+ * seconds of video and Kling v3 image-to-video has been measured around nine
+ * minutes — so real jobs were abandoned mid-render. Rougher but honest: the
+ * default now covers roughly half an hour (60 polls at 2s + 340 at 5s), and
+ * Ark, which renders the longest clips, keeps its larger budget.
+ */
+const DEFAULT_MAX_POLLS = 400;
 const MAX_POLLS_BY_PROTOCOL: Record<string, number> = {
 	ark: 450,
 };
+
+/** Interval for the poll at `index`, backing off after the early burst. */
+function pollIntervalMs(index: number): number {
+	return index < POLL_INTERVAL_SWITCH_AFTER
+		? POLL_INTERVAL_MS
+		: POLL_INTERVAL_LONG_MS;
+}
 
 export interface JobParams {
 	modelId: string;
@@ -176,7 +197,7 @@ export async function pollJob({
 	const startedAt = Date.now();
 
 	for (let i = 0; i < maxPolls; i++) {
-		await sleep(POLL_INTERVAL_MS);
+		await sleep(pollIntervalMs(i));
 
 		const response = await fetch("/api/ai/poll", {
 			method: "POST",
@@ -228,7 +249,42 @@ export async function pollJob({
 		}
 	}
 
+	// Giving up locally is invisible to the server: without an explicit release
+	// the freeze booked at submit time is never closed out and the points stay
+	// spent on a job nobody is waiting for. Release it before reporting.
+	await releaseTask({
+		modelId,
+		channelId: job.channelId,
+		jobId: job.jobId,
+		refId: job.refId,
+	});
 	throw new JobError(`${label} 生成超时`, job.channelId);
+}
+
+/**
+ * Hands an abandoned job back: the server refunds the freeze for this attempt.
+ * Idempotent per refId, and a failure here must not mask the timeout itself.
+ */
+async function releaseTask({
+	modelId,
+	channelId,
+	jobId,
+	refId,
+}: {
+	modelId: string;
+	channelId: string;
+	jobId: string;
+	refId: string;
+}): Promise<void> {
+	try {
+		await fetch("/api/ai/poll", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ modelId, channelId, jobId, refId, release: true }),
+		});
+	} catch (error) {
+		console.error("release failed:", error);
+	}
 }
 
 /** Submit + poll in one step, for callers with no fallback chain of their own. */

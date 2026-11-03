@@ -127,7 +127,9 @@ function videoBodyFor({
 	}
 	if (family === "seedance") {
 		// Duration is a string of integer seconds 4–30 ("auto" → omit);
-		// resolution 480p/720p/1080p all exist; aspect accepts the full set.
+		// resolution 480p/720p/1080p all exist; t2v accepts the full aspect
+		// set, but first-frame (i2v) tasks reject any fixed ratio — the
+		// gateway demands "adaptive" so the frame dictates the shape.
 		return {
 			prompt,
 			...(imageUrl ? { image_url: imageUrl } : {}),
@@ -135,10 +137,9 @@ function videoBodyFor({
 				? { duration: String(clamp(seconds, 4, 30)) }
 				: {}),
 			resolution: input.resolution ?? "720p",
-			...(aspect &&
-			["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"].includes(aspect)
-				? { aspect_ratio: aspect }
-				: {}),
+			aspect_ratio: imageUrl
+				? "adaptive"
+				: (aspect ?? "adaptive"),
 			...(typeof audio === "boolean" ? { generate_audio: audio } : {}),
 		};
 	}
@@ -175,7 +176,15 @@ function videoBodyFor({
 		};
 	}
 	// minimax: integer seconds 4–15; resolution tiers are "2K" / "768P";
-	// i2v drops the aspect field; no audio field exists.
+	// i2v drops the aspect field; no audio field exists. The gateway rejects
+	// every non-http(s) image_url outright ("invalid or unsafe URL" — data:
+	// URIs and bare base64 alike), so a locally picked start frame cannot run
+	// here at all; fail with the reason instead of a cryptic 400 per channel.
+	if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
+		throw new Error(
+			"MiniMax 起始图仅支持公网 http(s) 图片链接，不支持本地选取的图片；图生视频请改用 Seedance / Kling / Vidu / Veo",
+		);
+	}
 	return {
 		prompt,
 		...(imageUrl ? { image_url: imageUrl } : {}),
