@@ -8,7 +8,6 @@ const webEnvSchema = z.object({
 
 	// Public
 	NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
-	NEXT_PUBLIC_MARBLE_API_URL: z.url(),
 
 	// Server
 	DATABASE_URL: z.string().refine(
@@ -22,10 +21,6 @@ const webEnvSchema = z.object({
 		(value) => value.startsWith("redis://") || value.startsWith("rediss://"),
 		"REDIS_URL must be a redis:// or rediss:// URL",
 	),
-	MARBLE_WORKSPACE_KEY: z.string(),
-	FREESOUND_CLIENT_ID: z.string(),
-	FREESOUND_API_KEY: z.string(),
-	ARK_API_KEY: z.string().optional(),
 	/** 32 bytes of hex; encrypts provider keys stored in the database. */
 	MODEL_CREDENTIALS_KEY: z
 		.string()
