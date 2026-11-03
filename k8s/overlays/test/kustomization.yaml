@@ -1,0 +1,28 @@
+# 测试环境：单副本、低资源、测试域名。
+# 数据库/Redis 由外部独立部署，凭据在 mycut-secrets（见 secret.example.yaml）。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mycut-test
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+images:
+  - name: registry.example.com/mycut/web
+    newTag: test-latest
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: mycut-web
+
+configMapGenerator:
+  - name: mycut-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - NEXT_PUBLIC_SITE_URL=https://test.mycut.example.com
+      - NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com

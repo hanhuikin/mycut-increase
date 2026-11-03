@@ -4,10 +4,6 @@ FROM base AS builder
 
 WORKDIR /app
 
-ARG FREESOUND_CLIENT_ID
-ARG FREESOUND_API_KEY
-ARG NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com
-ARG MARBLE_WORKSPACE_KEY=build-placeholder
 # Railway 会把服务变量作为 build arg 传入,覆盖本地默认值
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
@@ -23,17 +19,14 @@ COPY apps/web/ apps/web/
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build-time env stubs to pass zod validation
+# Build-time env stubs to pass zod validation. REDIS_URL mirrors the runtime
+# schema (ioredis direct — the old UPSTASH_REST_* pair predates that switch
+# and fails env parsing now). Values here are placeholders: nothing connects
+# during `next build`, and the runner overrides everything from its env.
 ENV DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut"
 ENV BETTER_AUTH_SECRET="build-time-secret"
-ENV UPSTASH_REDIS_REST_URL="http://localhost:8079"
-ENV UPSTASH_REDIS_REST_TOKEN="example_token"
+ENV REDIS_URL="redis://:build-time@localhost:6379"
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_MARBLE_API_URL=$NEXT_PUBLIC_MARBLE_API_URL
-ENV MARBLE_WORKSPACE_KEY=$MARBLE_WORKSPACE_KEY
-
-ENV FREESOUND_CLIENT_ID=$FREESOUND_CLIENT_ID
-ENV FREESOUND_API_KEY=$FREESOUND_API_KEY
 
 WORKDIR /app/apps/web
 RUN bun run build

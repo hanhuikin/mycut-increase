@@ -66,6 +66,7 @@ export interface ModelDetail {
 	kind: string;
 	modes: string[];
 	supportsAudio: boolean;
+	startImagePolicy: "any" | "public-url-only";
 	maxDuration: number;
 	pricePerSecond720: number | null;
 	pricePerSecond1080: number | null;
@@ -88,6 +89,7 @@ interface FormState {
 	enabled: boolean;
 	requiresPro: boolean;
 	supportsAudio: boolean;
+	startImagePolicy: "any" | "public-url-only";
 	modes: string[];
 	pricePerSecond720: string;
 	pricePerSecond1080: string;
@@ -107,6 +109,7 @@ function toForm(model: ModelDetail): FormState {
 		enabled: model.enabled,
 		requiresPro: model.requiresPro,
 		supportsAudio: model.supportsAudio,
+		startImagePolicy: model.startImagePolicy,
 		modes: [...model.modes],
 		pricePerSecond720: text(model.pricePerSecond720),
 		pricePerSecond1080: text(model.pricePerSecond1080),
@@ -130,6 +133,7 @@ function toPayload(form: FormState) {
 		enabled: form.enabled,
 		requiresPro: form.requiresPro,
 		supportsAudio: form.supportsAudio,
+		startImagePolicy: form.startImagePolicy,
 		modes: form.modes,
 		pricePerSecond720: numberOrNull(form.pricePerSecond720),
 		pricePerSecond1080: numberOrNull(form.pricePerSecond1080),
@@ -557,6 +561,29 @@ export function ModelDrawer({
 											checked={form.supportsAudio}
 											onChange={(checked) => update("supportsAudio", checked)}
 										/>
+										<Field label={t["admin.models.start_image_policy"]}>
+											<select
+												value={form.startImagePolicy}
+												onChange={(event) => {
+													const value = event.target.value;
+													if (
+														value !== "any" &&
+														value !== "public-url-only"
+													) {
+														return;
+													}
+													update("startImagePolicy", value);
+												}}
+												className="border-border bg-input focus-visible:border-primary/50 h-7 w-full rounded-md border px-2 text-[12.5px] outline-none"
+											>
+												<option value="any">
+													{t["admin.models.start_image_any"]}
+												</option>
+												<option value="public-url-only">
+													{t["admin.models.start_image_public_url_only"]}
+												</option>
+											</select>
+										</Field>
 										<Field label={t["admin.models.max_duration"]}>
 											<Input
 												type="number"

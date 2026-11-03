@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mycut-web
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: web
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: NEXT_PUBLIC_SITE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mycut-config
+                  key: NEXT_PUBLIC_SITE_URL
+            - name: NEXT_PUBLIC_MARBLE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mycut-config
+                  key: NEXT_PUBLIC_MARBLE_API_URL
+      topologySpreadConstraints:
+        # 双副本尽量落在不同节点
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: mycut-web

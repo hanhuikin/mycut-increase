@@ -1,0 +1,29 @@
+# 生产环境：双副本 + HPA、生产域名与 TLS。
+# 数据库/Redis 由外部独立部署（高可用托管），凭据在 mycut-secrets。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mycut-prod
+
+resources:
+  - ../../base
+  - ingress.yaml
+  - hpa.yaml
+
+images:
+  - name: registry.example.com/mycut/web
+    newTag: prod-latest
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: mycut-web
+
+configMapGenerator:
+  - name: mycut-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - NEXT_PUBLIC_SITE_URL=https://mycut.example.com
+      - NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com
