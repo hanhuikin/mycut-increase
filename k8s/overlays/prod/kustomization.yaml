@@ -27,4 +27,3 @@ configMapGenerator:
       disableNameSuffixHash: true
     literals:
       - NEXT_PUBLIC_SITE_URL=https://mycut.example.com
-      - NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com

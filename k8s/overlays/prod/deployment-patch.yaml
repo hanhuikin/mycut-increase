@@ -21,11 +21,6 @@ spec:
                 configMapKeyRef:
                   name: mycut-config
                   key: NEXT_PUBLIC_SITE_URL
-            - name: NEXT_PUBLIC_MARBLE_API_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: mycut-config
-                  key: NEXT_PUBLIC_MARBLE_API_URL
       topologySpreadConstraints:
         # 双副本尽量落在不同节点
         - maxSkew: 1

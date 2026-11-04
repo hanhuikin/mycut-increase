@@ -30,4 +30,3 @@ configMapGenerator:
       # 必须与 ingress host、DNS、cert-manager 签发域名三者一致；
       # 该域名必须以 https 访问（编辑器的 WebCodecs/OPFS 依赖安全上下文）
       - NEXT_PUBLIC_SITE_URL=https://test-mycut.sunwin-sh.com
-      - NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com
