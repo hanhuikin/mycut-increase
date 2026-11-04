@@ -133,7 +133,9 @@ To run everything (including a production build of the app) in Docker:
 docker compose up -d
 ```
 
-The app will be available at [http://localhost:3100](http://localhost:3100).
+The app will be available at [http://localhost:3000](http://localhost:3000).
+If port 3000 is already taken (e.g. by `bun run dev`), set `WEB_PORT=3100` in a
+root `.env` file and the app moves to that port instead.
 
 ## Contributing
 
