@@ -3,8 +3,15 @@
 # worker fan-out (`worker_threads` options are unimplemented) and lacks
 # WebAssembly.instantiateStreaming at runtime, so it is a package manager here
 # only — Node is Next's supported runtime.
-FROM oven/bun:alpine AS base
-RUN apk add --no-cache nodejs
+# 国内构建：底座走国内镜像（1panel 加速，无需代理），apk 走阿里云源，
+# 依赖走 npmmirror。需要官方源时可覆盖：
+#   docker build --build-arg BASE_IMAGE=oven/bun:1.2.18-alpine .
+ARG BASE_IMAGE=docker.1panel.live/oven/bun:1.2.18-alpine
+FROM ${BASE_IMAGE} AS base
+
+# Alpine 官方源切到阿里云镜像（apk 换源后才能装 nodejs）
+RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|g' /etc/apk/repositories \
+	&& apk add --no-cache nodejs
 
 FROM base AS builder
 
@@ -18,6 +25,8 @@ COPY bun.lock bun.lock
 COPY turbo.json turbo.json
 
 COPY apps/web/package.json apps/web/package.json
+# bun.lock 不记录 registry URL，依赖源完全由此环境变量决定
+ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
 RUN bun install
 
 COPY apps/web/ apps/web/
