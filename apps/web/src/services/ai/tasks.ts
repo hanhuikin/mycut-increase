@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import postgres from "postgres";
 import { db } from "@/db";
 import { webEnv } from "@/env/web";
@@ -350,6 +350,23 @@ export async function syncTask({
 	userId: string;
 	task: TGenerationTask;
 }): Promise<TGenerationTask> {
+	// A clip that landed while its settle failed would keep the freeze on the
+	// books forever — the task is terminal, so nothing else retries it. Settle
+	// is idempotent per refId, so re-running it here on every read is safe.
+	if (
+		taskRow.status === "succeeded" &&
+		taskRow.pointsSettled === null &&
+		taskRow.refId
+	) {
+		const release = await tryTaskLock(taskRow.id);
+		if (!release) return taskRow;
+		try {
+			return await retryHangingSettle({ userId, task: taskRow });
+		} finally {
+			await release();
+		}
+	}
+
 	if (isTerminal(taskRow.status)) return taskRow;
 
 	const release = await tryTaskLock(taskRow.id);
@@ -362,11 +379,20 @@ export async function syncTask({
 	}
 }
 
-/** Dedicated single-connection client: session locks need one stable session. */
+/**
+ * Reserved-session pool for advisory locks. Sessions must be stable for the
+ * lock's lifetime (acquire and release on the same session), but a pool is
+ * fine — each reserve hands out its own session. Sized above one so a slow
+ * upstream poll holding a lock cannot stall every other task's sync.
+ */
 let lockSql: ReturnType<typeof postgres> | null = null;
+const LOCK_POOL_MAX = 4;
 function getLockClient(): ReturnType<typeof postgres> {
 	if (!lockSql) {
-		lockSql = postgres(webEnv.DATABASE_URL, { max: 1, idle_timeout: 30 });
+		lockSql = postgres(webEnv.DATABASE_URL, {
+			max: LOCK_POOL_MAX,
+			idle_timeout: 30,
+		});
 	}
 	return lockSql;
 }
@@ -399,6 +425,39 @@ async function tryTaskLock(
 	} catch (error) {
 		await session.release();
 		throw error;
+	}
+}
+
+/**
+ * Re-settle a succeeded clip whose settle never landed, then record the
+ * settled points. Both halves are replay-safe: the ledger books once per
+ * refId, and the row update is guarded on pointsSettled still being null.
+ */
+async function retryHangingSettle({
+	userId,
+	task,
+}: {
+	userId: string;
+	task: TGenerationTask;
+}): Promise<TGenerationTask> {
+	const model = await getModel({ id: task.modelId });
+	if (!model) return task;
+	try {
+		const points = await settleAttempt({ userId, task, model });
+		const [updated] = await db
+			.update(generationTasks)
+			.set({ pointsSettled: points, updatedAt: new Date() })
+			.where(
+				and(
+					eq(generationTasks.id, task.id),
+					isNull(generationTasks.pointsSettled),
+				),
+			)
+			.returning();
+		return updated ?? task;
+	} catch (error) {
+		console.error("settle retry failed:", error);
+		return task;
 	}
 }
 
