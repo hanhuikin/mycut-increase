@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "@/auth/client";
@@ -13,6 +13,17 @@ import {
 } from "../form-ui";
 
 export default function ResetPage() {
+	// useSearchParams() reads the token from the URL, which opts the tree out
+	// of static prerendering — without a Suspense boundary `next build` fails
+	// on this page during export.
+	return (
+		<Suspense fallback={null}>
+			<ResetForm />
+		</Suspense>
+	);
+}
+
+function ResetForm() {
 	const { t } = useLocale();
 	const searchParams = useSearchParams();
 	const token = searchParams.get("token") ?? "";
