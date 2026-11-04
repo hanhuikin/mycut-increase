@@ -17,7 +17,7 @@ cd "$(dirname "$0")/.."
 REGISTRY_HOST="gitlab.sunwin-sh.com"
 IMAGE="${REGISTRY_HOST}/development/mycut/web"
 NAMESPACE="mycut-test"
-SITE_URL="https://test.mycut.sunwin-sh.com"
+SITE_URL="https://test-mycut.sunwin-sh.com"
 
 BUILD=false
 SKIP_MIGRATE=false

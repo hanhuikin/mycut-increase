@@ -74,12 +74,12 @@
 <div class="note" style="border-color:#86efac;background:#f0fdf4;">
   <b>处理进度（2026-11-04 更新）</b>：以下清单项已在仓库内修复并提交——
   <b>#1</b> 镜像地址改指 GitLab 容器仓库（overlays <code>newName</code>）+ 基础清单加 <code>imagePullSecrets</code>；
-  <b>#2</b> test ingress 已启用 TLS + cert-manager（域名暂定 <code>test.mycut.sunwin-sh.com</code>，随 DNS 定案调整）；
+  <b>#2</b> test ingress 已启用 TLS + cert-manager（域名暂定 <code>test-mycut.sunwin-sh.com</code>，随 DNS 定案调整）；
   <b>#3</b> ConfigMap 站点 URL 同步为 https 真实域名；
   <b>#4</b> migrate Job 移出 kustomize resources，改由 <code>script/deploy-test.sh</code> 每次发布渲染重建；
   <b>#8</b> 发布脚本强制不可变 tag（<code>test-日期.sha</code>）。
   新增一键部署脚本 <code>script/deploy-test.sh</code>（构建推送 → 集群准备 → 迁移 → 发布 → 验证）。
-  <b>剩余集群侧事项</b>：提供 kubeconfig；确认 cert-manager issuer 与 <code>test.mycut.sunwin-sh.com</code> DNS 解析（内网域名需 DNS-01 或内部证书）；确认 GitLab 容器仓库已开启。
+  <b>剩余集群侧事项</b>：提供 kubeconfig；确认 cert-manager issuer 与 <code>test-mycut.sunwin-sh.com</code> DNS 解析（内网域名需 DNS-01 或内部证书）；确认 GitLab 容器仓库已开启。
 </div>
 
 <h2>一、未完善清单（按阻塞等级）</h2>

@@ -15,10 +15,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - test.mycut.sunwin-sh.com
+        - test-mycut.sunwin-sh.com
       secretName: mycut-test-tls
   rules:
-    - host: test.mycut.sunwin-sh.com
+    - host: test-mycut.sunwin-sh.com
       http:
         paths:
           - path: /
