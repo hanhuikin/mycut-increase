@@ -34,17 +34,19 @@ COPY apps/web/ apps/web/
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build-time env stubs to pass zod validation. REDIS_URL mirrors the runtime
-# schema (ioredis direct — the old UPSTASH_REST_* pair predates that switch
-# and fails env parsing now). Values here are placeholders: nothing connects
-# during `next build`, and the runner overrides everything from its env.
-ENV DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut"
-ENV BETTER_AUTH_SECRET="build-time-secret"
-ENV REDIS_URL="redis://:build-time@localhost:6379"
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 WORKDIR /app/apps/web
-RUN node ./node_modules/next/dist/bin/next build
+# Build-time env stubs to pass zod validation. REDIS_URL mirrors the runtime
+# schema (ioredis direct — the old UPSTASH_REST_* pair predates that switch
+# and fails env parsing now). Values are placeholders: nothing connects during
+# `next build`, and the runner takes everything from its own env.
+# Inline on the command rather than `ENV` so the values are not persisted in
+# image metadata and BuildKit's SecretsUsedInArgOrEnv lint stays quiet.
+RUN DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut" \
+	BETTER_AUTH_SECRET="build-time-secret" \
+	REDIS_URL="redis://:build-time@localhost:6379" \
+	node ./node_modules/next/dist/bin/next build
 
 # Production image
 FROM base AS runner
