@@ -32,3 +32,6 @@ k8s/secret.yaml
 # Database dumps contain encrypted channel keys + password hashes; never commit
 k8s/secret.yaml
 db-export/
+
+# Dev HTTPS certificates (self-signed)
+.certs/

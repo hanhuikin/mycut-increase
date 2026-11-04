@@ -45,7 +45,15 @@ export const auth = betterAuth({
 	plugins: [admin(), twoFactor(), haveIBeenPwned()],
 	baseURL: webEnv.NEXT_PUBLIC_SITE_URL,
 	appName: "MyCut",
-	trustedOrigins: [webEnv.NEXT_PUBLIC_SITE_URL],
+	// TRUSTED_ORIGINS: comma-separated extra origins (e.g. the LAN-IP https
+	// variant used for local device testing) accepted alongside the baseURL.
+	trustedOrigins: [
+		webEnv.NEXT_PUBLIC_SITE_URL,
+		...(process.env.TRUSTED_ORIGINS ?? "")
+			.split(",")
+			.map((origin) => origin.trim())
+			.filter(Boolean),
+	],
 });
 
 export type Auth = typeof auth;
