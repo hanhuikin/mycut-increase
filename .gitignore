@@ -26,11 +26,10 @@ target/
 .cargo-tools/
 
 rust-migration-notes.md
-# K8s local secrets (copy secret.example.yaml and fill in)
-k8s/secret.yaml
+# K8s per-env real secrets (copy from secret.example.yaml; never commit)
+k8s/secrets/
 
 # Database dumps contain encrypted channel keys + password hashes; never commit
-k8s/secret.yaml
 db-export/
 
 # Dev HTTPS certificates (self-signed)
