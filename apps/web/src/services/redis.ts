@@ -13,7 +13,12 @@ export function getRedis(): Redis {
 		client = new Redis(webEnv.REDIS_URL, {
 			lazyConnect: true,
 			maxRetriesPerRequest: 2,
-			enableOfflineQueue: false,
+			// Queue commands issued before the lazy connection is up. With this
+			// off, the first request after boot has its command rejected
+			// ("Stream isn't writeable") — better-auth's rate limiter does not
+			// catch that, so the first login after a cold start 500s.
+			enableOfflineQueue: true,
+			connectTimeout: 5000,
 		});
 		client.on("error", (error) => {
 			// Swallow: connection errors are reported per-call by the callers.
