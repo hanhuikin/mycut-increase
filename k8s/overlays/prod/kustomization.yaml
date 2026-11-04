@@ -12,6 +12,7 @@ resources:
 
 images:
   - name: registry.example.com/mycut/web
+    newName: gitlab.sunwin-sh.com/development/mycut/web
     newTag: prod-latest
 
 patches:

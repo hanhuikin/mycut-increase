@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyCut K8s 上线注意项</title>
+<style>
+  :root {
+    --ink: #1a1d21; --muted: #6b7280; --line: #e5e7eb;
+    --red: #dc2626; --red-bg: #fef2f2; --red-line: #fecaca;
+    --amber: #d97706; --amber-bg: #fffbeb; --amber-line: #fde68a;
+    --green: #059669; --green-bg: #ecfdf5; --green-line: #a7f3d0;
+    --blue: #2563eb; --blue-bg: #eff6ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", -apple-system, sans-serif;
+    color: var(--ink); margin: 0; background: #f6f7f9;
+    line-height: 1.65; font-size: 15px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header { border-bottom: 3px solid var(--ink); padding-bottom: 16px; margin-bottom: 24px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 19px; margin: 40px 0 12px; padding-left: 10px; border-left: 4px solid var(--ink); }
+  h3 { font-size: 15px; margin: 18px 0 6px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; white-space: nowrap; }
+  code, .mono {
+    font-family: Consolas, "JetBrains Mono", monospace; font-size: 12.5px;
+    background: #f3f4f6; padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: #1f2937; color: #e5e7eb; padding: 12px 14px; border-radius: 8px;
+    overflow-x: auto; font-size: 12.5px; line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+  .p0 { color: var(--red); background: var(--red-bg); border: 1px solid var(--red-line); }
+  .p1 { color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-line); }
+  .p2 { color: var(--green); background: var(--green-bg); border: 1px solid var(--green-line); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
+  .card.p0 { border-left: 4px solid var(--red); }
+  .card.p1 { border-left: 4px solid var(--amber); }
+  .card.p2 { border-left: 4px solid var(--green); }
+  .card h3 { margin-top: 0; }
+  .meta { color: var(--muted); font-size: 12.5px; }
+  .impact { margin: 6px 0 4px; }
+  .impact b { color: var(--red); }
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin: 4px 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .note { background: var(--blue-bg); border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>MyCut · K8s 上线注意项</h1>
+  <div class="sub">生成日期：2026-11-04 ｜ 范围：k8s/ 部署清单 + 外部依赖（PostgreSQL / Redis）｜ 依据当前仓库实际清单逐项盘点</div>
+</header>
+
+<div class="note">
+  <b>部署架构速览</b>：无状态 web（Next.js standalone，Bun 运行）→ Ingress-nginx → Service:80 → Pod:3000；
+  数据库与 Redis 均为<b>集群外独立实例</b>（PG 18.6 @ 192.168.88.43，Redis @ 192.168.88.42）；
+  凭据经 <code>mycut-secrets</code> Secret 注入，站点 URL 经 <code>mycut-config</code> ConfigMap 注入；
+  发布前由 <code>mycut-migrate</code> Job 执行 drizzle 迁移。prod 双副本 + 内存 HPA。
+</div>
+
+<div class="note" style="border-color:#86efac;background:#f0fdf4;">
+  <b>处理进度（2026-11-04 更新）</b>：以下清单项已在仓库内修复并提交——
+  <b>#1</b> 镜像地址改指 GitLab 容器仓库（overlays <code>newName</code>）+ 基础清单加 <code>imagePullSecrets</code>；
+  <b>#2</b> test ingress 已启用 TLS + cert-manager（域名暂定 <code>test.mycut.sunwin-sh.com</code>，随 DNS 定案调整）；
+  <b>#3</b> ConfigMap 站点 URL 同步为 https 真实域名；
+  <b>#4</b> migrate Job 移出 kustomize resources，改由 <code>script/deploy-test.sh</code> 每次发布渲染重建；
+  <b>#8</b> 发布脚本强制不可变 tag（<code>test-日期.sha</code>）。
+  新增一键部署脚本 <code>script/deploy-test.sh</code>（构建推送 → 集群准备 → 迁移 → 发布 → 验证）。
+  <b>剩余集群侧事项</b>：提供 kubeconfig；确认 cert-manager issuer 与 <code>test.mycut.sunwin-sh.com</code> DNS 解析（内网域名需 DNS-01 或内部证书）；确认 GitLab 容器仓库已开启。
+</div>
+
+<h2>一、未完善清单（按阻塞等级）</h2>
+
+<h3><span class="tag p0">P0 上线阻塞</span>不解决不能上线</h3>
+
+<div class="card p0">
+  <h3>1. 镜像仓库地址是占位符，且缺 imagePullSecrets</h3>
+  <div class="meta">位置：k8s/base/kustomization.yaml 引用的 deployment.yaml（<code>registry.example.com/mycut/web:IMAGE_TAG</code>）、两个 overlay 的 images 段</div>
+  <p class="impact"><b>影响</b>：Pod 拉不到镜像，直接 ImagePullBackOff。</p>
+  <p><b>动作</b>：① 改成 GitLab 容器仓库真实路径（如 <code>gitlab.sunwin-sh.com/development/mycut/web</code>，overlay 里 <code>kustomize edit set image</code>）；② 私有仓库需在两个 namespace 各建 <code>docker-registry</code> 类型 Secret 并在 deployment patch 加 <code>imagePullSpec.imagePullSecrets</code>；③ 推镜像用 CI 账号 token。</p>
+</div>
+
+<div class="card p0">
+  <h3>2. test 环境 Ingress 没有 TLS —— 这会让整个编辑器不可用</h3>
+  <div class="meta">位置：k8s/overlays/test/ingress.yaml（cert-manager 注释被注释、host 是占位域名）</div>
+  <p class="impact"><b>影响</b>：编辑器的 WebCodecs 解码（封面图、时间线预览、播放帧）与 OPFS 存储（<code>navigator.storage</code>）都是<b>安全上下文专属 API</b>。HTTP 域名下：素材能入库但没有封面、预览/播放直接报错——本次本地排查已实际复现。</p>
+  <p><b>动作</b>：① 打开 cert-manager 注解（<code>letsencrypt-prod</code> issuer 视集群实际配的 issuer 名）并加 <code>tls:</code> 段；② host 换成真实 test 域名并配 DNS；③ 上线验收用 <b>https</b> 域名打开编辑器，导入视频确认封面与预览正常。</p>
+</div>
+
+<div class="card p0">
+  <h3>3. 站点域名全部是占位符（ConfigMap + Ingress host）</h3>
+  <div class="meta">位置：两个 overlay 的 kustomization.yaml（<code>https://test.mycut.example.com</code> / <code>https://mycut.example.com</code>）、ingress host</div>
+  <p class="impact"><b>影响</b>：<code>NEXT_PUBLIC_SITE_URL</code> 是 better-auth 的 <code>baseURL</code>、受信 origin 和 Cookie 域的根——域名不一致会导致登录失败 / 会话 Cookie 异常。</p>
+  <p><b>动作</b>：改成真实域名，保持 ConfigMap、Ingress host、DNS 三者一致；若还要通过别的入口（IP/备用域）访问，需给 Deployment 加 <code>TRUSTED_ORIGINS</code> 环境变量（代码已支持，逗号分隔）。</p>
+</div>
+
+<div class="card p0">
+  <h3>4. migrate Job 无法重复执行，发布编排缺失</h3>
+  <div class="meta">位置：k8s/base/migrate-job.yaml（在 base resources 里，随 apply -k 创建）</div>
+  <p class="impact"><b>影响</b>：Job 创建后不可变，第二次 <code>apply -k</code> 报 <code>field is immutable</code>，发布流程卡住；且没有任何机制保证"新版本 Pod 就绪前迁移已完成"——迁移滞后于新代码会出现 SQL 报错窗口。</p>
+  <p><b>动作</b>：发布脚本中固定执行 <code>kubectl delete job mycut-migrate -n &lt;ns&gt; --ignore-not-found && kubectl apply -k k8s/overlays/&lt;env&gt;</code>，并 <code>kubectl wait --for=condition=complete job/mycut-migrate</code> 成功后再观察 rollout；远期可在 CD（GitLab CI）里编排为独立 stage。</p>
+</div>
+
+<div class="card p0">
+  <h3>5. prod 的 Secret 还是占位骨架</h3>
+  <div class="meta">位置：k8s/secrets/prod.yaml（全部 CHANGE_ME，gitignored）</div>
+  <p class="impact"><b>影响</b>：直接 apply 会导致服务连不上库 / 认证不可用 / 渠道密钥加密失效。</p>
+  <p><b>动作</b>：prod 独立 PG/Redis 就绪后生成三把独立密钥（生成命令已写在 prod.yaml 注释里），重新录入渠道 API Key。<b>禁止</b>复用 test 的 <code>BETTER_AUTH_SECRET</code>/<code>MODEL_CREDENTIALS_KEY</code>。</p>
+</div>
+
+<h3><span class="tag p1">P1 上线前应完成</span>不阻塞但强烈建议</h3>
+
+<div class="card p1">
+  <h3>6. 无监控与日志接入</h3>
+  <p>Deployment 没有 Prometheus <code>prometheus.io/scrape</code> 注解，也没有 ServiceMonitor/PodLog 采集配置。<b>动作</b>：至少接入 ingress-nginx 指标 + 容器 stdout 日志采集；关键告警：Pod restart 激增、readiness 摘除、Job 失败、证书到期前 14 天。</p>
+</div>
+
+<div class="card p1">
+  <h3>7. prod 应使用独立 Redis，test 与本地共用的现状要知晓</h3>
+  <p>当前本地开发与 test 共用同一 Redis 实例（同 db0）：滑动窗口限流 key（<code>rate-limit:*</code>）互相计数、互相影响。test 阶段可接受；<b>prod 必须独立 Redis</b>（或规划独立 db 号 + key 前缀）。</p>
+</div>
+
+<div class="card p1">
+  <h3>8. 镜像 tag 是浮动 tag（test-latest / prod-latest）</h3>
+  <p>同一 tag 被覆盖后，"回滚到上一版"无从谈起，且节点上缓存的 old-latest 会造成版本不一致。<b>动作</b>：CI 产出不可变 tag（git sha 或日期+sha，如 <code>test-20261104.abc1234</code>），kustomize 同步改 tag；latest 只作游标参考。</p>
+</div>
+
+<div class="card p1">
+  <h3>9. 外部数据层的备份与恢复演练没有着落</h3>
+  <p>PG/Redis 在集群外，k8s 的任何备份机制都覆盖不到。<b>动作</b>：PG 每日全备 + WAL 归档，恢复流程至少演练一次；Redis 可容忍丢失（限流/临时状态），但要确认没有业务数据只存 Redis。素材视频本体存用户浏览器（IndexedDB/OPFS），<b>服务端没有副本，用户换浏览器/清缓存即丢</b>——运营口径要提前告知。</p>
+</div>
+
+<h3><span class="tag p2">P2 知晓即可</span>运行期留意</h3>
+
+<div class="card p2">
+  <h3>10. readiness 探针直连数据库</h3>
+  <p>readiness 用 <code>/api/health/deep</code>（真实连 PG），DB 抖动会摘除流量——这是设计意图，但故障排查时要知道"流量掉了"可能是数据库的事。</p>
+</div>
+<div class="card p2">
+  <h3>11. HPA 用内存均值 75%</h3>
+  <p>Next SSR 内存抖动较大，容易频繁扩缩容；建议观察一段时间后考虑换 CPU 指标或调阈值。</p>
+</div>
+<div class="card p2">
+  <h3>12. 密钥轮换语义（务必写进运维手册）</h3>
+  <p><code>BETTER_AUTH_SECRET</code> 轮换 → 全部用户会话失效（重新登录即可，无数据损失）；<code>MODEL_CREDENTIALS_KEY</code> <b>不可丢失也不可随手换</b>——丢了库里加密的渠道密钥全部解不开，只能在管理面板逐个重录。改 Secret 后必须 <code>kubectl rollout restart deploy/mycut-web</code>（Secret 更新不会自动重启 Pod）。</p>
+</div>
+<div class="card p2">
+  <h3>13. 多副本下的后台任务已做防护</h3>
+  <p>任务惰性同步已加 PG advisory lock，HPA 扩到多副本安全；每个客户端每 5 秒轮询一次 /api/ai/tasks，副本多时轮询量线性增长，量大后建议加服务端缓存。</p>
+</div>
+
+<h2>二、运维操作手册</h2>
+
+<h3>首次部署顺序（每环境）</h3>
+<ol class="steps">
+  <li>建 namespace（<code>mycut-test</code> / <code>mycut-prod</code>）</li>
+  <li>建镜像拉取凭证（若仓库私有）</li>
+  <li><code>kubectl apply -f k8s/secrets/&lt;env&gt;.yaml</code>（先于一切工作负载）</li>
+  <li>修正 overlay：真实镜像 tag、真实域名（ConfigMap + Ingress host + TLS）</li>
+  <li>跑 migrate Job 并等待 Complete</li>
+  <li><code>kubectl apply -k k8s/overlays/&lt;env&gt;</code> → rollout → 验证</li>
+  <li>验收：<code>curl https://&lt;域名&gt;/api/health/deep</code> 返回 ok；浏览器登录、生成任务、素材封面/预览正常（https 下）</li>
+</ol>
+
+<h3>日常发布 SOP</h3>
+<pre><code># 1. 推不可变 tag 镜像（CI 产出）
+# 2. 跑迁移（删旧 Job 重建，等待完成）
+kubectl delete job mycut-migrate -n mycut-test --ignore-not-found
+kubectl apply -k k8s/overlays/test
+kubectl wait --for=condition=complete job/mycut-migrate -n mycut-test --timeout=300s
+# 3. 更新镜像 tag 并发布
+cd k8s/overlays/test && kustomize edit set image registry.example.com/mycut/web=gitlab.sunwin-sh.com/development/mycut/web:test-20261104.abc1234
+kubectl apply -k .
+kubectl rollout status deploy/mycut-web -n mycut-test
+# 4. 验证
+curl -s https://test-域名/api/health/deep
+# 回滚：kubectl rollout undo deploy/mycut-web -n mycut-test（或改回旧镜像 tag 重新 apply）</code></pre>
+
+<h3>监控与告警检查点</h3>
+<div class="grid">
+  <div class="card"><h3>Pod 层</h3>CrashLoopBackOff 高频原因：<b>env zod 校验失败</b>（缺/错 DATABASE_URL、REDIS_URL、密钥格式不对——<code>MODEL_CREDENTIALS_KEY</code> 必须 64 位 hex）；OOMKilled（limit 1Gi，Next 高峰注意）；启动期 30×2s startupProbe 内未就绪会被杀。</div>
+  <div class="card"><h3>流量层</h3>readiness 摘除 ≈ PG 连不通；5xx 激增看渠道上游（fal/ark 等外部依赖）；限流 429 与 Redis 连通性直接相关（调用方 fail-open，Redis 挂掉只丢限流不拦请求）。</div>
+  <div class="card"><h3>数据层</h3>PG 连接数：实例数 × PGPOOL_MAX(10) 必须低于服务器 max_connections；慢查询关注 credit_ledger / generation_tasks 的时间线查询（已建索引）。</div>
+  <div class="card"><h3>证书与域名</h3>cert-manager 续期（letsencrypt 90 天）；域名到期、DNS 指向变更；test 无 TLS 状态下禁止给用户开放使用。</div>
+</div>
+
+<h3>密钥与配置管理纪律</h3>
+<ol class="steps">
+  <li>真实凭据只存在于 <code>k8s/secrets/</code>（gitignored）和集群 Secret 中；模板 <code>k8s/secret.example.yaml</code> 进 git</li>
+  <li>本地 <code>apps/web/.env.local</code> 与 test Secret <b>必须同步修改</b>（共用同一库：两处密钥不一致会导致会话互踢、渠道密钥解密失败）</li>
+  <li>所有连接串里的特殊字符按 URL 编码书写（<code>`→%60、/→%2F、&→%26</code>），这是本库密码踩过的实际坑</li>
+  <li>prod 三把密钥独立生成；<code>MODEL_CREDENTIALS_KEY</code> 单独安全备份（密码管理器/保险箱），丢失 = 渠道密钥全部重录</li>
+</ol>
+
+<footer>
+  MyCut 运维上线清单 · 依据仓库 k8s/ 清单与本轮本地实测（OPFS/WebCodecs 安全上下文、env 注入链、迁移历史对齐）整理 · 2026-11-04
+</footer>
+
+</div>
+</body>
+</html>

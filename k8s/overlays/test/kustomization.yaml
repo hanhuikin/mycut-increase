@@ -10,7 +10,10 @@ resources:
   - ingress.yaml
 
 images:
+  # 部署脚本每次发布把 newTag 覆盖为不可变 tag（日期.git sha），
+  # 这里的 test-latest 仅是手工 kustomize build 的兜底值
   - name: registry.example.com/mycut/web
+    newName: gitlab.sunwin-sh.com/development/mycut/web
     newTag: test-latest
 
 patches:
@@ -24,5 +27,7 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     literals:
-      - NEXT_PUBLIC_SITE_URL=https://test.mycut.example.com
+      # 必须与 ingress host、DNS、cert-manager 签发域名三者一致；
+      # 该域名必须以 https 访问（编辑器的 WebCodecs/OPFS 依赖安全上下文）
+      - NEXT_PUBLIC_SITE_URL=https://test.mycut.sunwin-sh.com
       - NEXT_PUBLIC_MARBLE_API_URL=https://api.marblecms.com

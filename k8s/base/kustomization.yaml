@@ -4,4 +4,7 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
-  - migrate-job.yaml
+
+# migrate-job.yaml 不进 resources：Job 创建后不可变，随 apply -k 重复发布会报
+# immutable 错误。由 script/deploy-test.sh 在每次发布时按当前镜像 tag 渲染、
+# 先删后建并等待 Complete 后再 apply overlay。

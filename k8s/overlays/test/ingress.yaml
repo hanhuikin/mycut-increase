@@ -4,13 +4,21 @@ metadata:
   name: mycut-web
   labels:
     app.kubernetes.io/name: mycut-web
-  # 若测试环境不需要公网 TLS，可保持注释；开启时配合 cert-manager
-  # annotations:
-  #   cert-manager.io/cluster-issuer: letsencrypt-staging
+  annotations:
+    # 编辑器依赖安全上下文（WebCodecs 解码 / OPFS 存储），必须以 https 访问，
+    # 禁止以无 TLS 状态开放使用。issuer 名以集群 cert-manager 实际配置为准：
+    # 若该域名无法公网可达（内网 DNS），HTTP-01 会失败，需改用 DNS-01 issuer
+    # 或改挂内部 CA / 通配符证书的既有 Secret。
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - test.mycut.sunwin-sh.com
+      secretName: mycut-test-tls
   rules:
-    - host: test.mycut.example.com
+    - host: test.mycut.sunwin-sh.com
       http:
         paths:
           - path: /

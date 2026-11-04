@@ -20,6 +20,9 @@ spec:
       labels:
         app.kubernetes.io/name: mycut-web
     spec:
+      # 私有镜像仓库凭证；由部署脚本按 namespace 创建（见 script/deploy-test.sh）
+      imagePullSecrets:
+        - name: mycut-registry
       containers:
         - name: web
           image: registry.example.com/mycut/web:IMAGE_TAG
