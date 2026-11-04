@@ -21,7 +21,7 @@ cp k8s/secret.example.yaml k8s/secret.yaml   # 填入测试环境真实值
 kubectl -n mycut-test apply -f k8s/secret.yaml
 
 # 2. 构建镜像（CI 或手动，见 docs/K8s打包部署方案.md §3）
-docker build -f apps/web/Dockerfile \
+docker build -f Dockerfile \
   --build-arg NEXT_PUBLIC_SITE_URL="https://test.mycut.example.com" \
   -t registry.example.com/mycut/web:test-latest .
 docker push registry.example.com/mycut/web:test-latest
@@ -43,7 +43,7 @@ ENV=test          # 或 prod
 TAG=<new-tag>
 
 # 1. 构建推送镜像
-docker build -f apps/web/Dockerfile \
+docker build -f Dockerfile \
   --build-arg NEXT_PUBLIC_SITE_URL="https://<env-domain>" \
   -t registry.example.com/mycut/web:$TAG .
 docker push registry.example.com/mycut/web:$TAG

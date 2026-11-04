@@ -1,6 +1,6 @@
 # MyCut（OpenCut 改版）K8s 打包部署方案
 
-> 版本 v1 · 结合 `docs/后续开发规划.md`（P4 部署与运维）、`apps/web/Dockerfile`、`docker-compose.yml` 现状整理，目标是以 Kubernetes 为目标环境完成打包与部署。
+> 版本 v1 · 结合 `docs/后续开发规划.md`（P4 部署与运维）、`Dockerfile`、`docker-compose.yml` 现状整理，目标是以 Kubernetes 为目标环境完成打包与部署。
 > 本方案覆盖：镜像构建、K8s 资源清单（可直接套用）、数据库迁移、发布与回滚、多副本注意事项、分期落地清单。
 
 ---
@@ -20,13 +20,13 @@
 
 ## 2. 前置修复（已随本方案完成）
 
-`apps/web/Dockerfile` 的构建期 env stub 已过期：原来注入的是 `UPSTASH_REDIS_REST_URL/TOKEN`，而现网代码 `src/env/web.ts` 的 zod schema 要求 **`REDIS_URL`**（ioredis 直连），缺失会在 `next build` 与容器启动时直接抛错。已将 stub 替换为：
+`Dockerfile` 的构建期 env stub 已过期：原来注入的是 `UPSTASH_REDIS_REST_URL/TOKEN`，而现网代码 `src/env/web.ts` 的 zod schema 要求 **`REDIS_URL`**（ioredis 直连），缺失会在 `next build` 与容器启动时直接抛错。已将 stub 替换为：
 
 ```dockerfile
 ENV REDIS_URL="redis://:build-time@localhost:6379"
 ```
 
-> 规则：**运行时 env 变更必须同步检查 `apps/web/Dockerfile` 的 build stubs 与本文件 §3.3 的环境变量清单**，三处一致。
+> 规则：**运行时 env 变更必须同步检查 `Dockerfile` 的 build stubs 与本文件 §3.3 的环境变量清单**，三处一致。
 
 ---
 
@@ -40,7 +40,7 @@ ENV REDIS_URL="redis://:build-time@localhost:6379"
 # 构建参数说明（全部为构建期注入；运行时可被环境变量覆盖）
 #   NEXT_PUBLIC_SITE_URL       ★ 必须是最终对外域名（会被打进客户端产物，发布后改域名需重建镜像）
 docker build \
-  -f apps/web/Dockerfile \
+  -f Dockerfile \
   --build-arg NEXT_PUBLIC_SITE_URL="https://mycut.example.com" \
   -t registry.example.com/mycut/web:1.0.0 .
 docker push registry.example.com/mycut/web:1.0.0

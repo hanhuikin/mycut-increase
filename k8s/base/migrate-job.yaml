@@ -1,6 +1,6 @@
 # 数据库迁移 Job：每次发布前执行一次。
 # 用途：drizzle-kit migrate 应用 apps/web/migrations 下的增量迁移。
-# 依赖：镜像内需包含 drizzle.config.ts 与 migrations/（见 apps/web/Dockerfile 可选层），
+# 依赖：镜像内需包含 drizzle.config.ts 与 migrations/（见 Dockerfile 可选层），
 #       或者改用独立迁移镜像。DATABASE_URL 指向目标环境数据库。
 apiVersion: batch/v1
 kind: Job

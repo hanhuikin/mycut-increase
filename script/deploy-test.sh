@@ -39,7 +39,7 @@ if [ "$BUILD" = true ]; then
   docker version >/dev/null 2>&1 || { echo "Docker daemon 未运行"; exit 1; }
   echo "==> docker build"
   # NEXT_PUBLIC_* 是编译期内联值，站点 URL 必须在构建期传入
-  docker build -f apps/web/Dockerfile \
+  docker build -f Dockerfile \
     --build-arg NEXT_PUBLIC_SITE_URL="${SITE_URL}" \
     -t "${IMAGE}:${TAG}" -t "${IMAGE}:test-latest" .
   : "${REG_TOKEN:?需要 REG_TOKEN（GitLab PAT，write_repository 权限）}"
