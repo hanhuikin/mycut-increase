@@ -84,6 +84,7 @@ export function TaskQueueView() {
 		deleteTask,
 		clearFinished,
 		importedAssets,
+		importTask,
 		insertBatchIntoTimeline,
 	} = useTaskQueue();
 	const [detailId, setDetailId] = useState<string | null>(null);
@@ -305,6 +306,7 @@ export function TaskQueueView() {
 		const isBatch = Boolean(task.batchId);
 		const batchImportable =
 			isBatch && task.batchId && doneShots(task.batchId) > 0;
+		const [importingId, setImportingId] = useState<string | null>(null);
 		return (
 			<div className="bg-background absolute inset-0 z-10 flex flex-col">
 				<div className="flex h-11 shrink-0 items-center justify-between border-b px-3">
@@ -443,9 +445,27 @@ export function TaskQueueView() {
 
 					<div className="mt-4 flex flex-wrap gap-2 pb-2">
 						{task.status === "succeeded" && !isBatch && (
-							<span className="text-muted-foreground bg-muted rounded-md px-2 py-1.5 text-[11px]">
-								{t["task_queue.in_library"]}
-							</span>
+							importedAssets.has(task.id) ? (
+								<span className="text-muted-foreground bg-muted rounded-md px-2 py-1.5 text-[11px]">
+									{t["task_queue.in_library"]}
+								</span>
+							) : (
+								<button
+									type="button"
+									disabled={importingId === task.id}
+									className="bg-primary text-primary-foreground rounded-md px-2.5 py-1.5 text-[11px] font-medium disabled:opacity-60"
+									onClick={() => {
+										setImportingId(task.id);
+										void importTask(task).finally(() =>
+											setImportingId(null),
+										);
+									}}
+								>
+									{importingId === task.id
+										? t["task_queue.importing"]
+										: t["task_queue.import_to_library"]}
+								</button>
+							)
 						)}
 						{batchImportable && (
 							<button

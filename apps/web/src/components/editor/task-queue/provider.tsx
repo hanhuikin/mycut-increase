@@ -69,6 +69,13 @@ interface TaskQueueState {
 	insertBatchIntoTimeline: (batchId: string) => Promise<void>;
 	/** task id → imported asset id (for manual timeline inserts). */
 	importedAssets: Map<string, string>;
+	/**
+	 * Manually (re-)import a finished task's clip into the media library —
+	 * library only, no timeline insert. Covers clips that finished while the
+	 * page was on another origin (per-browser storage) or while the import
+	 * crashed, which the auto-import window deliberately does not retry.
+	 */
+	importTask: (task: GenerationTask) => Promise<{ assetId: string | null }>;
 	deleteTask: (id: string) => Promise<void>;
 	clearFinished: () => Promise<void>;
 }
@@ -249,6 +256,32 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 		}
 	}, [tasks, queueImport, importedAssets, t]);
 
+	const importTask = useCallback(
+		(task: GenerationTask): Promise<{ assetId: string | null }> => {
+			if (importing.current.has(task.id)) {
+				return Promise.resolve({ assetId: null });
+			}
+			importing.current.add(task.id);
+			const name = `${t["ai_video.asset_name"]}-${task.createdAt.slice(11, 19).replace(/:/g, "")}`;
+			return importToLibrary(task, name)
+				.then(({ assetId }) => {
+					if (!assetId) {
+						toast.error(t["task_queue.toast_import_failed"]);
+						return { assetId: null };
+					}
+					setImportedAssets((prev) => new Map(prev).set(task.id, assetId));
+					toast.success(t["task_queue.toast_done"]);
+					return { assetId };
+				})
+				.catch(() => {
+					toast.error(t["task_queue.toast_import_failed"]);
+					return { assetId: null };
+				})
+				.finally(() => importing.current.delete(task.id));
+		},
+		[importToLibrary, t],
+	);
+
 	const submitVideo = useCallback(
 		async (params: {
 			modelId: string;
@@ -371,6 +404,7 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 		submitVideo,
 		insertBatchIntoTimeline,
 		importedAssets,
+		importTask,
 		deleteTask,
 		clearFinished,
 	};
