@@ -2,6 +2,7 @@ import type { TProject, TProjectMetadata } from "@/project/types";
 import { getProjectDurationFromScenes } from "@/timeline/scenes";
 import type { MediaAsset } from "@/media/types";
 import { IndexedDBAdapter } from "./indexeddb-adapter";
+import { IndexedDBFileAdapter } from "./indexeddb-file-adapter";
 import { OPFSAdapter } from "./opfs-adapter";
 import {
 	type StorageCapacityCheckResult,
@@ -12,6 +13,7 @@ import {
 } from "./quota";
 import type {
 	MediaAssetData,
+	StorageAdapter,
 	StorageConfig,
 	SerializedProject,
 	SerializedScene,
@@ -89,7 +91,18 @@ class StorageService {
 			version: this.config.version,
 		});
 
-		const mediaAssetsAdapter = new OPFSAdapter(`media-files-${projectId}`);
+		// OPFS needs a secure context (HTTPS or localhost); over plain HTTP on a
+		// LAN IP `navigator.storage` is undefined. Fall back to IndexedDB, which
+		// works there and persists File objects too. Uses its own database: two
+		// adapters sharing one database each only create their own store, and
+		// whichever opens second never runs onupgradeneeded to add its store.
+		const mediaAssetsAdapter: StorageAdapter<File> = OPFSAdapter.isSupported()
+			? new OPFSAdapter(`media-files-${projectId}`)
+			: new IndexedDBFileAdapter({
+					dbName: `${this.config.mediaDb}-files-${projectId}`,
+					storeName: "media-files",
+					version: this.config.version,
+				});
 
 		return { mediaMetadataAdapter, mediaAssetsAdapter };
 	}
