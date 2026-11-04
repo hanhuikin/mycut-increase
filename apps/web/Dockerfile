@@ -1,4 +1,10 @@
+# Bun installs dependencies (fast, bun.lock); Node runs `next build` and the
+# standalone server. Bun 1.2.18 segfaults during Next's "collecting page data"
+# worker fan-out (`worker_threads` options are unimplemented) and lacks
+# WebAssembly.instantiateStreaming at runtime, so it is a package manager here
+# only — Node is Next's supported runtime.
 FROM oven/bun:alpine AS base
+RUN apk add --no-cache nodejs
 
 FROM base AS builder
 
@@ -29,7 +35,7 @@ ENV REDIS_URL="redis://:build-time@localhost:6379"
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 WORKDIR /app/apps/web
-RUN bun run build
+RUN node ./node_modules/next/dist/bin/next build
 
 # Production image
 FROM base AS runner
@@ -54,4 +60,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["bun", "apps/web/server.js"]
+CMD ["node", "apps/web/server.js"]
