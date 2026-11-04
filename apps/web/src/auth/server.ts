@@ -47,16 +47,48 @@ export const auth = betterAuth({
 	appName: "MyCut",
 	// TRUSTED_ORIGINS: comma-separated extra origins (e.g. the LAN-IP https
 	// variant used for local device testing) accepted alongside the baseURL.
-	trustedOrigins: [
-		webEnv.NEXT_PUBLIC_SITE_URL,
-		...(process.env.TRUSTED_ORIGINS ?? "")
-			.split(",")
-			.map((origin) => origin.trim())
-			.filter(Boolean),
-	],
+	//
+	// The Host the request actually arrived on is trusted too: behind an ingress
+	// the public domain is not SITE_URL's business to know, and a missing
+	// SITE_URL (zod defaults to localhost) would otherwise 403 every browser
+	// login with "Invalid origin". This cannot widen cross-site access — a
+	// browser only emits that Origin for a request sent to that same host.
+	trustedOrigins: (request) => {
+		const origins = new Set<string>([
+			webEnv.NEXT_PUBLIC_SITE_URL,
+			...(process.env.TRUSTED_ORIGINS ?? "")
+				.split(",")
+				.map((origin) => origin.trim())
+				.filter(Boolean),
+		]);
+		const servedOrigin = originFromHost(request);
+		if (servedOrigin) origins.add(servedOrigin);
+		return [...origins];
+	},
 });
 
 export type Auth = typeof auth;
+
+/**
+ * The origin this request was served on, as the client's browser would spell
+ * it: the proxy's forwarded host/proto when present, otherwise the request's own
+ * URL (Next builds it from the Host header).
+ */
+function originFromHost(request: Request | undefined): string | null {
+	if (!request) return null;
+	const first = (value: string | null) => value?.split(",")[0]?.trim() || null;
+
+	try {
+		const url = new URL(request.url);
+		const host = first(request.headers.get("x-forwarded-host")) ?? url.host;
+		const proto =
+			first(request.headers.get("x-forwarded-proto")) ??
+			url.protocol.replace(":", "");
+		return host ? `${proto}://${host}` : null;
+	} catch {
+		return null;
+	}
+}
 
 /** The signed-in user's role, or null when unauthenticated. */
 export async function getUserRole({
