@@ -15,7 +15,6 @@ import { EditorProvider } from "@/components/providers/editor-provider";
 import {
 	TaskQueueProvider,
 } from "@/components/editor/task-queue/provider";
-import { Onboarding } from "@/components/editor/onboarding";
 import { MigrationDialog } from "@/project/components/migration-dialog";
 import { usePanelStore } from "@/editor/panel-store";
 import { usePasteMedia } from "@/media/use-paste-media";
@@ -53,7 +52,6 @@ export default function Editor() {
 						<div className="min-h-0 min-w-0 flex-1">
 							<EditorLayout />
 						</div>
-						<Onboarding />
 						<MigrationDialog />
 						<ChangelogNotification />
 					</div>

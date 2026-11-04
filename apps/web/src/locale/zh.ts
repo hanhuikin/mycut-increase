@@ -649,17 +649,6 @@ export const zh = {
   // ===== 属性面板（补充） =====
   "properties.elements_selected": "已选中 {count} 个元素。",
 
-  // ===== 引导 =====
-  "onboarding.title": "MyCut 新手引导",
-  "onboarding.welcome_title": "欢迎使用 MyCut 测试版！🎉",
-  "onboarding.welcome_description":
-    "你是最早体验 MyCut 的用户之一 —— 一个完全开源的剪辑工具。",
-  "onboarding.beta_warning_title": "⚠️ 这是非常早期的测试版！",
-  "onboarding.beta_warning_line1": "要把这个编辑器做好，还有大量工作要做。",
-  "onboarding.beta_warning_line2": "很多功能仍然缺失，我们正在努力开发！",
-  "onboarding.fun_testing_title": "🦋 祝你玩得开心！",
-  "onboarding.finish": "完成",
-
   // ===== 移动端提示 =====
   "mobile.desktop_only": "暂时仅支持桌面端",
   "mobile.description":
@@ -804,6 +793,8 @@ export const zh = {
   "task_queue.insert_timeline": "插入时间线",
   "task_queue.insert_batch": "按顺序插入时间线",
   "task_queue.in_library": "已在素材库",
+  "task_queue.import_to_library": "导入素材库",
+  "task_queue.importing": "导入中…",
   "task_queue.points_frozen": "预计消耗",
   "task_queue.points_settled": "消耗",
   "task_queue.points_refunded": "已退回点数",

@@ -665,19 +665,6 @@ export const en = {
   // ===== Properties panel (additional) =====
   "properties.elements_selected": "{count} elements selected.",
 
-  // ===== Onboarding =====
-  "onboarding.title": "MyCut onboarding",
-  "onboarding.welcome_title": "Welcome to MyCut Beta! 🎉",
-  "onboarding.welcome_description":
-    "You're among the first to try MyCut - the fully open source video editor.",
-  "onboarding.beta_warning_title": "⚠️ This is a super early beta!",
-  "onboarding.beta_warning_line1":
-    "There's still a ton of things to do to make this editor amazing.",
-  "onboarding.beta_warning_line2":
-    "A lot of features are still missing. We're working hard to build them out!",
-  "onboarding.fun_testing_title": "🦋 Have fun testing!",
-  "onboarding.finish": "Finish",
-
   // ===== Mobile gate =====
   "mobile.desktop_only": "Desktop only (for now)",
   "mobile.description":
@@ -834,6 +821,8 @@ export const en = {
   "task_queue.insert_timeline": "Insert to timeline",
   "task_queue.insert_batch": "Insert shots in order",
   "task_queue.in_library": "In library",
+  "task_queue.import_to_library": "Import to library",
+  "task_queue.importing": "Importing…",
   "task_queue.points_frozen": "Estimated cost",
   "task_queue.points_settled": "Cost",
   "task_queue.points_refunded": "Points refunded",
