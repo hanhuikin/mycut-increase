@@ -102,6 +102,8 @@ function FramePickerBody({
 	const [slots, setSlots] = useState<Map<number, string>>(new Map());
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState(false);
+	/** True while a playhead/filmstrip drag is in flight. */
+	const [isScrubbing, setIsScrubbing] = useState(false);
 	const [stripWindow, setStripWindow] = useState<FrameStripWindow | null>(
 		null,
 	);
@@ -159,8 +161,12 @@ function FramePickerBody({
 			setBusy(false);
 			return;
 		}
-		let cancelled = false;
 		setBusy(true);
+		// A decode in the middle of a drag competes with the drag itself (and
+		// only shows a frame the pointer has already left). Wait for release:
+		// this effect re-runs when isScrubbing flips back to false.
+		if (isScrubbing) return;
+		let cancelled = false;
 		// Debounced seek: dragging fires continuously; only the settled value
 		// gets decoded.
 		const timer = setTimeout(() => {
@@ -186,7 +192,7 @@ function FramePickerBody({
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [currentTime, fps]);
+	}, [currentTime, fps, isScrubbing]);
 
 	// Filmstrip generation: the strip reports its visible slot window; decode
 	// it in one batch, debounced so drags, flings and zoom bursts settle
@@ -240,7 +246,9 @@ function FramePickerBody({
 					},
 				});
 			})();
-		}, 150);
+			// Longer than a drag's debounce: scrolling the strip fires a new
+			// window every frame, and each batch competes with the scroll.
+		}, 250);
 		return () => clearTimeout(timer);
 	}, [firstSlot, lastSlot, slotSeconds]);
 
@@ -307,6 +315,7 @@ function FramePickerBody({
 						disabled={duration <= 0}
 						onSeek={seek}
 						onWindowChange={handleWindowChange}
+						onScrubStateChange={setIsScrubbing}
 					/>
 					<p className="text-muted-foreground text-[11.5px]">
 						{t["ai_video.frame_hint"]}

@@ -176,7 +176,7 @@ export class VideoFrameExtractor {
 			return null;
 		}
 		try {
-			return this.renderSampleToDataUrl({ frame, maxEdge });
+			return await this.renderSampleToDataUrl({ frame, maxEdge });
 		} finally {
 			frame.close();
 		}
@@ -223,10 +223,12 @@ export class VideoFrameExtractor {
 			const entry = order[position];
 			if (frame) {
 				try {
-					onFrame?.(
-						entry ? entry.index : position,
-						this.renderSampleToDataUrl({ frame, maxEdge }),
-					);
+					const dataUrl = await this.renderSampleToDataUrl({
+						frame,
+						maxEdge,
+					});
+					if (shouldContinue && !shouldContinue()) break;
+					onFrame?.(entry ? entry.index : position, dataUrl);
 				} finally {
 					frame.close();
 				}
@@ -234,28 +236,26 @@ export class VideoFrameExtractor {
 				onFrame?.(entry ? entry.index : position, null);
 			}
 			position += 1;
-			// Encoding each frame blocks, so hand control back to the browser
-			// between frames — otherwise a full batch paints at once and the
-			// filmstrip visibly stutters while it fills in.
-			if (position % 3 === 0) {
-				await new Promise<void>((resolve) =>
-					requestAnimationFrame(() => resolve()),
-				);
-			}
 		}
 	}
 
 	/**
 	 * Draws one decoded sample onto the shared canvas and encodes it as JPEG.
-	 * `toDataURL` blocks, so callers yield between frames (see framesAt).
+	 *
+	 * Encoding goes through `toBlob` + FileReader rather than `toDataURL`:
+	 * the latter is synchronous and blocks the main thread for tens of
+	 * milliseconds per frame, which is exactly what made scrubbing stutter.
+	 * Both steps here hand the heavy work to the browser and only leave a draw
+	 * call on the main thread. Callers await before drawing the next frame, so
+	 * reusing one canvas is safe.
 	 */
-	private renderSampleToDataUrl({
+	private async renderSampleToDataUrl({
 		frame,
 		maxEdge,
 	}: {
 		frame: VideoSample;
 		maxEdge: number;
-	}): string | null {
+	}): Promise<string | null> {
 		const scale = Math.min(1, maxEdge / Math.max(this.width, this.height));
 		const width = Math.max(1, Math.round(this.width * scale));
 		const height = Math.max(1, Math.round(this.height * scale));
@@ -267,7 +267,20 @@ export class VideoFrameExtractor {
 			return null;
 		}
 		frame.draw(context, 0, 0, width, height);
-		return canvas.toDataURL("image/jpeg", 0.85);
+
+		const blob = await new Promise<Blob | null>((resolve) => {
+			canvas.toBlob((result) => resolve(result), "image/jpeg", 0.85);
+		});
+		if (!blob) {
+			return null;
+		}
+		return await new Promise<string | null>((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () =>
+				resolve(typeof reader.result === "string" ? reader.result : null);
+			reader.onerror = () => reject(reader.error);
+			reader.readAsDataURL(blob);
+		});
 	}
 
 	dispose(): void {

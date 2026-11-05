@@ -47,17 +47,18 @@ export interface FrameStripWindow {
  * scrub drags, that value changes on every frame, and re-rendering the tick
  * labels and every thumbnail image each time was the bulk of the drag cost.
  */
-const RulerRow = memo(function RulerRow({
-	ticks,
-	pps,
-	frameRate,
-	onMouseDown,
-}: {
-	ticks: Array<{ time: number; isLabel: boolean }>;
-	pps: number;
-	frameRate: ReturnType<typeof floatToFrameRate>;
-	onMouseDown: (event: ReactMouseEvent) => void;
-}) {
+const RulerRow = memo(
+	function RulerRow({
+		ticks,
+		pps,
+		frameRate,
+		onMouseDown,
+	}: {
+		ticks: Array<{ time: number; isLabel: boolean }>;
+		pps: number;
+		frameRate: ReturnType<typeof floatToFrameRate>;
+		onMouseDown: (event: ReactMouseEvent) => void;
+	}) {
 	return (
 		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it.
 		<div
@@ -83,7 +84,19 @@ const RulerRow = memo(function RulerRow({
 			)}
 		</div>
 	);
-});
+	},
+	// Re-render only when the visible tick range actually moves or the scale
+	// changes. `ticks` is a fresh array on every scroll frame, so the default
+	// shallow compare would repaint the whole ruler on every drag frame.
+	(prev, next) =>
+		prev.pps === next.pps &&
+		prev.frameRate === next.frameRate &&
+		prev.onMouseDown === next.onMouseDown &&
+		prev.ticks.length === next.ticks.length &&
+		prev.ticks[0]?.time === next.ticks[0]?.time &&
+		prev.ticks[prev.ticks.length - 1]?.time ===
+			next.ticks[next.ticks.length - 1]?.time,
+);
 
 const FilmstripRow = memo(function FilmstripRow({
 	indices,
@@ -125,10 +138,20 @@ const FilmstripRow = memo(function FilmstripRow({
 						)}
 					</div>
 				);
-			})}
-		</div>
-	);
-});
+				})}
+			</div>
+		);
+	},
+	// Same idea: `indices` is rebuilt on every scroll frame. Repaint when the
+	// window's edges move or new frames land (`slots` identity changes).
+	(prev, next) =>
+		prev.onMouseDown === next.onMouseDown &&
+		prev.slots === next.slots &&
+		prev.indices.length === next.indices.length &&
+		prev.indices[0] === next.indices[0] &&
+		prev.indices[prev.indices.length - 1] ===
+			next.indices[next.indices.length - 1],
+);
 
 interface FramePickerStripProps {
 	duration: number;
@@ -138,6 +161,8 @@ interface FramePickerStripProps {
 	disabled?: boolean;
 	onSeek: (seconds: number) => void;
 	onWindowChange: (window: FrameStripWindow) => void;
+	/** Lets the parent pause frame decoding while a drag is in flight. */
+	onScrubStateChange?: (active: boolean) => void;
 }
 
 /**
@@ -155,6 +180,7 @@ export function FramePickerStrip({
 	disabled = false,
 	onSeek,
 	onWindowChange,
+	onScrubStateChange,
 }: FramePickerStripProps) {
 	const { t } = useLocale();
 	const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -381,6 +407,7 @@ export function FramePickerStrip({
 			event.preventDefault();
 			lastMouseClientXRef.current = event.clientX;
 			setIsDragging(true);
+			onScrubStateChange?.(true);
 
 			let lastSeconds = Number.NaN;
 			const seekFromClientX = (clientX: number) => {
@@ -410,11 +437,12 @@ export function FramePickerStrip({
 				window.removeEventListener("mousemove", onMove);
 				window.removeEventListener("mouseup", onUp);
 				setIsDragging(false);
+				onScrubStateChange?.(false);
 			};
 			window.addEventListener("mousemove", onMove);
 			window.addEventListener("mouseup", onUp);
 		},
-		[disabled, ready, pps, fps, onSeek],
+		[disabled, ready, pps, fps, onSeek, onScrubStateChange],
 	);
 
 	const handleKeyDown = (event: ReactKeyboardEvent) => {
