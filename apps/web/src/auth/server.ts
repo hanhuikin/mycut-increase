@@ -32,13 +32,29 @@ export const auth = betterAuth({
 	},
 	rateLimit: {
 		storage: "secondary-storage",
+		// better-auth's built-in rule is 3 sign-ins per 10s *per client IP*. Behind
+		// an ingress every request shares one IP, so the whole deployment shares
+		// that bucket — a user retrying twice locks out everyone, and each rejected
+		// request refreshes the window (the more you click, the longer the lock).
+		// 10 per minute still bounds brute force without tripping on ordinary
+		// double-clicks and retries.
+		customRules: {
+			"/sign-in/email": { window: 60, max: 10 },
+		},
 		customStorage: {
 			get: async (key) => {
 				const raw = await getRedis().get(`ba-rate-limit:${key}`);
 				return raw ? (JSON.parse(raw) as RateLimit) : undefined;
 			},
+			// Expire the counters: without a TTL every IP/path pair ever seen
+			// stays in Redis forever.
 			set: async (key, value) => {
-				await getRedis().set(`ba-rate-limit:${key}`, JSON.stringify(value));
+				await getRedis().set(
+					`ba-rate-limit:${key}`,
+					JSON.stringify(value),
+					"EX",
+					600,
+				);
 			},
 		},
 	},
