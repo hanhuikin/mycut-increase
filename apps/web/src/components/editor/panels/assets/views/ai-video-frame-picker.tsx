@@ -20,6 +20,14 @@ import {
 	type FrameStripWindow,
 } from "./frame-picker-strip";
 
+/** Preview is shown at ~800px wide; decoding at 1920 spent 2× the time on
+ * JPEG encoding for pixels nobody sees. */
+const PREVIEW_MAX_EDGE = 1280;
+/** Scrub-back repeats are common; keep the last few decoded frames around. */
+const PREVIEW_CACHE_LIMIT = 24;
+/** Long enough to skip the middle of a drag, short enough to feel immediate. */
+const PREVIEW_DEBOUNCE_MS = 180;
+
 const formatClock = ({ seconds }: { seconds: number }): string => {
 	const total = Math.max(0, seconds);
 	const minutes = Math.floor(total / 60);
@@ -84,6 +92,10 @@ function FramePickerBody({
 	const { t } = useLocale();
 	const extractorRef = useRef<VideoFrameExtractor | null>(null);
 	const stripGenerationRef = useRef(0);
+	/** frame index → preview dataURL, for scrubbing back over seen frames. */
+	const previewCacheRef = useRef<Map<number, string>>(new Map());
+	/** Mirror of `slots` for effects that must not re-run when it changes. */
+	const slotsRef = useRef<Map<number, string>>(new Map());
 	const [duration, setDuration] = useState(0);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -132,24 +144,49 @@ function FramePickerBody({
 	}, [asset]);
 
 	useEffect(() => {
+		slotsRef.current = slots;
+	}, [slots]);
+
+	useEffect(() => {
 		const extractor = extractorRef.current;
 		if (!extractor) return;
+		// Back-and-forth scrubbing hits the same frames constantly; serve those
+		// from memory instead of paying another decode+encode.
+		const frameIndex = Math.round(currentTime * fps);
+		const cached = previewCacheRef.current.get(frameIndex);
+		if (cached) {
+			setPreviewUrl(cached);
+			setBusy(false);
+			return;
+		}
 		let cancelled = false;
+		setBusy(true);
 		// Debounced seek: dragging fires continuously; only the settled value
 		// gets decoded.
 		const timer = setTimeout(() => {
 			void (async () => {
-				const frame = await extractor.frameAt({ seconds: currentTime });
+				const frame = await extractor.frameAt({
+					seconds: currentTime,
+					maxEdge: PREVIEW_MAX_EDGE,
+				});
 				if (cancelled) return;
-				if (frame) setPreviewUrl(frame);
+				if (frame) {
+					const cache = previewCacheRef.current;
+					cache.set(frameIndex, frame);
+					if (cache.size > PREVIEW_CACHE_LIMIT) {
+						const oldest = cache.keys().next().value;
+						if (oldest !== undefined) cache.delete(oldest);
+					}
+					setPreviewUrl(frame);
+				}
 				setBusy(false);
 			})();
-		}, 300);
+		}, PREVIEW_DEBOUNCE_MS);
 		return () => {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [currentTime]);
+	}, [currentTime, fps]);
 
 	// Filmstrip generation: the strip reports its visible slot window; decode
 	// it in one batch, debounced so drags, flings and zoom bursts settle
@@ -164,11 +201,14 @@ function FramePickerBody({
 			void (async () => {
 				const indices: number[] = [];
 				const times: number[] = [];
+				// Re-decode only the slots we do not already hold: scrolling back
+				// over a decoded stretch was re-decoding every visible frame.
 				for (
 					let index = firstSlot;
 					index <= lastSlot && indices.length < STRIP_MAX_SLOTS;
 					index += 1
 				) {
+					if (slotsRef.current.has(index)) continue;
 					indices.push(index);
 					times.push((index + 0.5) * slotSeconds);
 				}
@@ -182,6 +222,7 @@ function FramePickerBody({
 					}
 					return next;
 				});
+				if (times.length === 0) return;
 				await extractor.framesAt({
 					seconds: times,
 					maxEdge: STRIP_THUMB_MAX_EDGE,
@@ -217,9 +258,13 @@ function FramePickerBody({
 	// Seek snaps to the frame grid so the time label always matches the
 	// decoded frame.
 	const seek = (seconds: number) => {
-		setBusy(true);
 		const snapped = Math.round(seconds * fps) / fps;
-		setCurrentTime(Math.min(Math.max(snapped, 0), duration || 0));
+		const next = Math.min(Math.max(snapped, 0), duration || 0);
+		// A drag reports many points per frame; ignore the ones that snap back
+		// to the frame already selected.
+		if (next === currentTime) return;
+		setBusy(true);
+		setCurrentTime(next);
 	};
 
 	const confirm = () => {
@@ -244,6 +289,8 @@ function FramePickerBody({
 							<img
 								src={previewUrl}
 								alt={asset.name}
+								draggable={false}
+								decoding="async"
 								className="size-full object-contain"
 							/>
 						)}
