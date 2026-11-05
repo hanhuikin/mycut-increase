@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { listAudit, listAuditActions } from "@/services/audit";
@@ -5,7 +6,7 @@ import { listAudit, listAuditActions } from "@/services/audit";
 const MAX_LIMIT = 200;
 
 /** Paged audit log, optionally filtered to a single action. */
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -26,3 +27,5 @@ export async function GET(request: NextRequest) {
 
 	return NextResponse.json({ ...page, actions, limit, offset });
 }
+
+export const GET = withRoute(getHandler);

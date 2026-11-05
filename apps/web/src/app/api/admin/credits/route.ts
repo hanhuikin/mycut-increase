@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
@@ -5,7 +6,7 @@ import { adjustCredits, getBalance } from "@/services/billing/ledger";
 import { writeAudit } from "@/services/audit";
 
 /** Manual credit adjustment. Requires a reason; always audited. */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 	return NextResponse.json({ balance });
 }
 
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -58,3 +59,7 @@ export async function GET(request: NextRequest) {
 	}
 	return NextResponse.json({ balance: await getBalance({ userId }) });
 }
+
+export const GET = withRoute(getHandler);
+
+export const POST = withRoute(postHandler);

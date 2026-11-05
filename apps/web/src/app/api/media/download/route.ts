@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 
 /**
@@ -22,7 +23,7 @@ const ALLOWED_CONTENT_TYPES = [
 	"video/x-m4v",
 ];
 
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const targetUrl = searchParams.get("url");
 
@@ -106,3 +107,5 @@ export async function GET(request: NextRequest) {
 		);
 	}
 }
+
+export const GET = withRoute(getHandler);

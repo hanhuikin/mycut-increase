@@ -1,9 +1,7 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
-import {
-	estimateModelCost,
-	getModel,
-} from "@/services/admin/models";
+import { estimateModelCost, getModel } from "@/services/admin/models";
 import {
 	freezeForTask,
 	getBalance,
@@ -15,7 +13,7 @@ import {
  * computed server-side from the model registry — never trusted from the
  * client. Idempotency key: the client-generated task refId.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -71,3 +69,5 @@ export async function POST(request: NextRequest) {
 		throw error;
 	}
 }
+
+export const POST = withRoute(postHandler);

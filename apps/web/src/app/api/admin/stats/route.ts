@@ -1,9 +1,14 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
-import { STATS_RANGES, type StatsRange, getStats } from "@/services/admin/stats";
+import {
+	STATS_RANGES,
+	type StatsRange,
+	getStats,
+} from "@/services/admin/stats";
 
 /** Usage dashboard aggregates over the credit ledger. */
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -23,3 +28,5 @@ export async function GET(request: NextRequest) {
 
 	return NextResponse.json(await getStats({ range, offsetMinutes }));
 }
+
+export const GET = withRoute(getHandler);

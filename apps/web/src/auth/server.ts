@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getRedis } from "@/services/redis";
+import { logger } from "@/services/logging/logger";
 import { webEnv } from "@/env/web";
 
 export const auth = betterAuth({
@@ -12,6 +13,27 @@ export const auth = betterAuth({
 		provider: "pg",
 		usePlural: true,
 	}),
+	// better-auth's default output is plain console.* — which the production
+	// build strips (compiler.removeConsole covers the whole bundle). Route its
+	// messages through the structured logger instead: JSON lines in the same
+	// format as the access logs, with the request's trace_id attached.
+	logger: {
+		level: "info",
+		log: (level, message, ...args) => {
+			const emit =
+				level === "error"
+					? logger.error
+					: level === "warn"
+						? logger.warn
+						: level === "debug"
+							? logger.debug
+							: logger.info;
+			emit(`better-auth: ${message}`, {
+				detail:
+					args.length === 1 ? args[0] : args.length > 1 ? args : undefined,
+			});
+		},
+	},
 	secret: webEnv.BETTER_AUTH_SECRET,
 	user: {
 		deleteUser: {
@@ -27,7 +49,9 @@ export const auth = betterAuth({
 		 */
 		requireEmailVerification: false,
 		sendResetPassword: async ({ user, url }) => {
-			console.info(`[mailer:stub] password reset for ${user.email}: ${url}`);
+			// No SMTP provider is wired up yet: the reset link only lands in the
+			// server logs (never user-visible).
+			logger.info(`password reset link for ${user.email}`, { reset_url: url });
 		},
 	},
 	rateLimit: {

@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { desc, eq, ilike, or } from "drizzle-orm";
 import { requireElevatedAdmin } from "@/auth/guard";
@@ -6,7 +7,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { writeAudit } from "@/services/audit";
 
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -28,7 +29,10 @@ export async function GET(request: NextRequest) {
 		.from(users)
 		.where(
 			search
-				? or(ilike(users.email, `%${search}%`), ilike(users.name, `%${search}%`))
+				? or(
+						ilike(users.email, `%${search}%`),
+						ilike(users.name, `%${search}%`),
+					)
 				: undefined,
 		)
 		.orderBy(desc(users.createdAt))
@@ -37,7 +41,7 @@ export async function GET(request: NextRequest) {
 	return NextResponse.json({ users: rows });
 }
 
-export async function PATCH(request: NextRequest) {
+async function patchHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -131,3 +135,7 @@ export async function PATCH(request: NextRequest) {
 
 	return NextResponse.json({ ok: true });
 }
+
+export const GET = withRoute(getHandler);
+
+export const PATCH = withRoute(patchHandler);

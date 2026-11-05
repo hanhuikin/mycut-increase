@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth/server";
+import {
+	isValidTraceId,
+	newTraceId,
+	TRACE_HEADER,
+} from "@/services/logging/trace";
 
 /**
  * The one place that decides who may reach what.
@@ -25,22 +30,44 @@ function isProtected(pathname: string): boolean {
 	);
 }
 
+/**
+ * Trace propagation: honour the browser session's id (LogBootstrap sends it
+ * on every API call), mint one when absent or malformed, forward it on the
+ * downstream request so server renders log under the same id, and mirror it
+ * onto the response so `curl -i` / devtools can see it too.
+ */
+function withTrace(
+	request: NextRequest,
+	build: (forwardedHeaders: Headers) => NextResponse,
+): NextResponse {
+	const incoming = request.headers.get(TRACE_HEADER);
+	const traceId = isValidTraceId(incoming) ? incoming : newTraceId();
+	const forwarded = new Headers(request.headers);
+	forwarded.set(TRACE_HEADER, traceId);
+	const response = build(forwarded);
+	response.headers.set(TRACE_HEADER, traceId);
+	return response;
+}
+
 export async function proxy(request: NextRequest) {
 	const { pathname, search } = request.nextUrl;
+	const passThrough = (headers: Headers) =>
+		NextResponse.next({ request: { headers } });
 	if (!isProtected(pathname)) {
-		return NextResponse.next();
+		return withTrace(request, passThrough);
 	}
 
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (session?.user) {
-		return NextResponse.next();
+		return withTrace(request, passThrough);
 	}
 
 	const login = new URL("/login", request.url);
 	// Built from the request, so untrusted — the login page re-validates it
-	// with `safeNextPath()` before navigating.
+	// with `safeNextPath()` before navigating. A redirect is the whole
+	// response (nothing downstream to forward to), so `headers` goes unused.
 	login.searchParams.set("next", `${pathname}${search}`);
-	return NextResponse.redirect(login);
+	return withTrace(request, () => NextResponse.redirect(login));
 }
 
 export const config = {

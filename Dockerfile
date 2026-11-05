@@ -19,6 +19,9 @@ WORKDIR /app
 
 # Railway 会把服务变量作为 build arg 传入,覆盖本地默认值
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# NEXT_PUBLIC_* 被内联进客户端代码，必须在构建期存在。取帧性能埋点开关：
+# =1 时客户端日志放开 DEBUG 并输出取帧 decode/encode 耗时，默认关闭。
+ARG NEXT_PUBLIC_DEBUG_FRAMES=""
 
 COPY package.json package.json
 COPY bun.lock bun.lock
@@ -35,6 +38,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_DEBUG_FRAMES=$NEXT_PUBLIC_DEBUG_FRAMES
 
 WORKDIR /app/apps/web
 # Build-time env stubs to pass zod validation. REDIS_URL mirrors the runtime

@@ -14,7 +14,15 @@ const nextConfig: NextConfig = {
 	 */
 	typescript: { ignoreBuildErrors: true },
 	compiler: {
-		removeConsole: process.env.NODE_ENV === "production",
+		// Production strips stray console.* debugging from the bundle, but
+		// error/warn survive: the structured logger (services/logging/) and
+		// crash dumps must keep working in every environment — 本地、test、
+		// prod 都要求有日志输出。The logger itself emits through bound
+		// console references, so the strip does not silence it.
+		removeConsole:
+			process.env.NODE_ENV === "production"
+				? { exclude: ["error", "warn"] }
+				: false,
 	},
 	reactStrictMode: true,
 	productionBrowserSourceMaps: true,

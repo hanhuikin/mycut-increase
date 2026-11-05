@@ -1,21 +1,15 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
-import {
-	estimateModelCost,
-	getModel,
-} from "@/services/admin/models";
-import {
-	getBalance,
-	refundTask,
-	settleTask,
-} from "@/services/billing/ledger";
+import { estimateModelCost, getModel } from "@/services/admin/models";
+import { getBalance, refundTask, settleTask } from "@/services/billing/ledger";
 
 /**
  * Close out a frozen generation task: settle the actual usage (difference
  * flows back) or refund in full on failure. Idempotent per refId — retries,
  * page reloads and double calls can never book twice.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -42,7 +36,9 @@ export async function POST(request: NextRequest) {
 			note: "generation failed",
 			modelId: model?.id ?? null,
 		});
-		return NextResponse.json({ balance: await getBalance({ userId: user.id }) });
+		return NextResponse.json({
+			balance: await getBalance({ userId: user.id }),
+		});
 	}
 
 	const actualSeconds = Math.min(
@@ -66,3 +62,5 @@ export async function POST(request: NextRequest) {
 
 	return NextResponse.json({ balance: await getBalance({ userId: user.id }) });
 }
+
+export const POST = withRoute(postHandler);

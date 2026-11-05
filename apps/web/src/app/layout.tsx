@@ -9,6 +9,8 @@ import { BotIdClient } from "botid/client";
 import { webEnv } from "@/env/web";
 import { Inter } from "next/font/google";
 import { LocaleProvider } from "@/locale/locale-context";
+import { LogBootstrap } from "@/services/logging/log-bootstrap";
+import { TRACE_BOOT_SNIPPET } from "@/services/logging/trace";
 
 const siteFont = Inter({ subsets: ["latin"] });
 
@@ -30,8 +32,16 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<head>
 				<BotIdClient protect={protectedRoutes} />
+				{/* Trace id + fetch wrap must exist before the app bundle evaluates:
+				    better-auth snapshots `fetch` at module-evaluation time. */}
+				<Script id="trace-boot" strategy="beforeInteractive">
+					{TRACE_BOOT_SNIPPET}
+				</Script>
 			</head>
-			<body className={`${siteFont.className} font-sans antialiased`} suppressHydrationWarning>
+			<body
+				className={`${siteFont.className} font-sans antialiased`}
+				suppressHydrationWarning
+			>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
@@ -39,6 +49,7 @@ export default function RootLayout({
 				>
 					<LocaleProvider>
 						<TooltipProvider>
+							<LogBootstrap />
 							<Toaster />
 							<Script
 								src="https://cdn.databuddy.cc/databuddy.js"

@@ -21,6 +21,10 @@ spec:
                 configMapKeyRef:
                   name: mycut-config
                   key: NEXT_PUBLIC_SITE_URL
+            - name: APP_ENV
+              value: prod
+            - name: LOG_LEVEL
+              value: INFO
       topologySpreadConstraints:
         # 双副本尽量落在不同节点
         - maxSkew: 1

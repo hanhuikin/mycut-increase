@@ -1,11 +1,17 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
-import { estimateModelCost, getModel, hasModelGrant } from "@/services/admin/models";
-import { createTask, submitAttempt, type TaskSubmitParams } from "@/services/ai/tasks";
 import {
-	familyForKind,
-	resolveChannelChain,
-} from "@/services/admin/channels";
+	estimateModelCost,
+	getModel,
+	hasModelGrant,
+} from "@/services/admin/models";
+import {
+	createTask,
+	submitAttempt,
+	type TaskSubmitParams,
+} from "@/services/ai/tasks";
+import { familyForKind, resolveChannelChain } from "@/services/admin/channels";
 import {
 	countFreezesToday,
 	freezeForTask,
@@ -17,7 +23,9 @@ import {
 
 const RESOLUTIONS: readonly string[] = ["480p", "720p", "1080p"];
 
-function parseResolution(value: unknown): "480p" | "720p" | "1080p" | undefined {
+function parseResolution(
+	value: unknown,
+): "480p" | "720p" | "1080p" | undefined {
 	return typeof value === "string" && RESOLUTIONS.includes(value)
 		? (value as "480p" | "720p" | "1080p")
 		: undefined;
@@ -55,7 +63,7 @@ function billableSeconds({
  * to accept wins. A caller that saw a *poll* fail retries with `exclude` (and a
  * fresh `refId`) to move down the chain.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -103,7 +111,10 @@ export async function POST(request: NextRequest) {
 
 	const duration = parseDuration(raw.duration);
 	const resolution = parseResolution(raw.resolution) ?? "720p";
-	const seconds = billableSeconds({ requested: duration, maxDuration: model.maxDuration });
+	const seconds = billableSeconds({
+		requested: duration,
+		maxDuration: model.maxDuration,
+	});
 	const cost = estimateModelCost({ model, resolution, seconds });
 
 	if (model.dailyLimit != null) {
@@ -139,8 +150,7 @@ export async function POST(request: NextRequest) {
 			cost,
 		});
 		if (!attempt.ok) {
-			const insufficient =
-				!attempt.ok && attempt.error === "余额不足";
+			const insufficient = !attempt.ok && attempt.error === "余额不足";
 			return NextResponse.json(
 				{
 					error: insufficient ? "insufficient" : "all_channels_failed",
@@ -270,3 +280,5 @@ export async function POST(request: NextRequest) {
 		{ status: 502 },
 	);
 }
+
+export const POST = withRoute(postHandler);

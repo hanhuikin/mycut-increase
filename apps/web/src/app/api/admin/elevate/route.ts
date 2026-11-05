@@ -1,6 +1,11 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth/server";
-import { getSessionUser, issueAdminGate, ADMIN_GATE_TTL_MS } from "@/auth/guard";
+import {
+	getSessionUser,
+	issueAdminGate,
+	ADMIN_GATE_TTL_MS,
+} from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
 import { writeAudit } from "@/services/audit";
 
@@ -8,7 +13,7 @@ import { writeAudit } from "@/services/audit";
  * Step-up verification for the admin panel: re-enter the account password
  * (plus the TOTP code when 2FA is on). Issues the 30-minute gate cookie.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -47,19 +52,13 @@ export async function POST(request: NextRequest) {
 	}
 
 	if (!passwordOk) {
-		return NextResponse.json(
-			{ error: "bad_credentials" },
-			{ status: 401 },
-		);
+		return NextResponse.json({ error: "bad_credentials" }, { status: 401 });
 	}
 
 	if (user.twoFactorEnabled || twoFactorRequired) {
 		const totp = body.totp?.trim() ?? "";
 		if (!totp) {
-			return NextResponse.json(
-				{ error: "totp_required" },
-				{ status: 401 },
-			);
+			return NextResponse.json({ error: "totp_required" }, { status: 401 });
 		}
 		const verifyTotp = (
 			auth.api as unknown as Record<
@@ -72,10 +71,7 @@ export async function POST(request: NextRequest) {
 			>
 		)["verifyTOTP"];
 		if (typeof verifyTotp !== "function") {
-			return NextResponse.json(
-				{ error: "totp_unavailable" },
-				{ status: 503 },
-			);
+			return NextResponse.json({ error: "totp_unavailable" }, { status: 503 });
 		}
 		try {
 			await verifyTotp.call(auth.api, {
@@ -102,3 +98,5 @@ export async function POST(request: NextRequest) {
 		expiresInMinutes: ADMIN_GATE_TTL_MS / 60000,
 	});
 }
+
+export const POST = withRoute(postHandler);

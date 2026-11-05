@@ -1,8 +1,12 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { checkRateLimit } from "@/auth/rate-limit";
 import { clientIp } from "@/auth/request-ip";
-import { getChannelCredential, isValidBaseUrl } from "@/services/admin/channels";
+import {
+	getChannelCredential,
+	isValidBaseUrl,
+} from "@/services/admin/channels";
 import { getProtocol } from "@/services/ai/protocols";
 import { writeAudit } from "@/services/audit";
 
@@ -17,7 +21,7 @@ const PROBE_TIMEOUT_MS = 15_000;
  * typed key transiently (new channel), or passes only the channel id so the
  * stored key is used server-side (edit, key left blank).
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -28,13 +32,15 @@ export async function POST(request: NextRequest) {
 		keySuffix: "probe",
 	});
 	if (limited) {
-		return NextResponse.json(
-			{ error: "too_many_requests" },
-			{ status: 429 },
-		);
+		return NextResponse.json({ error: "too_many_requests" }, { status: 429 });
 	}
 
-	let body: { protocol?: unknown; baseUrl?: unknown; apiKey?: unknown; channelId?: unknown };
+	let body: {
+		protocol?: unknown;
+		baseUrl?: unknown;
+		apiKey?: unknown;
+		channelId?: unknown;
+	};
 	try {
 		body = await request.json();
 	} catch {
@@ -97,3 +103,5 @@ export async function POST(request: NextRequest) {
 		return NextResponse.json({ ok: false, error: message }, { status: 502 });
 	}
 }
+
+export const POST = withRoute(postHandler);

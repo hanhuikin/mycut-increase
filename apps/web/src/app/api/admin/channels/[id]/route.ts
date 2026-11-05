@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
@@ -10,7 +11,7 @@ import {
 import { writeAudit } from "@/services/audit";
 
 /** Update a channel. An omitted or empty `apiKey` leaves the stored key alone. */
-export async function PATCH(
+async function patchHandler(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
 ) {
@@ -60,7 +61,7 @@ export async function PATCH(
 }
 
 /** Delete a channel. Models it was the only server for become unroutable. */
-export async function DELETE(
+async function deleteHandler(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
 ) {
@@ -94,3 +95,7 @@ export async function DELETE(
 
 	return NextResponse.json({ ok: true });
 }
+
+export const DELETE = withRoute(deleteHandler);
+
+export const PATCH = withRoute(patchHandler);

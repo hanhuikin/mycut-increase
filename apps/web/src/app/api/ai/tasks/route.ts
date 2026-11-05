@@ -1,17 +1,15 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import { checkRateLimit } from "@/auth/rate-limit";
-import {
-	clearTerminalTasks,
-	listTasks,
-} from "@/services/ai/tasks";
+import { clearTerminalTasks, listTasks } from "@/services/ai/tasks";
 
 /**
  * The current user's generation tasks. Reading syncs active tasks in place
  * (upstream poll → settle/refund/fallback), so the response is always the
  * live state; the browser just renders it.
  */
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -30,7 +28,7 @@ export async function GET(request: NextRequest) {
 }
 
 /** Clear finished records. Active tasks are never touched. */
-export async function DELETE(_request: NextRequest) {
+async function deleteHandler(_request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -38,3 +36,7 @@ export async function DELETE(_request: NextRequest) {
 	const cleared = await clearTerminalTasks({ userId: user.id });
 	return NextResponse.json({ cleared });
 }
+
+export const DELETE = withRoute(deleteHandler);
+
+export const GET = withRoute(getHandler);

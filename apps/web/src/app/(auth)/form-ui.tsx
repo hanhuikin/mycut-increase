@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/locale/locale-context";
 import type { LocaleKey } from "@/locale";
 
@@ -30,9 +30,7 @@ export function AuthField({
 
 	return (
 		<div className="mb-3.5">
-			<label className="text-foreground/80 mb-1.5 block text-xs">
-				{label}
-			</label>
+			<label className="text-foreground/80 mb-1.5 block text-xs">{label}</label>
 			<div
 				className={`border-border bg-background focus-within:border-primary flex h-10 items-center gap-2 rounded-lg border px-3 transition-colors ${
 					error ? "border-destructive" : ""
@@ -53,9 +51,7 @@ export function AuthField({
 						onClick={() => setShowPassword((current) => !current)}
 						className="text-muted-foreground hover:text-foreground shrink-0 text-xs"
 					>
-						{showPassword
-							? t["ui.hide_password"]
-							: t["ui.show_password"]}
+						{showPassword ? t["ui.hide_password"] : t["ui.show_password"]}
 					</button>
 				)}
 			</div>
@@ -131,12 +127,36 @@ export function SubmitButton({
 	);
 }
 
+/**
+ * The session trace id, shown next to auth errors so a user reporting a
+ * failed login can hand over the one id that greps their server logs.
+ * Language-neutral (`trace_id`) — no locale keys. Click copies it.
+ */
+function TraceHint() {
+	const [traceId, setTraceId] = useState<string | null>(null);
+	useEffect(() => {
+		setTraceId(window.__TRACE_ID__ ?? null);
+	}, []);
+	if (!traceId) return null;
+	return (
+		<button
+			type="button"
+			onClick={() => void navigator.clipboard?.writeText(traceId)}
+			title="Copy trace id"
+			className="text-muted-foreground mt-1 block cursor-pointer font-mono text-[11px] hover:underline"
+		>
+			trace_id: {traceId}
+		</button>
+	);
+}
+
 export function AuthError({ errorKey }: { errorKey: LocaleKey | null }) {
 	const { t } = useLocale();
 	if (!errorKey) return null;
 	return (
-		<p aria-live="assertive" className="text-destructive mt-3 text-xs">
-			{t[errorKey]}
-		</p>
+		<div aria-live="assertive" className="mt-3">
+			<p className="text-destructive text-xs">{t[errorKey]}</p>
+			<TraceHint />
+		</div>
 	);
 }

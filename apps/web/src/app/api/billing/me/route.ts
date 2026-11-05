@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import {
@@ -7,7 +8,7 @@ import {
 } from "@/services/billing/ledger";
 
 /** The signed-in user's credit state. First call grants the signup bonus. */
-export async function GET() {
+async function getHandler() {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -24,3 +25,5 @@ export async function GET() {
 		transactions,
 	});
 }
+
+export const GET = withRoute(getHandler);

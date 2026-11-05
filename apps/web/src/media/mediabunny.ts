@@ -10,6 +10,7 @@ import { createTimelineAudioBuffer } from "@/media/audio";
 import type { SceneTracks } from "@/timeline";
 import type { MediaAsset } from "@/media/types";
 import { TICKS_PER_SECOND } from "@/wasm";
+import { logger } from "@/services/logging/logger";
 import { renderThumbnailDataUrl } from "./thumbnail";
 
 export type VideoFileData = {
@@ -130,7 +131,11 @@ export class VideoFrameExtractor {
 	}
 
 	/** Null when the file has no decodable video track. */
-	static async open({ file }: { file: File }): Promise<VideoFrameExtractor | null> {
+	static async open({
+		file,
+	}: {
+		file: File;
+	}): Promise<VideoFrameExtractor | null> {
 		const input = new Input({
 			source: new BlobSource(file),
 			formats: ALL_FORMATS,
@@ -145,7 +150,9 @@ export class VideoFrameExtractor {
 			// clips routinely carry an audio track (or header duration) that runs
 			// past the last video packet, and seeks into that tail return null.
 			const duration = await track.computeDuration();
-			const sink = (await track.canDecode()) ? new VideoSampleSink(track) : null;
+			const sink = (await track.canDecode())
+				? new VideoSampleSink(track)
+				: null;
 			return new VideoFrameExtractor({
 				input,
 				sink,
@@ -170,13 +177,34 @@ export class VideoFrameExtractor {
 		if (!this.sink) {
 			return null;
 		}
-		const time = clampToVideoSpan({ seconds, videoSpanSeconds: this.durationSeconds });
+		const time = clampToVideoSpan({
+			seconds,
+			videoSpanSeconds: this.durationSeconds,
+		});
+		// Perf instrumentation (NEXT_PUBLIC_DEBUG_FRAMES=1): scrubbing jank
+		// came from here, and the split decode/encode is what tells a slow
+		// seek apart from a slow JPEG encode.
+		const decodeStarted = performance.now();
 		const frame = await this.sink.getSample(time);
+		const decodeMs = Math.round(performance.now() - decodeStarted);
 		if (!frame) {
+			logger.debug("frames.extract miss", {
+				seconds: time,
+				decode_ms: decodeMs,
+			});
 			return null;
 		}
 		try {
-			return await this.renderSampleToDataUrl({ frame, maxEdge });
+			const encodeStarted = performance.now();
+			const dataUrl = await this.renderSampleToDataUrl({ frame, maxEdge });
+			logger.debug("frames.extract", {
+				seconds: time,
+				max_edge: maxEdge,
+				decode_ms: decodeMs,
+				encode_ms: Math.round(performance.now() - encodeStarted),
+				bytes: dataUrl?.length ?? 0,
+			});
+			return dataUrl;
 		} finally {
 			frame.close();
 		}
@@ -204,10 +232,14 @@ export class VideoFrameExtractor {
 		if (!this.sink || seconds.length === 0) {
 			return;
 		}
+		const batchStarted = performance.now();
 		const order = seconds
 			.map((value, index) => ({
 				index,
-				time: clampToVideoSpan({ seconds: value, videoSpanSeconds: this.durationSeconds }),
+				time: clampToVideoSpan({
+					seconds: value,
+					videoSpanSeconds: this.durationSeconds,
+				}),
 			}))
 			.sort((left, right) => left.time - right.time);
 		let position = 0;
@@ -237,6 +269,11 @@ export class VideoFrameExtractor {
 			}
 			position += 1;
 		}
+		logger.debug("frames.batch", {
+			requested: seconds.length,
+			decoded: position,
+			total_ms: Math.round(performance.now() - batchStarted),
+		});
 	}
 
 	/**

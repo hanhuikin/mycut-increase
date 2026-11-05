@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -7,7 +8,7 @@ import { db } from "@/db";
  * process alone; this one lets the load balancer evict a node that is up but
  * cannot reach Postgres, instead of serving every request an error.
  */
-export async function GET() {
+async function getHandler() {
 	try {
 		await db.execute(sql`select 1`);
 		return NextResponse.json({ status: "ok" });
@@ -21,3 +22,5 @@ export async function GET() {
 		);
 	}
 }
+
+export const GET = withRoute(getHandler);

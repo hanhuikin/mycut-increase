@@ -1,9 +1,10 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import { redeemCode } from "@/services/billing/ledger";
 
 /** v1 top-up channel: redeem a code, credits land in the ledger instantly. */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -18,9 +19,8 @@ export async function POST(request: NextRequest) {
 		const result = await redeemCode({ userId: user.id, code: body.code });
 		return NextResponse.json(result);
 	} catch {
-		return NextResponse.json(
-			{ error: "code_invalid" },
-			{ status: 409 },
-		);
+		return NextResponse.json({ error: "code_invalid" }, { status: 409 });
 	}
 }
+
+export const POST = withRoute(postHandler);

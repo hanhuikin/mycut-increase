@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
@@ -16,7 +17,7 @@ function generateCode(): string {
 }
 
 /** Generate a batch of redeem codes (v1 top-up channel). */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -31,9 +32,9 @@ export async function POST(request: NextRequest) {
 
 	const batchId = crypto.randomUUID();
 	const codes = Array.from({ length: count }, generateCode);
-	await db.insert(redeemCodes).values(
-		codes.map((code) => ({ code, credits, batchId })),
-	);
+	await db
+		.insert(redeemCodes)
+		.values(codes.map((code) => ({ code, credits, batchId })));
 
 	await writeAudit({
 		actorId: gate.user.id,
@@ -46,3 +47,5 @@ export async function POST(request: NextRequest) {
 
 	return NextResponse.json({ batchId, codes });
 }
+
+export const POST = withRoute(postHandler);

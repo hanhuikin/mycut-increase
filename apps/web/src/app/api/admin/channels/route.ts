@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
@@ -7,7 +8,7 @@ import { protocolOptions } from "@/services/ai/protocols";
 import { writeAudit } from "@/services/audit";
 
 /** Channels plus the protocol list the editor's type picker needs. */
-export async function GET() {
+async function getHandler() {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -19,7 +20,7 @@ export async function GET() {
 }
 
 /** Create a channel. It may start without a key — such a channel is skipped. */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -56,3 +57,7 @@ export async function POST(request: NextRequest) {
 
 	return NextResponse.json({ channel: created }, { status: 201 });
 }
+
+export const GET = withRoute(getHandler);
+
+export const POST = withRoute(postHandler);

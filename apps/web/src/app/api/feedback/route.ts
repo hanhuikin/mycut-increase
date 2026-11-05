@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/auth/rate-limit";
@@ -10,7 +11,7 @@ const submitSchema = z.object({
 		.max(MAX_MESSAGE_LENGTH, "Message too long"),
 });
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const { limited } = await checkRateLimit({ request });
 	if (limited) {
 		return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -29,3 +30,5 @@ export async function POST(request: NextRequest) {
 	const entry = await submitFeedback(result.data);
 	return NextResponse.json({ entry }, { status: 201 });
 }
+
+export const POST = withRoute(postHandler);

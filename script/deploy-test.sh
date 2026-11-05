@@ -21,10 +21,12 @@ SITE_URL="https://test-mycut.sunwin-sh.com"
 
 BUILD=false
 SKIP_MIGRATE=false
+DEBUG_FRAMES=false
 for arg in "$@"; do
   case "$arg" in
     --build) BUILD=true ;;
     --skip-migrate) SKIP_MIGRATE=true ;;
+    --debug-frames) DEBUG_FRAMES=true ;;
     *) echo "未知参数: $arg"; exit 1 ;;
   esac
 done
@@ -38,9 +40,13 @@ echo "==> 镜像: ${IMAGE}:${TAG}"
 if [ "$BUILD" = true ]; then
   docker version >/dev/null 2>&1 || { echo "Docker daemon 未运行"; exit 1; }
   echo "==> docker build"
-  # NEXT_PUBLIC_* 是编译期内联值，站点 URL 必须在构建期传入
+  # NEXT_PUBLIC_* 是编译期内联值，站点 URL 必须在构建期传入；
+  # --debug-frames 额外内联取帧性能埋点（客户端 DEBUG 日志 + decode/encode 耗时）
+  FRAME_ARGS=()
+  [ "$DEBUG_FRAMES" = true ] && FRAME_ARGS+=(--build-arg NEXT_PUBLIC_DEBUG_FRAMES=1)
   docker build -f Dockerfile \
     --build-arg NEXT_PUBLIC_SITE_URL="${SITE_URL}" \
+    "${FRAME_ARGS[@]}" \
     -t "${IMAGE}:${TAG}" -t "${IMAGE}:test-latest" .
   : "${REG_TOKEN:?需要 REG_TOKEN（GitLab PAT，write_repository 权限）}"
   echo "==> docker push"

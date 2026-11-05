@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import {
@@ -21,7 +22,7 @@ import { refundTask } from "@/services/billing/ledger";
  * re-resolved here, and the channel is checked to actually serve this model, so
  * no caller-supplied URL is ever fetched.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -133,3 +134,5 @@ export async function POST(request: NextRequest) {
 		);
 	}
 }
+
+export const POST = withRoute(postHandler);

@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
@@ -13,13 +14,14 @@ const KINDS = ["video", "tool", "audio", "local"] as const;
 type Kind = (typeof KINDS)[number];
 
 function parseKind(value: unknown): Kind | null {
-	return typeof value === "string" && (KINDS as readonly string[]).includes(value)
+	return typeof value === "string" &&
+		(KINDS as readonly string[]).includes(value)
 		? (value as Kind)
 		: null;
 }
 
 /** The model list. Edits go to `/api/admin/models/[id]`. */
-export async function GET() {
+async function getHandler() {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -36,7 +38,7 @@ export async function GET() {
  * `id` is the primary key and is referenced by the ledger and by per-user
  * grants, so it is fixed the moment it is created.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const gate = await requireElevatedAdmin();
 	if (!gate.ok) {
 		return NextResponse.json({ error: gate.status }, { status: gate.status });
@@ -50,7 +52,8 @@ export async function POST(request: NextRequest) {
 	}
 
 	const source = body as { id?: unknown; label?: unknown; kind?: unknown };
-	const id = typeof source.id === "string" ? source.id.trim().toLowerCase() : "";
+	const id =
+		typeof source.id === "string" ? source.id.trim().toLowerCase() : "";
 	const label = typeof source.label === "string" ? source.label.trim() : "";
 	const kind = parseKind(source.kind);
 
@@ -83,3 +86,7 @@ export async function POST(request: NextRequest) {
 		{ status: 201 },
 	);
 }
+
+export const GET = withRoute(getHandler);
+
+export const POST = withRoute(postHandler);

@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import { listModels, toPublicModel } from "@/services/admin/models";
@@ -10,7 +11,7 @@ import { eq } from "drizzle-orm";
  * response also carries the plan and per-user Pro-model grants so the AI
  * panel can render "visible but locked" states.
  */
-export async function GET() {
+async function getHandler() {
 	const models = (await listModels({ enabledOnly: true })).map(toPublicModel);
 
 	const user = await getSessionUser();
@@ -29,3 +30,5 @@ export async function GET() {
 		granted: grants.map((grant) => grant.modelId),
 	});
 }
+
+export const GET = withRoute(getHandler);

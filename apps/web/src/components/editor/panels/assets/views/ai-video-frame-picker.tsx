@@ -13,6 +13,7 @@ import {
 import { VideoFrameExtractor } from "@/media/mediabunny";
 import type { MediaAsset } from "@/media/types";
 import { useLocale } from "@/locale/locale-context";
+import { logger } from "@/services/logging/logger";
 import {
 	FramePickerStrip,
 	STRIP_MAX_SLOTS,
@@ -104,9 +105,7 @@ function FramePickerBody({
 	const [failed, setFailed] = useState(false);
 	/** True while a playhead/filmstrip drag is in flight. */
 	const [isScrubbing, setIsScrubbing] = useState(false);
-	const [stripWindow, setStripWindow] = useState<FrameStripWindow | null>(
-		null,
-	);
+	const [stripWindow, setStripWindow] = useState<FrameStripWindow | null>(null);
 
 	const fps = asset.fps && asset.fps > 0 ? asset.fps : 30;
 
@@ -157,6 +156,7 @@ function FramePickerBody({
 		const frameIndex = Math.round(currentTime * fps);
 		const cached = previewCacheRef.current.get(frameIndex);
 		if (cached) {
+			logger.debug("frames.preview", { frame_index: frameIndex, cached: true });
 			setPreviewUrl(cached);
 			setBusy(false);
 			return;
@@ -167,6 +167,9 @@ function FramePickerBody({
 		// this effect re-runs when isScrubbing flips back to false.
 		if (isScrubbing) return;
 		let cancelled = false;
+		// Perf instrumentation (NEXT_PUBLIC_DEBUG_FRAMES=1): the whole
+		// seek→decode→on-screen latency, debounce included.
+		const seekStarted = performance.now();
 		// Debounced seek: dragging fires continuously; only the settled value
 		// gets decoded.
 		const timer = setTimeout(() => {
@@ -177,6 +180,11 @@ function FramePickerBody({
 				});
 				if (cancelled) return;
 				if (frame) {
+					logger.debug("frames.preview", {
+						frame_index: frameIndex,
+						latency_ms: Math.round(performance.now() - seekStarted),
+						cached: false,
+					});
 					const cache = previewCacheRef.current;
 					cache.set(frameIndex, frame);
 					if (cache.size > PREVIEW_CACHE_LIMIT) {
@@ -232,8 +240,7 @@ function FramePickerBody({
 				await extractor.framesAt({
 					seconds: times,
 					maxEdge: STRIP_THUMB_MAX_EDGE,
-					shouldContinue: () =>
-						stripGenerationRef.current === generation,
+					shouldContinue: () => stripGenerationRef.current === generation,
 					onFrame: (position, dataUrl) => {
 						const index = indices[position];
 						if (!dataUrl || index === undefined) return;
@@ -338,4 +345,3 @@ function FramePickerBody({
 		</>
 	);
 }
-

@@ -1,10 +1,12 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
-import { estimateModelCost, getModel, hasModelGrant } from "@/services/admin/models";
 import {
-	familyForKind,
-	resolveChannelChain,
-} from "@/services/admin/channels";
+	estimateModelCost,
+	getModel,
+	hasModelGrant,
+} from "@/services/admin/models";
+import { familyForKind, resolveChannelChain } from "@/services/admin/channels";
 import {
 	countFreezesToday,
 	freezeForTask,
@@ -37,7 +39,7 @@ function parseSize(value: unknown): string | undefined {
  * The billing model is per-call (`pricePerCall`); a single call may ask
  * for up to MAX_IMAGES pictures and is charged once.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
 	const user = await getSessionUser();
 	if (!user) {
 		return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -97,7 +99,10 @@ export async function POST(request: NextRequest) {
 		}
 	}
 
-	const chain = await resolveChannelChain({ modelId: model.id, kind: model.kind });
+	const chain = await resolveChannelChain({
+		modelId: model.id,
+		kind: model.kind,
+	});
 	const attempts = chain.filter((routed) => routed.protocol.generateImage);
 	if (attempts.length === 0) {
 		return NextResponse.json(
@@ -177,3 +182,5 @@ export async function POST(request: NextRequest) {
 		{ status: 502 },
 	);
 }
+
+export const POST = withRoute(postHandler);

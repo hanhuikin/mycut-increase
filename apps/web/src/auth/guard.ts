@@ -4,6 +4,7 @@ import { auth } from "@/auth/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { setRequestUser } from "@/services/logging/request-context";
 import { webEnv } from "@/env/web";
 
 export interface SessionUser {
@@ -42,6 +43,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 	if (!row || row.banned) {
 		return null;
 	}
+	// The access log line for this request gains user_id — every guarded
+	// handler resolves its session here, so handlers stay wrapper-only.
+	setRequestUser({ userId: row.id });
 	return {
 		id: row.id,
 		name: row.name,

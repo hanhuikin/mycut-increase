@@ -1,3 +1,4 @@
+import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireElevatedAdmin } from "@/auth/guard";
 import { clientIp } from "@/auth/request-ip";
@@ -135,7 +136,7 @@ function sanitize(body: Record<string, unknown>): Sanitized {
 	return { ok: true, patch };
 }
 
-export async function GET(
+async function getHandler(
 	_request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
 ) {
@@ -152,7 +153,7 @@ export async function GET(
 	return NextResponse.json({ model });
 }
 
-export async function PATCH(
+async function patchHandler(
 	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> },
 ) {
@@ -195,3 +196,7 @@ export async function PATCH(
 	// Return the detail shape so the drawer picks up fresh route status too.
 	return NextResponse.json({ model: await getModelDetail({ id }) });
 }
+
+export const GET = withRoute(getHandler);
+
+export const PATCH = withRoute(patchHandler);
