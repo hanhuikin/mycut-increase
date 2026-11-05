@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/auth/client";
 import { errorToKey } from "@/auth/error-map";
 import { safeNextPath } from "@/auth/next-path";
@@ -16,7 +15,6 @@ import {
 
 export default function LoginPage() {
 	const { t } = useLocale();
-	const router = useRouter();
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -43,7 +41,12 @@ export default function LoginPage() {
 			const next = safeNextPath(
 				new URLSearchParams(window.location.search).get("next"),
 			);
-			router.push(next ?? "/projects");
+			// Full navigation, not router.push: the client router can replay a
+			// cached/prefetched redirect for the protected route (fetched before
+			// sign-in, while there was no session) and leave the user on /login
+			// with no error at all. A real request always re-checks the session
+			// with the cookie that was just set.
+			window.location.assign(next ?? "/projects");
 		} catch (error) {
 			setErrorKey(errorToKey({ error }));
 		} finally {

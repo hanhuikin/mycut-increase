@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/auth/client";
 import { authErrorToKey, errorToKey } from "@/auth/error-map";
 import { useLocale } from "@/locale/locale-context";
@@ -25,7 +24,6 @@ function passwordStrength(password: string): 0 | 1 | 2 | 3 {
 
 export default function SignupPage() {
 	const { t } = useLocale();
-	const router = useRouter();
 
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -71,7 +69,9 @@ export default function SignupPage() {
 				setErrorKey(authErrorToKey({ code: result.error.code }));
 				return;
 			}
-			router.push("/projects");
+			// Full navigation so the new session cookie is always honoured by the
+			// server-side route guard; see the same note in login/page.tsx.
+			window.location.assign("/projects");
 		} catch (error) {
 			setErrorKey(errorToKey({ error }));
 		} finally {
