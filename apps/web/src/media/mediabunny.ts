@@ -108,6 +108,12 @@ export class VideoFrameExtractor {
 	readonly durationSeconds: number;
 	private width: number;
 	private height: number;
+	/**
+	 * One canvas reused across every frame we encode. `toDataURL` is
+	 * synchronous, so a filmstrip batch is already main-thread work; allocating
+	 * (and GC-ing) a fresh canvas per frame made scrubbing noticeably janky.
+	 */
+	private canvas: HTMLCanvasElement | null = null;
 
 	private constructor(args: {
 		input: Input;
@@ -170,16 +176,7 @@ export class VideoFrameExtractor {
 			return null;
 		}
 		try {
-			const scale = Math.min(1, maxEdge / Math.max(this.width, this.height));
-			const canvas = document.createElement("canvas");
-			canvas.width = Math.max(1, Math.round(this.width * scale));
-			canvas.height = Math.max(1, Math.round(this.height * scale));
-			const context = canvas.getContext("2d");
-			if (!context) {
-				return null;
-			}
-			frame.draw(context, 0, 0, canvas.width, canvas.height);
-			return canvas.toDataURL("image/jpeg", 0.9);
+			return this.renderSampleToDataUrl({ frame, maxEdge });
 		} finally {
 			frame.close();
 		}
@@ -237,10 +234,21 @@ export class VideoFrameExtractor {
 				onFrame?.(entry ? entry.index : position, null);
 			}
 			position += 1;
+			// Encoding each frame blocks, so hand control back to the browser
+			// between frames — otherwise a full batch paints at once and the
+			// filmstrip visibly stutters while it fills in.
+			if (position % 3 === 0) {
+				await new Promise<void>((resolve) =>
+					requestAnimationFrame(() => resolve()),
+				);
+			}
 		}
 	}
 
-	/** Draws one decoded sample to a canvas and encodes it as JPEG. */
+	/**
+	 * Draws one decoded sample onto the shared canvas and encodes it as JPEG.
+	 * `toDataURL` blocks, so callers yield between frames (see framesAt).
+	 */
 	private renderSampleToDataUrl({
 		frame,
 		maxEdge,
@@ -249,15 +257,17 @@ export class VideoFrameExtractor {
 		maxEdge: number;
 	}): string | null {
 		const scale = Math.min(1, maxEdge / Math.max(this.width, this.height));
-		const canvas = document.createElement("canvas");
-		canvas.width = Math.max(1, Math.round(this.width * scale));
-		canvas.height = Math.max(1, Math.round(this.height * scale));
+		const width = Math.max(1, Math.round(this.width * scale));
+		const height = Math.max(1, Math.round(this.height * scale));
+		const canvas = (this.canvas ??= document.createElement("canvas"));
+		if (canvas.width !== width) canvas.width = width;
+		if (canvas.height !== height) canvas.height = height;
 		const context = canvas.getContext("2d");
 		if (!context) {
 			return null;
 		}
-		frame.draw(context, 0, 0, canvas.width, canvas.height);
-		return canvas.toDataURL("image/jpeg", 0.9);
+		frame.draw(context, 0, 0, width, height);
+		return canvas.toDataURL("image/jpeg", 0.85);
 	}
 
 	dispose(): void {
