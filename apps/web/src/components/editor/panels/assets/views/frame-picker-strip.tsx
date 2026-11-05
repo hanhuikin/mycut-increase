@@ -62,7 +62,9 @@ const RulerRow = memo(
 	return (
 		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it.
 		<div
-			className="border-border/60 relative h-5 cursor-col-resize border-b"
+			// overflow-hidden: absolutely positioned ticks must never extend the
+			// scroll container's width past the media's actual length.
+			className="border-border/60 relative h-5 cursor-col-resize overflow-hidden border-b"
 			onMouseDown={onMouseDown}
 		>
 			{ticks.map(({ time, isLabel }) =>
@@ -110,7 +112,9 @@ const FilmstripRow = memo(function FilmstripRow({
 	return (
 		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it.
 		<div
-			className="bg-secondary/60 relative mt-0.5 h-12 cursor-col-resize"
+			// overflow-hidden: the last slot can overhang the content width by up
+			// to one slot; clipping keeps the scrollable range equal to duration.
+			className="bg-secondary/60 relative mt-0.5 h-12 cursor-col-resize overflow-hidden"
 			onMouseDown={onMouseDown}
 		>
 			{indices.map((index) => {
@@ -220,8 +224,14 @@ export function FramePickerStrip({
 	// buffer, so a 5-minute video at fit zoom never means thousands of nodes.
 	const ticks = useMemo(() => {
 		if (!ready) return [];
-		const viewStart = Math.max(0, scrollLeft - width);
-		const viewEnd = scrollLeft + 2 * width;
+		// Clamp to the video's own length. Unclamped, ticks keep being generated
+		// past the end as you scroll; they are absolutely positioned, so they
+		// overflow the content box and extend the scrollable width — which makes
+		// the axis scrollable into empty space, which regenerates even further
+		// ticks. That feedback loop is what made dragging into the blank tail
+		// stutter and grow without bound.
+		const viewStart = Math.max(0, Math.min(duration, scrollLeft - width));
+		const viewEnd = Math.min(duration, scrollLeft + 2 * width);
 		const first = Math.max(
 			0,
 			Math.floor(viewStart / ruler.tickIntervalSeconds),
@@ -230,6 +240,7 @@ export function FramePickerStrip({
 		const result: Array<{ time: number; isLabel: boolean }> = [];
 		for (let index = first; index <= last; index += 1) {
 			const time = index * ruler.tickIntervalSeconds;
+			if (time > duration) break;
 			result.push({
 				time,
 				isLabel: shouldShowLabel({
@@ -240,7 +251,7 @@ export function FramePickerStrip({
 			);
 		}
 		return result;
-	}, [ready, scrollLeft, width, ruler]);
+	}, [ready, scrollLeft, width, ruler, duration]);
 
 	// Same windowing for the filmstrip slots; the parent decodes exactly
 	// these (plus buffer) through framesAt.
