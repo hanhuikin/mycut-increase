@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	memo,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -40,6 +41,94 @@ export interface FrameStripWindow {
 	lastSlot: number;
 	slotSeconds: number;
 }
+
+/**
+ * Both rows are memoized and deliberately never receive `currentTime`: while a
+ * scrub drags, that value changes on every frame, and re-rendering the tick
+ * labels and every thumbnail image each time was the bulk of the drag cost.
+ */
+const RulerRow = memo(function RulerRow({
+	ticks,
+	pps,
+	frameRate,
+	onMouseDown,
+}: {
+	ticks: Array<{ time: number; isLabel: boolean }>;
+	pps: number;
+	frameRate: ReturnType<typeof floatToFrameRate>;
+	onMouseDown: (event: ReactMouseEvent) => void;
+}) {
+	return (
+		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it.
+		<div
+			className="border-border/60 relative h-5 cursor-col-resize border-b"
+			onMouseDown={onMouseDown}
+		>
+			{ticks.map(({ time, isLabel }) =>
+				isLabel ? (
+					<span
+						key={time}
+						className="text-muted-foreground/85 absolute top-1 text-[10px] leading-none select-none"
+						style={{ left: `${time * pps + 3}px` }}
+					>
+						{formatRulerLabel({ timeInSeconds: time, fps: frameRate })}
+					</span>
+				) : (
+					<div
+						key={time}
+						className="border-muted-foreground/25 absolute top-1.5 h-1.5 border-l"
+						style={{ left: `${time * pps}px` }}
+					/>
+				),
+			)}
+		</div>
+	);
+});
+
+const FilmstripRow = memo(function FilmstripRow({
+	indices,
+	slots,
+	onMouseDown,
+}: {
+	indices: number[];
+	slots: Map<number, string>;
+	onMouseDown: (event: ReactMouseEvent) => void;
+}) {
+	return (
+		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it.
+		<div
+			className="bg-secondary/60 relative mt-0.5 h-12 cursor-col-resize"
+			onMouseDown={onMouseDown}
+		>
+			{indices.map((index) => {
+				const frame = slots.get(index);
+				return (
+					<div
+						key={index}
+						className="absolute inset-y-0 p-px"
+						style={{
+							left: `${index * SLOT_WIDTH_PX}px`,
+							width: `${SLOT_WIDTH_PX}px`,
+						}}
+					>
+						{frame ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img
+								src={frame}
+								alt=""
+								draggable={false}
+								decoding="async"
+								className="size-full rounded-sm object-cover"
+							/>
+						) : (
+							<div className="bg-secondary size-full animate-pulse rounded-sm" />
+						)}
+					</div>
+				);
+			})}
+		</div>
+	);
+});
 
 interface FramePickerStripProps {
 	duration: number;
@@ -278,30 +367,55 @@ export function FramePickerStrip({
 
 	// Press-and-drag anywhere on the ruler or the filmstrip scrubs; times
 	// snap to the frame grid so the label matches the decoded frame.
-	const startScrub = (event: ReactMouseEvent) => {
-		if (disabled || !ready || pps <= 0 || event.button !== 0) return;
-		const content = contentRef.current;
-		if (!content) return;
-		event.preventDefault();
-		lastMouseClientXRef.current = event.clientX;
-		setIsDragging(true);
-		const seekFromClientX = (clientX: number) => {
-			const raw = (clientX - content.getBoundingClientRect().left) / pps;
-			onSeek(Math.round(raw * fps) / fps);
-		};
-		seekFromClientX(event.clientX);
-		const onMove = (moveEvent: MouseEvent) => {
-			lastMouseClientXRef.current = moveEvent.clientX;
-			seekFromClientX(moveEvent.clientX);
-		};
-		const onUp = () => {
-			window.removeEventListener("mousemove", onMove);
-			window.removeEventListener("mouseup", onUp);
-			setIsDragging(false);
-		};
-		window.addEventListener("mousemove", onMove);
-		window.addEventListener("mouseup", onUp);
-	};
+	//
+	// Moves are coalesced to one update per animation frame, the target rect is
+	// read once per frame instead of per mouse event (each read forces layout),
+	// and a frame that snaps to the time we already reported is dropped: a fast
+	// drag fires well over a hundred mousemoves a second, all landing on the
+	// same few frames of a 30fps clip.
+	const startScrub = useCallback(
+		(event: ReactMouseEvent) => {
+			if (disabled || !ready || pps <= 0 || event.button !== 0) return;
+			const content = contentRef.current;
+			if (!content) return;
+			event.preventDefault();
+			lastMouseClientXRef.current = event.clientX;
+			setIsDragging(true);
+
+			let lastSeconds = Number.NaN;
+			const seekFromClientX = (clientX: number) => {
+				const raw = (clientX - content.getBoundingClientRect().left) / pps;
+				const snapped = Math.round(raw * fps) / fps;
+				if (snapped === lastSeconds) return;
+				lastSeconds = snapped;
+				onSeek(snapped);
+			};
+			seekFromClientX(event.clientX);
+
+			let frameId: number | null = null;
+			let pendingClientX = event.clientX;
+			const flush = () => {
+				frameId = null;
+				seekFromClientX(pendingClientX);
+			};
+			const onMove = (moveEvent: MouseEvent) => {
+				lastMouseClientXRef.current = moveEvent.clientX;
+				pendingClientX = moveEvent.clientX;
+				if (frameId === null) frameId = requestAnimationFrame(flush);
+			};
+			const onUp = () => {
+				if (frameId !== null) cancelAnimationFrame(frameId);
+				frameId = null;
+				seekFromClientX(pendingClientX);
+				window.removeEventListener("mousemove", onMove);
+				window.removeEventListener("mouseup", onUp);
+				setIsDragging(false);
+			};
+			window.addEventListener("mousemove", onMove);
+			window.addEventListener("mouseup", onUp);
+		},
+		[disabled, ready, pps, fps, onSeek],
+	);
 
 	const handleKeyDown = (event: ReactKeyboardEvent) => {
 		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -336,63 +450,17 @@ export function FramePickerStrip({
 					className="relative select-none"
 					style={{ width: `${Math.max(contentWidth, width)}px` }}
 				>
-					{/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it. */}
-					<div
-						className="border-border/60 relative h-5 cursor-col-resize border-b"
+					<RulerRow
+						ticks={ticks}
+						pps={pps}
+						frameRate={frameRate}
 						onMouseDown={startScrub}
-					>
-						{ticks.map(({ time, isLabel }) =>
-							isLabel ? (
-								<span
-									key={time}
-									className="text-muted-foreground/85 absolute top-1 text-[10px] leading-none select-none"
-									style={{ left: `${time * pps + 3}px` }}
-								>
-									{formatRulerLabel({
-										timeInSeconds: time,
-										fps: frameRate,
-									})}
-								</span>
-							) : (
-								<div
-									key={time}
-									className="border-muted-foreground/25 absolute top-1.5 h-1.5 border-l"
-									style={{ left: `${time * pps}px` }}
-								/>
-							),
-						)}
-					</div>
-					{/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- spatial scrub surface; keyboard control is on the playhead (role="slider") beside it. */}
-					<div
-						className="bg-secondary/60 relative mt-0.5 h-12 cursor-col-resize"
+					/>
+					<FilmstripRow
+						indices={renderSlots}
+						slots={slots}
 						onMouseDown={startScrub}
-					>
-						{renderSlots.map((index) => {
-							const frame = slots.get(index);
-							return (
-								<div
-									key={index}
-									className="absolute inset-y-0 p-px"
-									style={{
-										left: `${index * SLOT_WIDTH_PX}px`,
-										width: `${SLOT_WIDTH_PX}px`,
-									}}
-								>
-									{frame ? (
-										// eslint-disable-next-line @next/next/no-img-element
-										<img
-											src={frame}
-											alt=""
-											draggable={false}
-											className="size-full rounded-sm object-cover"
-										/>
-									) : (
-										<div className="bg-secondary size-full animate-pulse rounded-sm" />
-									)}
-								</div>
-							);
-						})}
-					</div>
+					/>
 					<div
 						role="slider"
 						aria-label={t["timeline.timeline_playhead"]}
@@ -400,9 +468,12 @@ export function FramePickerStrip({
 						aria-valuemax={duration}
 						aria-valuenow={currentTime}
 						tabIndex={0}
-						className="pointer-events-none absolute inset-y-0 outline-none"
+						className="pointer-events-none absolute inset-y-0 left-0 outline-none"
+						// translate3d instead of `left`: moves the playhead on the
+						// compositor and skips a layout pass per drag frame.
 						style={{
-							left: `${currentTime * pps}px`,
+							transform: `translate3d(${currentTime * pps}px, 0, 0)`,
+							willChange: "transform",
 							width: `${PLAYHEAD_WIDTH_PX}px`,
 						}}
 						onKeyDown={handleKeyDown}
