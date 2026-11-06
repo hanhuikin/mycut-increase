@@ -60,6 +60,27 @@ kubectl -n mycut-$ENV rollout status deployment/mycut-web --timeout=180s
 # 回滚：kubectl -n mycut-$ENV rollout undo deployment/mycut-web
 ```
 
+## 构建机 / UAT 服务器直建镜像（harbor）
+
+不走 `deploy-test.sh`（本机无 docker/kubeconfig）时，可在服务器上直接构建。**务必用 nohup 或 tmux**：
+SSH 终端里直接跑 `docker build`，会话一断 BuildKit 立即取消构建（报 `Canceled: context canceled`）。
+
+```bash
+cd /path/to/mycut
+git pull
+nohup docker build -t harbor.sunwin-sh.com/uat/mycut:$(date +%m%d%H%M) . \
+  > build-$(date +%m%d%H%M).log 2>&1 &
+tail -f build-*.log        # 看进度；Ctrl+C 退出 tail 不影响构建
+
+# 完成后推送（k8s 拉取 harbor 私有仓需对应 imagePullSecret）
+docker login harbor.sunwin-sh.com
+docker push harbor.sunwin-sh.com/uat/mycut:<tag>
+```
+
+- **首次构建 `RUN bun install` 需 1~3 分钟属正常**（依赖走 npmmirror 国内源，底座走 1panel 国内镜像、apk 走阿里云源），成功一次后该层进缓存，后续秒过。
+- 依赖清单（`package.json`/`bun.lock`）不变时，源码改动不会使 `bun install` 层缓存失效。
+- tag 用不可变时间戳（如 `110503`），不要用 `latest` 浮动 tag，回滚才有据可依。
+
 ## 环境差异
 
 | | test | prod |
@@ -85,8 +106,37 @@ kubectl -n mycut-$ENV rollout status deployment/mycut-web --timeout=180s
 - **级别**：`LOG_LEVEL`（服务端，默认 prod/test=INFO、dev=DEBUG）。DEBUG 含 /api/health 探活；4xx=WARN，5xx/未捕获异常=ERROR。
 - **取帧性能埋点**：构建期 `--build-arg NEXT_PUBLIC_DEBUG_FRAMES=1`（或本地 `.env.local`）后，客户端放开 DEBUG 并输出 `frames.extract` / `frames.batch` / `frames.preview` 的 decode/encode/延迟耗时；发布脚本用 `./script/deploy-test.sh --build --debug-frames` 开启。
 - **better-auth** 日志已接入同一格式（含限流触发记录）；密码/密钥类字段自动 `[redacted]`。
-- 本地查看：`docker compose logs -f web`；k8s：`kubectl -n mycut-test logs -f deploy/mycut-web`；dev：`cd apps/web && bun run dev`（终端即 JSON 行）。
 - 注意：Next 生产构建默认剥离业务代码里的 `console.*`（保留 error/warn）；需要打的日志一律走 `@/services/logging/logger`，它通过绑定的 console 引用输出，不会被剥离。
+
+### 日志查看与故障定位
+
+**应用不落盘日志文件**——只有 stdout JSON 行，由容器运行时收集（12-factor 规范）：
+
+```bash
+# 本地容器（localhost:3000）
+docker compose logs -f web                     # 跟踪
+docker compose logs web --since 10m            # 最近10分钟
+docker compose logs web > mycut.log            # 需要文件就重定向导出
+
+# k8s（单副本 / 多副本）
+kubectl -n mycut-test logs -f deploy/mycut-web
+kubectl -n mycut-test logs -f -l app.kubernetes.io/name=mycut-web --prefix --tail=100
+
+# dev server：终端直接输出；要文件就重定向
+cd apps/web && bun run dev > /tmp/mycut-dev.log 2>&1
+```
+
+**按 trace_id 定位一次用户报障**（标准流程）：
+
+```bash
+# 1. 用户提供页面上的 trace_id（登录报错下方 / <html data-trace-id> / window.__TRACE_ID__）
+kubectl -n mycut-test logs --since=2h -l app.kubernetes.io/name=mycut-web --prefix \
+  | grep '"trace_id":"a59ffc592c64"'
+# 2. 相同 trace_id 的所有行 = 这一次会话的 API 调用、better-auth 详情（如 Invalid password）、
+#    状态码与耗时；多副本用 --prefix 区分是哪个 pod 处理的
+```
+
+浏览器端同格式 JSON（API 4xx/5xx、window error、取帧埋点）在 DevTools Console，trace_id 与服务端一致。
 
 ## 注意事项
 
