@@ -145,3 +145,8 @@ kubectl -n mycut-test logs --since=2h -l app.kubernetes.io/name=mycut-web --pref
 - 若还要从其它域名/IP 访问（LAN 地址、备用域名），在 Secret 里加 `TRUSTED_ORIGINS`（逗号分隔）；否则登录同样被 Origin 校验拒绝。
 - 迁移 Job 用与 web 相同的镜像（要求镜像内含 `migrations/` 与 `drizzle.config.ts`，见方案文档 §4.2 的 Dockerfile 可选层说明）。
 - 多副本安全：任务惰性同步已加 advisory lock（详见 docs/K8s打包部署方案.md §6）。
+
+---
+
+> **最后更新**：2026-11-06 —— 新增「日志查看与故障定位」「构建机 / UAT 服务器直建镜像（harbor）」章节，日志规范含 trace_id 全链路说明。
+
