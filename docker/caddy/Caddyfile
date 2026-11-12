@@ -1,0 +1,19 @@
+# 局域网 https 反代：终结 TLS 后转发给 web 容器（compose 网络内 web:3000）。
+# tls internal 用 Caddy 内置 CA 签自签证书——浏览器首次访问会出现
+# “不安全”警告，点“高级 → 继续访问”一次即可（per 设备 per CA 一次；
+# CA 持久化在 caddy_data 卷里，重建容器不会重新生成）。
+#
+# 按 IP 访问时浏览器不发 SNI（RFC 6066），Caddy 无法按 Host 选证书；
+# 全局 fallback_sni（v2.8+）让无 SNI 的连接回落到 localhost 证书，
+# 否则握手直接报 tlsv1 alert internal error。
+#
+# 换网卡/IP 时：更新站点地址列表，并同步 .env.local 的 TRUSTED_ORIGINS，
+# 然后 docker exec mycut-increase-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+{
+	fallback_sni localhost
+}
+
+https://localhost:3443, https://192.168.120.34:3443 {
+	tls internal
+	reverse_proxy web:3000
+}

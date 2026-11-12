@@ -25,3 +25,25 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+
+  # 局域网 https 反代：编辑器的 WebCodecs/OPFS 需要安全上下文，
+  # 纯 http + 局域网 IP 是"不安全"的，浏览器不给这些 API（表现为
+  # 素材无缩略图、播放黑屏、取帧失败）。此容器在 3443 上终结 TLS
+  # （Caddy 内置 CA 自签，设备首次访问信任一次警告）后转发给 web。
+  # 证书/CA 持久化在 caddy_data 卷；站点地址见 docker/caddy/Caddyfile。
+  caddy:
+    # 1panel 不代理官方 library/ 命名空间，caddy 走 daocloud 镜像源
+    image: docker.m.daocloud.io/library/caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "3443:3443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
