@@ -13,3 +13,4 @@ agent-transcripts
 mcps
 terminals
 apps/web/.font-cache
+Jenkinsfile*

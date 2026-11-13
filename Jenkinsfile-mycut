@@ -1,0 +1,164 @@
+pipeline {
+  // 改成你装了 Docker 的 agent 标签；只有一台机器且装了 docker 就写 agent any
+  agent { label '143-test' }
+  options {
+    // Multibranch 下这个选项只约束"同一分支"的并发；不同分支仍可并行
+    disableConcurrentBuilds()
+    timestamps()
+  }
+  environment {
+    // ===== 源代码仓库 =====
+    // Multibranch 的 Branch Sources 里已经配好仓库与凭据，Jenkins 会自动检出当前分支，
+    // 所以这里不再需要 SRC_REPO / SRC_BRANCH 手工 checkout
+    // ===== Harbor / 镜像 =====
+    REGISTRY   = 'harbor.sunwin-sh.com'
+    APP        = 'mycut'
+    DOCKERFILE = 'Dockerfile'
+    // ===== Argo CD 专属 Git 仓库 =====
+    GITOPS_REPO   = 'http://192.168.88.42/devops/argocd/mycut.git'
+    GITOPS_BRANCH = 'main'
+    // GITOPS_FILE 与 HARBOR_PROJECT 由 stage 1 按分支赋值，不在这里写死
+    // 注：多分支下不再同时改 test 与 prod，各分支只改自己那份清单
+  }
+  stages {
+    stage('1. 分支环境映射 + 生成日期时间 tag') {
+      steps {
+        script {
+          // 只允许已登记的分支，其它分支直接失败，避免误部署
+          switch (env.BRANCH_NAME) {
+            case 'test':
+              env.DEPLOY_ENV     = 'test'
+              env.HARBOR_PROJECT = 'uat'                                  // ← 按 Harbor 实际项目名改
+              env.GITOPS_FILE    = 'overlays/test/kustomization.yaml'
+              break
+            case 'release':
+              env.DEPLOY_ENV     = 'prod'
+              env.HARBOR_PROJECT = 'prod'                                 // ← 按 Harbor 实际项目名改
+              env.GITOPS_FILE    = 'overlays/prod/kustomization.yaml'
+              break
+            // ⚠ 你原文件里 SRC_BRANCH 写的是 main。如果这个仓库只有 main 一条分支，
+            //   下面的 default 会把构建直接打死。确认 main 对应哪个环境后，取消注释这一段：
+            // case 'main':
+            //   env.DEPLOY_ENV     = 'test'
+            //   env.HARBOR_PROJECT = 'uat'
+            //   env.GITOPS_FILE    = 'overlays/test/kustomization.yaml'
+            //   break
+            default:
+              error "不支持的分支：${env.BRANCH_NAME}（只允许 test / release）"
+          }
+          echo "分支=${env.BRANCH_NAME} 部署环境=${env.DEPLOY_ENV} 镜像项目=${env.HARBOR_PROJECT}"
+
+          // 代码已由 Multibranch 检出，直接取当前提交的 sha
+          env.GIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+          env.IMAGE_TAG = sh(returnStdout: true,
+                             script: "TZ='Asia/Shanghai' date +%Y%m%d-%H%M%S").trim() \
+                          + "-${env.GIT_SHA}-${env.BUILD_NUMBER}"
+          env.IMAGE = "${env.REGISTRY}/${env.HARBOR_PROJECT}/${env.APP}:${env.IMAGE_TAG}"
+          echo "本次镜像：${env.IMAGE}"
+        }
+      }
+    }
+    stage('2. 构建镜像') {
+      steps {
+        sh '''
+          set -e
+          docker build --pull -t "$IMAGE" -f "$DOCKERFILE" .
+        '''
+      }
+    }
+    stage('3. 推送到 Harbor') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'harbor-robot',
+                                         usernameVariable: 'HUSER', passwordVariable: 'HPASS')]) {
+          sh '''
+            set -e
+            set +x
+            printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin
+            docker push "$IMAGE"
+          '''
+        }
+      }
+    }
+    stage('4. 修改 Argo CD 仓库中 kustomization.yaml 的 images.newTag') {
+      steps {
+        dir('gitops') {
+          deleteDir()
+          withCredentials([usernamePassword(credentialsId: 'gitops-token',
+                                           usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+            sh '''
+              set -e
+              set +x
+              # 用 GIT_ASKPASS 提供凭据，clone 和 push 都能用，且不怕密码里含 @ : / 等特殊字符
+              ASK=$(mktemp)
+              trap 'rm -f "$ASK"' EXIT
+              cat > "$ASK" <<'EOF'
+#!/bin/sh
+case "$1" in
+  Username*) printf '%s' "$GIT_USER" ;;
+  Password*) printf '%s' "$GIT_PASS" ;;
+esac
+EOF
+              chmod +x "$ASK"
+              export GIT_ASKPASS="$ASK"
+              export GIT_TERMINAL_PROMPT=0
+              git clone -b "$GITOPS_BRANCH" "$GITOPS_REPO" .
+              git config user.name  "jenkins-ci"
+              git config user.email "jenkins@sunwin.com"
+
+              FILE="$GITOPS_FILE"
+              [ -f "$FILE" ] || { echo "找不到 $FILE，请核对 Argo CD 的 source.path"; exit 1; }
+              echo "本次只改本分支对应的清单：$FILE"
+
+              # 从完整镜像名拆出 name 与 tag（支持 registry 带端口）
+              IMAGE_NAME="${IMAGE%:*}"
+              IMAGE_TAG="${IMAGE##*:}"
+              if [ "$IMAGE_NAME" = "$IMAGE" ] || [ -z "$IMAGE_TAG" ]; then
+                echo "IMAGE 必须包含 tag，例如 registry/repo:1.0.0" >&2
+                exit 1
+              fi
+
+              # 优先级：kustomize 官方命令 > yq v4 > sed 兜底（整行替换，顺带清掉历史污染）
+              if command -v kustomize >/dev/null 2>&1; then
+                (cd "$(dirname "$FILE")" && kustomize edit set image "${IMAGE_NAME}=${IMAGE_TAG}")
+              elif command -v yq >/dev/null 2>&1 && yq --version 2>&1 | grep -q 'v4'; then
+                export IMAGE_NAME IMAGE_TAG
+                yq -i '(.images[] | select(.name == strenv(IMAGE_NAME)) | .newTag) = strenv(IMAGE_TAG)' "$FILE"
+              else
+                CNT=$(grep -cE '^[[:space:]]*newTag:' "$FILE" || true)
+                [ "$CNT" -eq 1 ] || { echo "检测到 $CNT 个 newTag 字段，请安装 kustomize 或 yq v4 后重试"; exit 1; }
+                sed -i -E "s#(^[[:space:]]*newTag:[[:space:]]*).*#\\1\"${IMAGE_TAG}\"#" "$FILE"
+              fi
+
+              # 回读 + 严格校验：值必须恰好是 IMAGE_TAG（允许成对引号和行尾注释，拒绝多余字符）
+              grep -nE 'newTag:' "$FILE"
+              grep -qE "^[[:space:]]*newTag:[[:space:]]*\"?${IMAGE_TAG}\"?[[:space:]]*(#.*)?$" "$FILE" || { echo "newTag 写入校验失败：${FILE}"; exit 1; }
+
+              git add "$FILE"
+              if git diff --cached --quiet; then
+                echo "newTag 无变化，跳过提交"
+              else
+                # 不同分支可能同时构建、同时推 main，冲突时 rebase 重试一次
+                git commit -m "chore: bump ${APP} newTag to ${IMAGE_TAG} (${BRANCH_NAME}) [skip ci]"
+                git push origin "HEAD:${GITOPS_BRANCH}" || {
+                  echo "推送被拒，rebase 后重试"
+                  git pull --rebase origin "$GITOPS_BRANCH"
+                  git push origin "HEAD:${GITOPS_BRANCH}"
+                }
+                echo "已推送 ${FILE}，Argo CD 将自动同步到 ${DEPLOY_ENV} 集群"
+              fi
+            '''
+          }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      sh 'docker logout "$REGISTRY" >/dev/null 2>&1 || true'
+      deleteDir()
+    }
+    failure {
+      echo "分支 ${env.BRANCH_NAME} 构建失败，镜像 ${env.IMAGE ?: '未生成'}"
+    }
+  }
+}
