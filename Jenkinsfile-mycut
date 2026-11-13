@@ -14,6 +14,9 @@ pipeline {
     REGISTRY   = 'harbor.sunwin-sh.com'
     APP        = 'mycut'
     DOCKERFILE = 'Dockerfile'
+    // 若 Dockerfile 的 FROM 指向私有项目里的镜像（如 harbor.sunwin-sh.com/uat/bun:...），
+    // 把它填在这里，stage 2 会先预拉一次，避免构建期解析元数据失败
+    BASE_IMAGE = 'harbor.sunwin-sh.com/uat/bun:1.2.18-alpine' // 与 Dockerfile 的 ARG BASE_IMAGE 一致；留空则跳过预拉取
     // ===== Argo CD 专属 Git 仓库 =====
     GITOPS_REPO   = 'http://192.168.88.42/devops/argocd/mycut.git'
     GITOPS_BRANCH = 'main'
@@ -58,12 +61,30 @@ pipeline {
         }
       }
     }
-    stage('2. 构建镜像') {
+    // ★ 关键改动：构建前先登录 Harbor。
+    //   BuildKit 解析 Dockerfile 的 FROM 时会自己向 registry 发 HEAD 请求，
+    //   这一步不继承"推送到 Harbor"那一阶段的登录态，未登录就会报：
+    //   401 Unauthorized ... /v2/<项目>/<镜像>/manifests/<tag>
+    stage('2. 登录 Harbor + 构建镜像') {
       steps {
-        sh '''
-          set -e
-          docker build --pull -t "$IMAGE" -f "$DOCKERFILE" .
-        '''
+        withCredentials([usernamePassword(credentialsId: 'harbor-robot',
+                                         usernameVariable: 'HUSER', passwordVariable: 'HPASS')]) {
+          sh '''
+            set -e
+            set +x
+            # 机器人账号的用户名必须是全名 robot$xxx，写成 jenkins 这类普通名会认证不上
+            printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin
+            [ -f "$HOME/.docker/config.json" ] && echo "凭据已写入 $HOME/.docker/config.json"
+
+            # 基础镜像若在私有项目里，先拉到本地：构建时解析 FROM 会优先用本地镜像，
+            # 同时也能把"认证问题"和"Dockerfile 问题"分开定位
+            if [ -n "$BASE_IMAGE" ]; then
+              docker pull "$BASE_IMAGE"
+            fi
+
+            docker build --pull -t "$IMAGE" -f "$DOCKERFILE" .
+          '''
+        }
       }
     }
     stage('3. 推送到 Harbor') {
@@ -73,6 +94,7 @@ pipeline {
           sh '''
             set -e
             set +x
+            # 阶段 2 已登录，这里再登录一次是幂等的，保证本阶段单独重跑时也有凭据
             printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin
             docker push "$IMAGE"
           '''
@@ -154,11 +176,13 @@ EOF
   }
   post {
     always {
+      // 不要把凭据留在构建机上；成功推送后立即登出
       sh 'docker logout "$REGISTRY" >/dev/null 2>&1 || true'
       deleteDir()
     }
     failure {
       echo "分支 ${env.BRANCH_NAME} 构建失败，镜像 ${env.IMAGE ?: '未生成'}"
+      echo "若日志出现 401 Unauthorized 或 no basic auth credentials，先确认 harbor-robot 凭据的用户名是 robot\$ 全名，且 build 阶段已执行 docker login"
     }
   }
 }
