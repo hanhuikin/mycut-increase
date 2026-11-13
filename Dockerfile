@@ -3,10 +3,11 @@
 # worker fan-out (`worker_threads` options are unimplemented) and lacks
 # WebAssembly.instantiateStreaming at runtime, so it is a package manager here
 # only — Node is Next's supported runtime.
-# 国内构建：底座走国内镜像（1panel 加速，无需代理），apk 走阿里云源，
-# 依赖走 npmmirror。需要官方源时可覆盖：
+# 国内构建：底座走公司 Harbor 内部镜像（uat 项目里镜像化的 bun 底座，内网直连
+# 最快且不受公网镜像源波动影响），apk 走阿里云源，依赖走 npmmirror。
+# 底座换源时可覆盖（官方源需能连 Docker Hub）：
 #   docker build --build-arg BASE_IMAGE=oven/bun:1.2.18-alpine .
-ARG BASE_IMAGE=docker.1panel.live/oven/bun:1.2.18-alpine
+ARG BASE_IMAGE=harbor.sunwin-sh.com/uat/bun:1.2.18-alpine
 FROM ${BASE_IMAGE} AS base
 
 # Alpine 官方源切到阿里云镜像（apk 换源后才能装 nodejs）
