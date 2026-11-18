@@ -29,7 +29,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="zh-CN" suppressHydrationWarning>
 			<head>
 				<BotIdClient protect={protectedRoutes} />
 				{/* Trace id + fetch wrap must exist before the app bundle evaluates:

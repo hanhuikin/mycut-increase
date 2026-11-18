@@ -37,7 +37,13 @@ export interface GenerationTask {
 		aspect?: string | null;
 		audio?: boolean;
 	};
-	status: "submitting" | "queued" | "generating" | "succeeded" | "failed" | "canceled";
+	status:
+		| "submitting"
+		| "queued"
+		| "generating"
+		| "succeeded"
+		| "failed"
+		| "canceled";
 	videoUrl: string | null;
 	errorSummary: string | null;
 	errorDetails: Array<{ channel: string; message: string; at: string }>;
@@ -93,14 +99,14 @@ export function useTaskQueue(): TaskQueueState {
 function isGenerationTask(value: unknown): value is GenerationTask {
 	if (!isRecord(value)) return false;
 	return (
-		typeof value.id === 'string' &&
-		typeof value.modelId === 'string' &&
-		typeof value.status === 'string'
+		typeof value.id === "string" &&
+		typeof value.modelId === "string" &&
+		typeof value.status === "string"
 	);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
+	return typeof value === "object" && value !== null;
 }
 
 export function TaskQueueProvider({ children }: { children: ReactNode }) {
@@ -112,7 +118,9 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 		new Map(),
 	);
 
-	const activeProjectId = useEditor((e) => e.project.getActiveOrNull()?.metadata.id ?? null);
+	const activeProjectId = useEditor(
+		(e) => e.project.getActiveOrNull()?.metadata.id ?? null,
+	);
 
 	const refresh = useCallback(async (): Promise<void> => {
 		try {
@@ -129,10 +137,7 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 	// Initial load + poll loop. Faster while the drawer is open, calm otherwise.
 	useEffect(() => {
 		const kickoff = setTimeout(() => void refresh(), 0);
-		const interval = setInterval(
-			() => void refresh(),
-			5000,
-		);
+		const interval = setInterval(() => void refresh(), 5000);
 		return () => {
 			clearTimeout(kickoff);
 			clearInterval(interval);
@@ -188,7 +193,10 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 					height,
 				},
 			});
-			return { assetId: asset?.id ?? null, durationSeconds: videoDuration ?? null };
+			return {
+				assetId: asset?.id ?? null,
+				durationSeconds: videoDuration ?? null,
+			};
 		},
 		[activeProjectId, downloadTaskVideo, editor.media],
 	);
@@ -196,40 +204,43 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 	// React to status transitions: auto-import finished clips, toast failures.
 	const seenStatus = useRef<Map<string, string>>(new Map());
 	const importing = useRef<Set<string>>(new Set());
-	const queueImport = useCallback((task: GenerationTask) => {
-		if (importing.current.has(task.id)) return;
-		importing.current.add(task.id);
-		const name = `${t["ai_video.asset_name"]}-${task.createdAt.slice(11, 19).replace(/:/g, "")}`;
-		void importToLibrary(task, name)
-			.then(({ assetId, durationSeconds }) => {
-				if (!assetId) return;
-				setImportedAssets((prev) => new Map(prev).set(task.id, assetId));
-				// Single generations keep the old behaviour: land on the
-				// timeline at once. Batch shots wait for an explicit insert.
-				if (!task.batchId) {
-					const seconds =
-						durationSeconds ??
-						(typeof task.params.duration === "number"
-							? task.params.duration
-							: 5);
-					editor.timeline.insertElement({
-						element: buildElementFromMedia({
-							mediaId: assetId,
-							mediaType: "video",
-							name,
-							duration: mediaTimeFromSeconds({ seconds }),
-							startTime: mediaTimeFromSeconds({ seconds: 0 }),
-						}),
-						placement: { mode: "auto", trackType: "video" },
-					});
-				}
-				toast.success(t["task_queue.toast_done"]);
-			})
-			.catch(() => {
-				toast.error(t["task_queue.toast_import_failed"]);
-			})
-			.finally(() => importing.current.delete(task.id));
-	}, [importToLibrary, editor.timeline, t]);
+	const queueImport = useCallback(
+		(task: GenerationTask) => {
+			if (importing.current.has(task.id)) return;
+			importing.current.add(task.id);
+			const name = `${t["ai_video.asset_name"]}-${task.createdAt.slice(11, 19).replace(/:/g, "")}`;
+			void importToLibrary(task, name)
+				.then(({ assetId, durationSeconds }) => {
+					if (!assetId) return;
+					setImportedAssets((prev) => new Map(prev).set(task.id, assetId));
+					// Single generations keep the old behaviour: land on the
+					// timeline at once. Batch shots wait for an explicit insert.
+					if (!task.batchId) {
+						const seconds =
+							durationSeconds ??
+							(typeof task.params.duration === "number"
+								? task.params.duration
+								: 5);
+						editor.timeline.insertElement({
+							element: buildElementFromMedia({
+								mediaId: assetId,
+								mediaType: "video",
+								name,
+								duration: mediaTimeFromSeconds({ seconds }),
+								startTime: mediaTimeFromSeconds({ seconds: 0 }),
+							}),
+							placement: { mode: "auto", trackType: "video" },
+						});
+					}
+					toast.success(t["task_queue.toast_done"]);
+				})
+				.catch(() => {
+					toast.error(t["task_queue.toast_import_failed"]);
+				})
+				.finally(() => importing.current.delete(task.id));
+		},
+		[importToLibrary, editor.timeline, t],
+	);
 	useEffect(() => {
 		for (const task of tasks) {
 			const previous = seenStatus.current.get(task.id);
@@ -239,8 +250,9 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 				// First sight. A task that finished while nobody was watching
 				// (panel closed, page reloaded) still lands in the library when
 				// it finished recently; old records are history, not news.
-				if (task.status === 'succeeded' && !importedAssets.has(task.id)) {
-					const age = Date.now() - new Date(task.finishedAt ?? task.createdAt).getTime();
+				if (task.status === "succeeded" && !importedAssets.has(task.id)) {
+					const age =
+						Date.now() - new Date(task.finishedAt ?? task.createdAt).getTime();
 					if (age < 10 * 60 * 1000) queueImport(task);
 				}
 				continue;
@@ -302,25 +314,22 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 			const raw: unknown = await response.json();
 			const body = isRecord(raw)
 				? {
-						taskId:
-							typeof raw.taskId === 'string' ? raw.taskId : undefined,
-						error: typeof raw.error === 'string' ? raw.error : undefined,
+						taskId: typeof raw.taskId === "string" ? raw.taskId : undefined,
+						error: typeof raw.error === "string" ? raw.error : undefined,
 						details: Array.isArray(raw.details)
 							? raw.details.filter(
-									(entry): entry is string =>
-										typeof entry === 'string',
+									(entry): entry is string => typeof entry === "string",
 								)
 							: undefined,
-						cost: typeof raw.cost === 'number' ? raw.cost : undefined,
-						balance:
-							typeof raw.balance === 'number' ? raw.balance : undefined,
+						cost: typeof raw.cost === "number" ? raw.cost : undefined,
+						balance: typeof raw.balance === "number" ? raw.balance : undefined,
 					}
 				: {};
 			if (!response.ok || !body.taskId) {
 				const message =
 					(body.details && body.details[0]) ||
 					body.error ||
-					`请求失败 (${response.status})`;
+					`${t["toast.request_failed"]} (${response.status})`;
 				const error = new Error(message) as Error & {
 					code?: string;
 					cost?: number;
@@ -336,7 +345,7 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 			void refresh();
 			return body.taskId;
 		},
-		[refresh],
+		[refresh, t],
 	);
 
 	const insertBatchIntoTimeline = useCallback(
@@ -360,9 +369,10 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 						mediaType: "video",
 						name: `${t["ai_video.shot_asset_name"].replace("{index}", String((shot.batchIndex ?? 0) + 1))}`,
 						duration: mediaTimeFromSeconds({
-							seconds: typeof shot.params.duration === "number"
-								? shot.params.duration
-								: seconds,
+							seconds:
+								typeof shot.params.duration === "number"
+									? shot.params.duration
+									: seconds,
 						}),
 						startTime: mediaTimeFromSeconds({ seconds: startSeconds }),
 					}),
@@ -375,18 +385,15 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 		[editor.timeline, t, tasks, importedAssets],
 	);
 
-	const deleteTask = useCallback(
-		async (id: string): Promise<void> => {
-			await fetch(`/api/ai/tasks/${id}`, { method: "DELETE" });
-			setTasks((prev) => prev.filter((task) => task.id !== id));
-			setImportedAssets((prev) => {
-				const next = new Map(prev);
-				next.delete(id);
-				return next;
-			});
-		},
-		[],
-	);
+	const deleteTask = useCallback(async (id: string): Promise<void> => {
+		await fetch(`/api/ai/tasks/${id}`, { method: "DELETE" });
+		setTasks((prev) => prev.filter((task) => task.id !== id));
+		setImportedAssets((prev) => {
+			const next = new Map(prev);
+			next.delete(id);
+			return next;
+		});
+	}, []);
 
 	const clearFinished = useCallback(async (): Promise<void> => {
 		await fetch("/api/ai/tasks", { method: "DELETE" });

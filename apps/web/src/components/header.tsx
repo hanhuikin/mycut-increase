@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { ArrowRight, Languages } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageToggle } from "./language-toggle";
 import {
 	Copy01Icon,
 	Download01Icon,
@@ -24,11 +25,7 @@ import {
 import { useLocale } from "@/locale/locale-context";
 
 export function Header() {
-	const { t, locale, setLocale } = useLocale();
-
-	const toggleLocale = () => {
-		setLocale(locale === "zh" ? "en" : "zh");
-	};
+	const { t } = useLocale();
 
 	return (
 		<header className="bg-background shadow-background/85 sticky top-0 z-10 shadow-[0_30px_35px_15px_rgba(0,0,0,1)]">
@@ -44,7 +41,9 @@ export function Header() {
 									width={32}
 									height={32}
 								/>
-								<span className="text-xl font-bold">{t["landing.app_name"]}</span>
+								<span className="text-xl font-bold">
+									{t["landing.app_name"]}
+								</span>
 							</Link>
 						</ContextMenuTrigger>
 						<ContextMenuContent>
@@ -92,14 +91,7 @@ export function Header() {
 							<ArrowRight className="size-4" />
 						</Button>
 					</Link>
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={toggleLocale}
-						title={t["common.switch_language"]}
-					>
-						<Languages className="!size-[1.1rem]" strokeWidth={1.5} />
-					</Button>
+					<LanguageToggle />
 					<ThemeToggle />
 					<AccountArea />
 				</div>

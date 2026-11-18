@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { ExportButton } from "./export-button";
 import { FeedbackPopover } from "@/feedback/components/feedback-popover";
 import { ThemeToggle } from "../theme-toggle";
+import { LanguageToggle } from "../language-toggle";
 import { DEFAULT_LOGO_URL } from "@/site/brand";
 import { toast } from "sonner";
 import { useEditor } from "@/editor/use-editor";
@@ -34,6 +35,7 @@ export function EditorHeader() {
 			<nav className="flex items-center gap-2">
 				<FeedbackPopover />
 				<ExportButton />
+				<LanguageToggle />
 				<ThemeToggle />
 			</nav>
 		</header>
@@ -79,7 +81,9 @@ function ProjectDropdown() {
 			} catch (error) {
 				toast.error(t["toast.failed_rename_project"], {
 					description:
-						error instanceof Error ? error.message : t["toast.please_try_again"],
+						error instanceof Error
+							? error.message
+							: t["toast.please_try_again"],
 				});
 			} finally {
 				setOpenDialog(null);
@@ -97,7 +101,9 @@ function ProjectDropdown() {
 			} catch (error) {
 				toast.error(t["toast.failed_delete_project"], {
 					description:
-						error instanceof Error ? error.message : t["toast.please_try_again"],
+						error instanceof Error
+							? error.message
+							: t["toast.please_try_again"],
 				});
 			} finally {
 				setOpenDialog(null);
@@ -195,7 +201,9 @@ function EditableProjectName() {
 			} catch (error) {
 				toast.error(t["toast.failed_rename_project"], {
 					description:
-						error instanceof Error ? error.message : t["toast.please_try_again"],
+						error instanceof Error
+							? error.message
+							: t["toast.please_try_again"],
 				});
 			}
 		}

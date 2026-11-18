@@ -11,6 +11,7 @@ import type { EditorCore } from "@/core";
 import { MigrationDialog } from "@/project/components/migration-dialog";
 import { StoragePersistenceDialog } from "@/services/storage/components/storage-persistence-dialog";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/language-toggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -83,8 +84,16 @@ const formatProjectDuration = ({
 };
 
 const VIEW_MODE_OPTIONS = [
-	{ mode: "grid" as const, icon: GridViewIcon, labelKey: "common.grid_view" as const },
-	{ mode: "list" as const, icon: LeftToRightListDashIcon, labelKey: "common.list_view" as const },
+	{
+		mode: "grid" as const,
+		icon: GridViewIcon,
+		labelKey: "common.grid_view" as const,
+	},
+	{
+		mode: "list" as const,
+		icon: LeftToRightListDashIcon,
+		labelKey: "common.list_view" as const,
+	},
 ];
 
 export default function ProjectsPage() {
@@ -117,7 +126,7 @@ export default function ProjectsPage() {
 					style={{
 						backgroundImage: `linear-gradient(to right, rgb(99 102 241 / 0.2) 1px, transparent 1px),
 						                  linear-gradient(to bottom, rgb(99 102 241 / 0.2) 1px, transparent 1px)`,
-						backgroundSize: '4rem 4rem',
+						backgroundSize: "4rem 4rem",
 					}}
 				/>
 
@@ -206,6 +215,7 @@ function ProjectsHeader() {
 
 				<div className="flex items-center gap-3 md:gap-4">
 					<SearchBar className="hidden md:block" />
+					<LanguageToggle />
 					<NewProjectButton />
 				</div>
 			</div>
@@ -552,8 +562,12 @@ function NewProjectButton() {
 			className="flex px-5 md:px-6"
 			onClick={handleCreateProject}
 		>
-			<span className="text-sm font-medium hidden md:block">{t["common.new_project"]}</span>
-			<span className="text-sm font-medium block md:hidden">{t["common.new"]}</span>
+			<span className="text-sm font-medium hidden md:block">
+				{t["common.new_project"]}
+			</span>
+			<span className="text-sm font-medium block md:hidden">
+				{t["common.new"]}
+			</span>
 		</Button>
 	);
 }
@@ -640,7 +654,9 @@ function ProjectItem({
 				</h3>
 				<div className="text-muted-foreground flex items-center gap-1.5 text-sm">
 					<HugeiconsIcon icon={Calendar04Icon} className="size-4" />
-					<span>{t["common.created_at"]} {formatDate({ date: project.createdAt })}</span>
+					<span>
+						{t["common.created_at"]} {formatDate({ date: project.createdAt })}
+					</span>
 				</div>
 			</CardContent>
 		</Card>
@@ -998,9 +1014,7 @@ function EmptyState() {
 		} catch (error) {
 			toast.error(t["toast.failed_create_project"], {
 				description:
-					error instanceof Error
-						? error.message
-						: t["toast.please_try_again"],
+					error instanceof Error ? error.message : t["toast.please_try_again"],
 			});
 		}
 	};
@@ -1014,9 +1028,14 @@ function EmptyState() {
 						className="text-muted-foreground size-16 bg-accent/35 border rounded-md p-4"
 					/>
 					<div className="flex flex-col items-center gap-3">
-						<h3 className="text-lg font-medium">{t["common.no_results_found"]}</h3>
+						<h3 className="text-lg font-medium">
+							{t["common.no_results_found"]}
+						</h3>
 						<p className="text-muted-foreground max-w-md">
-							{t["common.no_results_description"].replace("{query}", searchQuery)}
+							{t["common.no_results_description"].replace(
+								"{query}",
+								searchQuery,
+							)}
 						</p>
 					</div>
 				</div>
