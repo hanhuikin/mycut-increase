@@ -2,20 +2,14 @@ import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import postgres from "postgres";
 import { db } from "@/db";
 import { webEnv } from "@/env/web";
-import {
-	type TGenerationTask,
-	generationTasks,
-} from "@/db/schema";
+import { type TGenerationTask, generationTasks } from "@/db/schema";
 import {
 	familyForKind,
 	getChannel,
 	getChannelCredential,
 	resolveChannelChain,
 } from "@/services/admin/channels";
-import {
-	estimateModelCost,
-	getModel,
-} from "@/services/admin/models";
+import { estimateModelCost, getModel } from "@/services/admin/models";
 import { getProtocol } from "@/services/ai/protocols";
 import {
 	freezeForTask,
@@ -258,8 +252,7 @@ async function settleAttempt({
 	);
 	const points = estimateModelCost({
 		model,
-		resolution:
-			taskResolution(task.params.resolution),
+		resolution: taskResolution(task.params.resolution),
 		seconds: actualSeconds,
 	});
 	await settleTask({
@@ -407,7 +400,8 @@ async function tryTaskLock(
 	const sql = getLockClient();
 	const session = await sql.reserve();
 	try {
-		const rows = await session`select pg_try_advisory_lock(hashtext(${taskId})) as ok`;
+		const rows =
+			await session`select pg_try_advisory_lock(hashtext(${taskId})) as ok`;
 		if (!rows[0]?.ok) {
 			await session.release();
 			return null;
@@ -502,7 +496,12 @@ async function syncTaskLocked({
 
 	const model = await getModel({ id: task.modelId });
 	if (!model || !model.enabled) {
-		return await markFailed({ userId, task, summary: "模型已不可用", details: task.errorDetails ?? [] });
+		return await markFailed({
+			userId,
+			task,
+			summary: "模型已不可用",
+			details: task.errorDetails ?? [],
+		});
 	}
 	const channelRow = task.channelId ? await getChannel(task.channelId) : null;
 	const protocol = task.protocol ? getProtocol(task.protocol) : null;
@@ -630,7 +629,8 @@ async function onAttemptDead({
 	const cost = estimateModelCost({
 		model,
 		resolution,
-		seconds: typeof task.params.duration === "number" ? task.params.duration : 5,
+		seconds:
+			typeof task.params.duration === "number" ? task.params.duration : 5,
 	});
 
 	const attempt = await submitAttempt({
@@ -765,6 +765,31 @@ export async function clearTerminalTasks({
 		)
 		.returning({ id: generationTasks.id });
 	return rows.length;
+}
+
+/**
+ * Whether `url` is the artifact of one of the caller's own tasks. The media
+ * download proxy takes a client-supplied vendor URL; this check keeps it from
+ * fetching URLs no task of this user ever produced (see /api/media/download).
+ */
+export async function userOwnsVideoUrl({
+	userId,
+	url,
+}: {
+	userId: string;
+	url: string;
+}): Promise<boolean> {
+	const rows = await db
+		.select({ id: generationTasks.id })
+		.from(generationTasks)
+		.where(
+			and(
+				eq(generationTasks.userId, userId),
+				eq(generationTasks.videoUrl, url),
+			),
+		)
+		.limit(1);
+	return rows.length > 0;
 }
 
 export { isTerminal, TERMINAL };
