@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多图生图能力 · UI 及交互设计（方案 B 详细版）</title>
+<style>
+  :root {
+    --ink: #1a1d21; --muted: #6b7280; --line: #e5e7eb;
+    --red: #dc2626; --red-bg: #fef2f2; --red-line: #fecaca;
+    --amber: #d97706; --amber-bg: #fffbeb; --amber-line: #fde68a;
+    --green: #059669; --green-bg: #ecfdf5; --green-line: #a7f3d0;
+    --blue: #2563eb; --blue-bg: #eff6ff;
+    /* 应用暗色面板（线框图用） */
+    --app-bg: #111113; --app-panel: #18181b; --app-card: #1f1f23;
+    --app-line: #2e2e33; --app-ink: #e5e7eb; --app-muted: #8b8b94;
+    --app-primary: #3b82f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Segoe UI",
+      "Noto Sans SC", "Microsoft YaHei", -apple-system, sans-serif;
+    color: var(--ink); margin: 0; background: #f6f7f9;
+    line-height: 1.7; font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 24px 64px; }
+  header { border-bottom: 3px solid var(--ink); padding-bottom: 16px; margin-bottom: 24px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 19px; margin: 40px 0 12px; padding-left: 10px; border-left: 4px solid var(--ink); }
+  h3 { font-size: 15px; margin: 18px 0 6px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; white-space: nowrap; }
+  code, .mono {
+    font-family: Consolas, "JetBrains Mono", monospace; font-size: 12.5px;
+    background: #f3f4f6; padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: #1f2937; color: #e5e7eb; padding: 12px 14px; border-radius: 8px;
+    overflow-x: auto; font-size: 12.5px; line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+  .p0 { color: var(--red); background: var(--red-bg); border: 1px solid var(--red-line); }
+  .p1 { color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-line); }
+  .p2 { color: var(--green); background: var(--green-bg); border: 1px solid var(--green-line); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
+  .card.ok { border-left: 4px solid var(--green); }
+  .card.no { border-left: 4px solid var(--red); }
+  .card.warn { border-left: 4px solid var(--amber); }
+  .card h3 { margin-top: 0; }
+  .meta { color: var(--muted); font-size: 12.5px; }
+  .note { background: var(--blue-bg); border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+  /* ===== 应用 UI 线框（暗色，模拟真实面板观感） ===== */
+  .phone { background: var(--app-bg); border: 1px solid #3f3f46; border-radius: 12px; padding: 14px; margin: 14px 0; }
+  .phone .cap { color: var(--app-muted); font-size: 11px; margin: 0 0 10px 2px; font-family: Consolas, monospace; }
+  .chips { display: flex; gap: 6px; margin-bottom: 12px; }
+  .chip { font-size: 11px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--app-line); color: var(--app-muted); }
+  .chip.on { color: #fff; background: var(--app-primary); border-color: var(--app-primary); }
+  .slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+  .slot { position: relative; aspect-ratio: 1; border-radius: 8px; border: 1.5px dashed #3f3f46; background: var(--app-card);
+         display: flex; align-items: center; justify-content: center; color: #52525b; font-size: 18px; }
+  .slot.full { border-style: solid; border-color: #4b5563; overflow: hidden; }
+  .slot .img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slot .n { position: absolute; top: 3px; left: 3px; background: rgba(0,0,0,.65); color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 4px; }
+  .slot .main { position: absolute; top: 3px; left: 3px; background: var(--app-primary); color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 4px; }
+  .slot .x { position: absolute; top: 2px; right: 3px; color: #d4d4d8; font-size: 11px; text-shadow: 0 0 3px #000; }
+  .slot.add { color: #6b7280; font-size: 12px; flex-direction: column; gap: 2px; }
+  .slot.add small { font-size: 9px; }
+  .prompt { background: var(--app-card); border: 1px solid var(--app-line); border-radius: 8px; padding: 8px; font-size: 11px; color: var(--app-muted); min-height: 54px; }
+  .prompt b { color: #93c5fd; font-weight: 400; }
+  .sug { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+  .sug span { font-size: 10px; color: var(--app-muted); border: 1px solid var(--app-line); border-radius: 999px; padding: 2px 8px; }
+  .params { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .params .p { font-size: 10.5px; color: var(--app-ink); background: var(--app-card); border: 1px solid var(--app-line); border-radius: 6px; padding: 4px 8px; }
+  .params .p.on { border-color: var(--app-primary); color: #93c5fd; }
+  .genrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cost { font-size: 10.5px; color: var(--app-muted); }
+  .cost b { color: #fbbf24; font-weight: 400; }
+  .gen { font-size: 12px; color: #fff; background: var(--app-primary); border-radius: 8px; padding: 7px 22px; }
+  .gen.off { background: #374151; color: #6b7280; }
+  .results { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+  .res { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--app-line); }
+  .res .img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .res .ops { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.62); display: flex; justify-content: space-around; font-size: 9px; color: #d4d4d8; padding: 3px 2px; }
+  .duo { display: grid; grid-template-columns: 44px 1fr; gap: 10px; background: var(--app-bg); border-radius: 12px; padding: 10px; border: 1px solid #3f3f46; }
+  .sect { color: var(--app-muted); font-size: 10px; margin: 10px 2px 6px; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
+  .flow .st { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
+  .flow .ar { color: var(--muted); font-size: 12px; }
+  .klist { columns: 2; gap: 16px; font-size: 12.5px; }
+  .klist li { margin: 2px 0; break-inside: avoid; }
+  /* 动作条线框（素材面板底部 sticky） */
+  .panelbox { background: var(--app-bg); border: 1px solid #3f3f46; border-radius: 12px; padding: 12px; max-width: 320px; }
+  .grid4 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+  .gcell { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; }
+  .gcell.sel { outline: 2px solid var(--app-primary); outline-offset: -2px; }
+  .gcell .img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gcell .ck { position: absolute; top: 2px; right: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--app-primary); color: #fff; font-size: 9px; display: flex; align-items: center; justify-content: center; }
+  .bar { background: var(--app-card); border: 1px solid var(--app-line); border-radius: 9px; padding: 7px 9px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .bar .t { font-size: 10px; color: var(--app-muted); }
+  .bar .t b { color: #93c5fd; font-weight: 400; }
+  .bar .go { font-size: 10.5px; color: #fff; background: var(--app-primary); border-radius: 6px; padding: 4px 10px; white-space: nowrap; }
+  .bar .go.off { background: #374151; color: #6b7280; }
+  .bar .clr { font-size: 10px; color: var(--app-muted); }
+  .dlg { background: var(--app-panel); border: 1px solid #3f3f46; border-radius: 12px; padding: 14px; max-width: 620px; }
+  .dlg .dt { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .dlg .dt b { color: var(--app-ink); font-size: 13px; font-weight: 600; }
+  .dlg .dt .x { color: var(--app-muted); font-size: 12px; }
+  /* v2 优化方案线框 */
+  .seg { display: inline-flex; background: var(--app-card); border: 1px solid var(--app-line); border-radius: 8px; overflow: hidden; }
+  .seg span { font-size: 10px; color: var(--app-muted); padding: 4px 10px; }
+  .seg span.on { background: var(--app-primary); color: #fff; }
+  .lab { color: var(--app-muted); font-size: 10px; margin: 8px 2px 4px; }
+  .minislot { width: 64px; height: 48px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #4b5563; flex-shrink: 0; }
+  .minislot .img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .minislot .x { position: absolute; top: 1px; right: 2px; color: #fff; font-size: 10px; text-shadow: 0 0 3px #000; }
+  .minislot .main { position: absolute; top: 1px; left: 2px; background: var(--app-primary); color: #fff; font-size: 8px; padding: 0 4px; border-radius: 3px; }
+  .addmini { width: 64px; height: 48px; border-radius: 8px; border: 1.5px dashed #3f3f46; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 16px; flex-shrink: 0; }
+  .textarea2 { background: var(--app-card); border: 1px solid var(--app-line); border-radius: 8px; padding: 8px; font-size: 11px; color: var(--app-muted); min-height: 64px; }
+  .prompt2 { background: transparent; border: 1px solid var(--app-line); border-radius: 8px; padding: 8px; font-size: 11px; color: var(--app-muted); min-height: 90px; }
+  .drawer { width: 300px; background: var(--app-panel); border-left: 1px solid #3f3f46; padding: 12px; display: flex; flex-direction: column; }
+  .dtbar { background: var(--app-bg); border: 1px solid #3f3f46; border-radius: 12px 0 0 12px; display: flex; overflow: hidden; }
+  .optlabel { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>多图生图能力 · UI 及交互设计</h1>
+  <div class="sub">设计日期：2026-11-18 ｜ <b>入口方案已裁定：B（素材库「多图生成」→ 多图生图）</b> ｜ 基于当前代码实测：素材库已内建多选体系（<code>src/selection/</code>），<code>selectedIds</code> 已支撑批量删除</div>
+</header>
+
+<div class="note" style="border-color:#86efac;background:#f0fdf4;">
+  <b>方案裁定</b>：入口采用 <b>方案 B —— 素材库「多图生成」多选模式 → 「多图生图」</b>。
+  决定性依据：素材库已内建完整多选（Ctrl/⌘ 加选、Shift 范围选、拖框选，见 <code>src/selection/selectable-surface.tsx:109-111</code>、<code>use-box-select.ts</code>），
+  且 <code>selectedIds</code> 已支撑右键批量删除（<code>views/assets.tsx:321-323</code>）——B 方案<b>不需要发明任何新交互模式</b>，
+  只补一个「动作出口」（批量动作条）+ 一个「生成对话框」。方案 A（AI 工具面板第三模式）降级为二期可选的第二入口，复用同一对话框组件。
+</div>
+
+<h2>一、现有 UI 盘点（B 方案踩在哪些现成设施上）</h2>
+
+<table>
+  <tr><th>既有设施</th><th>位置</th><th>B 方案怎么用</th></tr>
+  <tr>
+    <td><b>多选体系</b>（现成，零改动）</td>
+    <td><code>src/selection/</code>：点击=单选、Ctrl/⌘=加选、Shift=范围、拖=框选；<code>useSelection()</code> 暴露 <code>selectedIds</code></td>
+    <td>直接消费 <code>selectedIds</code>，过滤出图片资产即为参考图候选</td>
+  </tr>
+  <tr>
+    <td>批量删除先例</td>
+    <td><code>views/assets.tsx:321-323</code>（<code>idsToDelete = isSelected ? selectedIds : [item.id]</code>）</td>
+    <td>证明「选中集合 → 批量动作」模式已在用，动作条是第二个消费者</td>
+  </tr>
+  <tr>
+    <td>素材库选择对话框</td>
+    <td><code>views/ai-video-media-picker.tsx</code>（i2v 起始帧，单选，含过滤/禁用原因/空态兜底）</td>
+    <td>加 <code>mode:"single"|"multi"</code> + <code>max</code> 改造为多选版，作为对话框内「补图」入口</td>
+  </tr>
+  <tr>
+    <td>工具调用轻流程</td>
+    <td><code>runJob</code>（services/ai/client.ts）= submitJob + pollJob；<code>input</code> 逐字透传上游</td>
+    <td>多图生图 = <code>input.image_urls[]</code> 数组，协议层零改动</td>
+  </tr>
+  <tr>
+    <td>结果入库链路</td>
+    <td>厂商 URL → fetch → blob → <code>File</code> → <code>editor.media.addMediaAsset</code></td>
+    <td>生成结果原样入库，素材库网格实时出现</td>
+  </tr>
+  <tr>
+    <td>计费三段式</td>
+    <td><code>freezeForTask / settle / refund</code>（幂等）+ 模型目录 <code>pricePerCall</code></td>
+    <td>新模型一条配置即按次计费</td>
+  </tr>
+</table>
+
+<h2>二、入口点分析（四候选，B 胜出）</h2>
+
+<table>
+  <tr><th>方案</th><th>描述</th><th>结论</th></tr>
+  <tr>
+    <td><b>B · 素材库多选 → 动作条 → 对话框</b></td>
+    <td>用户在素材库用现有多选选中图片，面板底部浮出动作条，点「多图生图」打开预填好的生成对话框</td>
+    <td><span class="tag p2">采纳</span> 多选交互零新增；「先选图再生成」符合素材中心动线；AI 工具面板保持两模式不膨胀</td>
+  </tr>
+  <tr>
+    <td>A · AI 工具面板第三模式</td>
+    <td><code>ToolMode</code> 加 "img2img"，面板内选图</td>
+    <td><span class="tag p1">二期可选</span> 作为第二入口复用同一对话框；面板内逐张选图效率低于多选</td>
+  </tr>
+  <tr>
+    <td>C · 选择器多选化</td>
+    <td><code>AiVideoMediaPickerDialog</code> 加 <code>mode/max</code></td>
+    <td><span class="tag p2">作为 B 的内部组件</span>（对话框内补图），不是独立入口；i2v 原调用传 max=1 行为不变</td>
+  </tr>
+  <tr>
+    <td>D · 独立新 tab</td>
+    <td>「AI 生图」独立面板</td>
+    <td><span class="tag p0">不推荐</span> 生图族（文生图/多图生图）成熟后再评估</td>
+  </tr>
+</table>
+
+<h2>三、方案 B 详细设计</h2>
+
+<h3>3.1 全流程总览</h3>
+<div class="flow">
+  <div class="st">① 素材库右上「多图生成」进入多选，选 2~4 张图片（Ctrl/⌘/Shift/框选）</div><div class="ar">→</div>
+  <div class="st">② 面板底部浮出动作条</div><div class="ar">→</div>
+  <div class="st">③ 点「多图生图」</div><div class="ar">→</div>
+  <div class="st">④ 生成对话框（预填参考图，可增删/排序/补图）</div><div class="ar">→</div>
+  <div class="st">⑤ 提示词 + 参数 + 点数确认</div><div class="ar">→</div>
+  <div class="st">⑥ 生成（冻结点数 → 上游 → 轮询）</div><div class="ar">→</div>
+  <div class="st">⑦ 结果网格 → 自动入库 / 插时间轴 / 用作起始帧</div>
+</div>
+
+<h3>3.2 选择阶段（动作条 BatchActionBar）</h3>
+
+<div class="duo">
+  <div style="flex:1;"></div>
+  <div class="panelbox">
+    <div class="cap" style="color:var(--app-muted);font-size:10px;font-family:Consolas,monospace;">views/assets.tsx · 素材库网格</div>
+    <div class="grid4">
+      <div class="gcell sel"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%23b45309' width='60' height='60'/%3E%3C/svg%3E"><span class="ck">✓</span></div>
+      <div class="gcell sel"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%23065f46' width='60' height='60'/%3E%3C/svg%3E"><span class="ck">✓</span></div>
+      <div class="gcell sel"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%231e3a8a' width='60' height='60'/%3E%3C/svg%3E"><span class="ck">✓</span></div>
+      <div class="gcell"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%234c1d95' width='60' height='60'/%3E%3C/svg%3E"></div>
+      <div class="gcell"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%23713f12' width='60' height='60'/%3E%3C/svg%3E"></div>
+      <div class="gcell"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Crect fill='%233f3f46' width='60' height='60'/%3E%3C/svg%3E"></div>
+    </div>
+    <div class="bar">
+      <div class="t">已选 <b>3</b> 张图片 · 1 个视频未计</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="clr">清除</span>
+        <span class="go">多图生图 ›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<table>
+  <tr><th>规则</th><th>设计</th></tr>
+  <tr><td>出现时机</td><td><code>selectedIds</code> 过滤出图片 ≥ 1 时，面板底部 sticky 浮出（不遮挡网格，带轻微上滑动画）</td></tr>
+  <tr><td>计数口径</td><td>只统计<b>图片</b>资产；选中里的视频显示「N 个视频未计」但不拦截（用户可能还要批量删除它们）</td></tr>
+  <tr><td>按钮状态</td><td>图片 ≥ 2 → 可用；图片 &lt; 2 → 置灰 + 文案「再选 1 张图片」；图片 &gt; 4 → 置灰 + tooltip「最多 4 张参考图，请取消 N 张」（<b>不静默截断</b>，避免用户困惑哪 4 张被用了）</td></tr>
+  <tr><td>大小预检</td><td>单图 &gt; 10MB 的选中图片在动作条黄字提示「有 1 张超过 10MB，将无法使用」（进对话框后该图禁用）</td></tr>
+  <tr><td>清除时机</td><td>点「清除」或点面板空白处清空（沿用现有 selection 行为）；<b>打开对话框不清除选择</b>——关掉对话框后选择还在，方便换个提示词再来一次</td></tr>
+</table>
+
+<h3>3.3 生成对话框（MultiImg2ImgDialog）</h3>
+
+<div class="phone" style="background:rgba(0,0,0,.45); display:flex; justify-content:center;">
+  <div class="dlg">
+    <div class="dt"><b>多图生图</b><span class="x">✕</span></div>
+    <div class="sect">① 参考图（2~4 张 · 拖动排序 · 第一张 = 主参考）</div>
+    <div class="slots" style="grid-template-columns:repeat(5,1fr);">
+      <div class="slot full"><span class="main">主参考</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%23b45309' width='80' height='80'/%3E%3Ccircle fill='%23fbbf24' cx='40' cy='34' r='14'/%3E%3C/svg%3E"></div>
+      <div class="slot full"><span class="n">图 2</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%23065f46' width='80' height='80'/%3E%3C/svg%3E"></div>
+      <div class="slot full"><span class="n">图 3</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%231e3a8a' width='80' height='80'/%3E%3C/svg%3E"></div>
+      <div class="slot add">＋<small>上传 / 图库</small></div>
+      <div class="slot"></div>
+    </div>
+    <div class="sect">② 提示词（支持 @图N 引用）</div>
+    <div class="prompt">让 <b>@图1</b> 的小猫穿上学士服，站在 <b>@图2</b> 的礼堂前，整体氛围接近 <b>@图3</b> 的电影感光影…</div>
+    <div class="sug">
+      <span>保持角色一致</span><span>风格迁移</span><span>场景融合</span><span>换背景</span><span>多人合影</span>
+    </div>
+    <div class="sect">③ 参数</div>
+    <div class="params">
+      <div class="p on">1:1</div><div class="p">16:9</div><div class="p">3:4</div><div class="p">9:16</div>
+      <div class="p">标准 768</div><div class="p on">高清 1024</div><div class="p">超清 1536</div>
+      <div class="p on">1 张</div><div class="p">2 张</div>
+    </div>
+    <div class="genrow">
+      <div class="cost">预计 <b>30 点</b> ｜ 余额 1,240 点</div>
+      <div class="gen">生成</div>
+    </div>
+    <div class="sect">④ 本次结果（完成即自动入库）</div>
+    <div class="results">
+      <div class="res"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%237c2d12' width='90' height='90'/%3E%3Ccircle fill='%23fbbf24' cx='45' cy='38' r='16'/%3E%3C/svg%3E"><div class="ops"><span>预览</span><span>插时间轴</span><span>↰起始帧</span><span>↻</span></div></div>
+      <div class="res"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%23312e81' width='90' height='90'/%3E%3C/svg%3E"><div class="ops"><span>预览</span><span>插时间轴</span><span>↰</span><span>↻</span></div></div>
+      <div class="res" style="border-color:#7f1d1d;"><div style="color:#fca5a5;font-size:10px;text-align:center;padding-top:38%;">生成失败 · 点数已退<br/><u>重试</u></div></div>
+      <div class="res"><div style="background:linear-gradient(110deg,#1f1f23 8%,#2a2a30 18%,#1f1f23 33%);width:100%;height:100%;"></div></div>
+    </div>
+  </div>
+</div>
+
+<table>
+  <tr><th>区块</th><th>设计</th></tr>
+  <tr><td>① 参考图条</td><td>打开时按<b>选择顺序</b>预填；首位 = 主参考（蓝角标），拖动排序后角标跟随；✕ 移除；末槽 ＋ 补图（本地上传 / 多选 picker）。上限 4，第 5 槽恒为「＋」或空置</td></tr>
+  <tr><td>② 提示词</td><td>textarea + 建议 chips（点击追加模板句，可改）；输入 <code>@</code> 弹图序候选（图1=主参考）；纯文本透传</td></tr>
+  <tr><td>③ 参数</td><td>比例四选一 + <b>尺寸：分段控件直接显示像素（随比例联动换算：768×768 / 1024×1024 / 1536×1536…，默认 1024 档）+「自定义」档（宽×高输入，能力校验见 ③′）</b> + 数量 1~2；合成 <code>input.image_size = "宽x高"</code> 透传；M1 尺寸不影响点数（pricePerCall 单价），按尺寸分价预留</td></tr>
+  <tr><td>③′ 自定义尺寸校验（与模型能力匹配）</td><td>① 每边范围 256 ~ 模型 <code>maxImageEdge</code>（默认 1536）；② 步进 64 的倍数——输入自动<b>吸附</b>到最近倍数并回显实际生效值；③ 总像素 ≤ <code>maxImagePixels</code>（默认 1536×1536）；④ 非法输入红字提示 + 生成禁用；⑤ 能力字段进模型目录（<code>maxImageEdge / maxImagePixels / imageStep</code>），随 billing models 下发，UI 端据此渲染约束，<b>换模型自动跟随能力</b></td></tr>
+  <tr><td>底部行</td><td>预估 = pricePerCall × 数量，实时刷新；余额不足 → 生成置灰 + 红字 + 「去兑换」入口（redeem 流程已有）</td></tr>
+  <tr><td>④ 结果区</td><td>每张完成即入库并实时出现在素材库网格（addMediaAsset 有订阅）；成功卡动作：预览 / 插时间轴 / 用作起始帧 / 再生成；失败卡：红框 + 「点数已退」+ 重试；生成中显示骨架块</td></tr>
+  <tr><td>对话框关闭</td><td>生成状态提升到独立 store（不随对话框卸载丢失）——关掉再开进度续上；全部完成后 toast「多图生图完成 · 已入库 N 张」</td></tr>
+</table>
+
+<h3>3.4 状态机</h3>
+<pre><code>idle ──选中图片≥2──▶ actionable ──点动作条──▶ dialog-open ──生成──▶ generating
+  ▲                    │  ▲                        │                    │
+  └── 清除选择 ◀───────┘  └── 增删选中（同步槽位）◀──┘                    ├─ 成功 ▶ done（结果入库）
+                                                                      └─ 失败 ▶ failed（点数已退，可重试）
+generating 中关闭对话框：任务仍在 store 中继续 → 完成后 toast + 素材库可见</code></pre>
+
+<h3>3.5 校验与边界</h3>
+<table>
+  <tr><th>场景</th><th>处理</th></tr>
+  <tr><td>选中含视频</td><td>动作条只计图片，视频显示「未计」；进对话框仅带图片</td></tr>
+  <tr><td>选中 &gt; 4 张图片</td><td>「多图生图」置灰 + tooltip 提示取消多余张数（不静默截断）</td></tr>
+  <tr><td>单图 &gt; 10MB / 非图片</td><td>进对话框时该图槽位禁用 + 原因文案（复用 picker 的 <code>blockedReason</code> 模式）</td></tr>
+  <tr><td>对话框打开期间素材被删</td><td>打开时按 id 重查一次；缺失的槽位置灰提示「素材已删除」，可移除</td></tr>
+  <tr><td>请求体体积</td><td><b>M1 必做</b>：参考图入槽时前端压缩（canvas 重采样长边 ≤1536 + JPEG 0.9）再转 dataURL——4 张原图直传 base64 可达 50MB+ 请求体，压缩后单图 ~300KB、总 ~1.6MB</td></tr>
+  <tr><td>余额不足</td><td>预估 &gt; 余额时生成置灰 + 余额红字 + 兑换入口；402 响应同 AI 视频文案</td></tr>
+  <tr><td>上游失败 / 超时</td><td>失败卡 + 错误摘要；冻结自动退（refund 幂等）；重试 = 新 refId 重新冻结</td></tr>
+  <tr><td>每日上限</td><td>模型 <code>dailyLimit</code> 429 文案 + 明日恢复时间（与 AI 视频同源）</td></tr>
+  <tr><td>重复打开对话框</td><td>同一时刻仅一个生成中对话框；已有进行中任务时重开显示进行中状态（store 恢复）</td></tr>
+</table>
+
+<h2>四、数据与 API 映射（复用为主）</h2>
+
+<table>
+  <tr><th>层</th><th>动作</th></tr>
+  <tr><td>模型目录</td><td>DEFAULT_MODELS 新增：<code>{ id: "ai-tools-img2img-multi", kind: "tool", pricePerCall: 30, labelKey: "ai_img2img.model_label", … }</code>；admin 渠道挂 fal 多参考生图端点（如 nano-banana / flux-kontext 系，以采购为准）即刻上下线</td></tr>
+  <tr><td>协议层</td><td><b>零改动</b>——<code>input</code> 逐字透传机制已在（removeBackground 同款）</td></tr>
+  <tr><td>调用侧</td><td><code>multiImageToImage({ images, prompt, numImages, aspectRatio, imageSize })</code> → <code>runJob({ params: { modelId, input: { prompt, image_urls: [dataURL…], num_images, aspect_ratio, image_size } } })</code>；图片先前端压缩再转 dataURL。<code>image_size</code> 由「比例 × 尺寸」合成（档位随比例换算，如 16:9 的 1024 档 → <code>"1024x576"</code>；自定义档用校验吸附后的宽x高）</td></tr>
+  <tr><td>计费</td><td>freezeForTask → settle/refund，幂等键 (kind, refId)；预估 = pricePerCall × 数量</td></tr>
+  <tr><td>结果</td><td>URL → blob → File → <code>addMediaAsset</code>；下载走 <code>/api/media/download</code>（已加会话+归属校验）</td></tr>
+  <tr><td>i18n</td><td><code>ai_img2img.*</code>（zh 源 + en）：action_bar 计数/按钮、槽位主参考/上限、prompt 占位与建议 chips、<b>参数组（比例/尺寸/数量，<code>ai_img2img.params_size</code> = "生图尺寸"）</b>、成本/余额、失败/重试、toast 等</td></tr>
+</table>
+
+<h2>五、需要改动的文件清单</h2>
+
+<pre><code>views/assets.tsx                     BatchActionBar（消费现成 useSelection）＋对话框挂载＋selectedAssets 解析
+components/ai/img2img-dialog.tsx     新增：生成对话框（槽位/排序/补图/prompt/参数/结果/进度续接 store）
+components/ai/img2img-store.ts       新增：生成会话状态（关闭对话框进度不丢；zustand）
+views/ai-video-media-picker.tsx      mode:"single"|"multi" + max（补图用多选；i2v 传 max=1 行为不变）
+services/ai-tools/index.ts           新导出 multiImageToImage() → runJob
+services/admin/models.ts             DEFAULT_MODELS + ai-tools-img2img-multi（含 maxImageEdge / maxImagePixels / imageStep 尺寸能力字段）
+utils/image.ts                       （若无现成）压缩工具：canvas 重采样长边≤1536 + JPEG 0.9
+locale/zh.ts / en.ts                 ai_img2img.* 约 22 个 key
+selection/*                          零改动
+assets-panel-store.tsx               零改动
+admin 渠道面板                       渠道挂模型端点（运营操作，非代码）</code></pre>
+
+<h2>六、分期</h2>
+
+<table>
+  <tr><th>期</th><th>范围</th><th>验收</th></tr>
+  <tr><td><b>M1 核心闭环</b></td><td>动作条 + 对话框（预填选中图、prompt、参数、生成、结果入库）+ 图片压缩 + 模型/协议/计费 + i18n</td><td>库内选 3 图 → 30 秒内出图自动入库；失败点数可退可见</td></tr>
+  <tr><td><b>M2 体验补全</b></td><td>槽位补图（上传/多选 picker）、拖动排序主参考、@图N、建议 chips、用作起始帧联动、生成中关开续接</td><td>全程不离开对话框完成「选图→出图→进 i2v」</td></tr>
+  <tr><td><b>M3 规模化</b></td><td>结果历史并入任务队列 tab（generation_tasks 化）；一次 4 张；A 入口（AI 工具第三模式）复用对话框</td><td>重进编辑器历史可回查；两入口同组件</td></tr>
+</table>
+
+<h2>七、界面优化方案（v2 · 四选一，2026-11-18）</h2>
+
+<div class="note" style="border-color:#fca5a5;background:#fef2f2;">
+  <b>现状问题</b>（对照首版实现的截图）：
+  ① 参考图槽位过大且高度不齐，占据对话框一半以上纵向空间；② 「+ 上传」「+ 图库」两个独立按钮悬空在槽位右侧，视觉割裂；
+  ③ 提示词 textarea 底色发蓝（bg-secondary 在暗色下突兀）；④ 建议 chips / 参数 / 成本 / 生成按钮各行散排，缺乏分组与层次；
+  ⑤ 结果区出现后对话框被撑得很长；⑥ 整体观感与编辑器既有面板（AI 视频/任务抽屉）不一致。
+  以下四套方案都建立在「公共优化项」之上，差异在<b>整体布局形态</b>。
+</div>
+
+<h3>7.0 公共优化项（四套方案通用，选定后一并实施）</h3>
+<table>
+  <tr><th>项</th><th>优化</th></tr>
+  <tr><td>上传/图库合并</td><td>两按钮合并为一个「＋」空槽；点击弹出两项菜单（本地上传 / 从图库多选）——图库 picker 内已有本地上传兜底</td></tr>
+  <tr><td>槽位统一</td><td>固定尺寸圆角缩略图、hover 才显示 ✕、左上角标（主参考/图N）、拖动排序把目标位置高亮出来</td></tr>
+  <tr><td>textarea 配色</td><td><code>bg-secondary</code> → <code>bg-transparent + border</code>（或 <code>bg-muted/30</code>），消除突兀蓝黑</td></tr>
+  <tr><td>参数改分段控件</td><td>比例/数量各放入一个分段容器（segmented control，样式对齐素材面板的视图切换）</td></tr>
+  <tr><td><b>生图尺寸（本次增补）</b></td><td>「尺寸」分段控件<b>直接显示像素</b>（随比例联动换算，不用「标准/高清/超清」字样）：768×768 / 1024×1024 / 1536×1536 …，外加<b>「自定义」档</b>——宽×高输入，校验规则与模型能力匹配（见 3.3 ③′）；合成 <code>input.image_size</code>（"宽x高"）透传上游；M1 尺寸不影响点数，后续可按尺寸分价</td></tr>
+  <tr><td>结果区不撑高</td><td>结果改为<b>横向滚动条带</b>（h-24 固定高）+「历史」折叠入口；生成中在条带里显示骨架块</td></tr>
+  <tr><td>生成按钮</td><td>主色 + Sparkles 图标 + 快捷键提示（⌘↵），固定于容器右下；成本放按钮左侧同排</td></tr>
+  <tr><td>间距节奏</td><td>统一 12px 分组间距 / 8px 元素间距，分组用小标题（参考图 / 提示词 / 参数）</td></tr>
+</table>
+
+<h3>7.1 方案一 · 紧凑单栏（推荐：M1 打磨首选）</h3>
+<p>槽位缩成横排小缩略图，一切单列纵排，对话框高度固定在一屏内。</p>
+
+<div class="phone" style="max-width:560px;">
+  <div class="cap">方案一 · Compact：高度 ~340px，全程不滚动</div>
+  <div class="dtbar" style="background:var(--app-panel); border-radius:12px; padding:12px; display:block;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <b style="color:var(--app-ink); font-size:12px;">多图生图</b>
+      <span style="color:var(--app-muted); font-size:11px;">✕</span>
+    </div>
+    <div class="lab">参考图（拖动排序 · 首位=主参考）</div>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <div class="minislot"><span class="main">主</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='48'%3E%3Crect fill='%23e07a2f' width='64' height='48'/%3E%3C/svg%3E"><span class="x">✕</span></div>
+      <div class="minislot"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='48'%3E%3Crect fill='%230f9d58' width='64' height='48'/%3E%3C/svg%3E"><span class="x">✕</span></div>
+      <div class="minislot"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='48'%3E%3Crect fill='%231a73e8' width='64' height='48'/%3E%3C/svg%3E"><span class="x">✕</span></div>
+      <div class="addmini">＋</div>
+      <span style="color:var(--app-muted); font-size:10px;">3/4</span>
+    </div>
+    <div class="lab">提示词（@图N 引用）</div>
+    <div class="prompt2">让 @图1 的小猫站在 @图2 的草地上，天空使用 @图3 的颜色…</div>
+    <div class="sug" style="margin:6px 0;"><span>保持角色一致</span><span>风格迁移</span><span>场景融合</span><span>换背景</span><span>多人合影</span></div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      <span class="lab" style="margin:0;">比例</span>
+      <div class="seg"><span class="on">1:1</span><span>16:9</span><span>3:4</span><span>9:16</span></div>
+      <span class="lab" style="margin:0 0 0 6px;">尺寸</span>
+      <div class="seg"><span>768×768</span><span class="on">1024×1024</span><span>1536×1536</span><span>自定义</span></div>
+      <span class="lab" style="margin:0 0 0 6px;">数量</span>
+      <div class="seg"><span class="on">1</span><span>2</span></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+      <span class="cost">预计 <b>30 点</b> ｜ 余额 500 点</span>
+      <div class="gen">✨ 生成（⌘↵）</div>
+    </div>
+    <div class="lab">本次结果（横滑 · 完成即入库）</div>
+    <div class="results" style="grid-template-columns:none; display:flex; gap:8px; overflow-x:auto; margin-top:4px;">
+      <div class="res" style="min-width:88px;"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='66'%3E%3Crect fill='%237c2d12' width='88' height='66'/%3E%3C/svg%3E"><div class="ops"><span>预览</span><span>↻</span></div></div>
+      <div class="res" style="min-width:88px;"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='66'%3E%3Crect fill='%23312e81' width='88' height='66'/%3E%3C/svg%3E"><div class="ops"><span>预览</span><span>↻</span></div></div>
+      <div class="res" style="min-width:88px;"><div style="background:linear-gradient(110deg,#1f1f23 8%,#2a2a30 18%,#1f1f23 33%);width:100%;height:100%;"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="phone" style="max-width:420px; margin-top:8px;">
+  <div class="cap">「自定义」点击后的尺寸弹层（输入自动吸附 64 倍数 · 边界/总像素按模型能力校验）</div>
+  <div style="background:var(--app-panel); border:1px solid #3f3f46; border-radius:10px; padding:12px;">
+    <div style="display:flex; gap:10px; align-items:center; font-size:11px; color:var(--app-muted);">
+      <span>宽</span>
+      <span style="background:var(--app-card); border:1px solid var(--app-line); border-radius:6px; padding:4px 8px; color:var(--app-ink);">890</span>
+      <span>×</span>
+      <span>高</span>
+      <span style="background:var(--app-card); border:1px solid var(--app-line); border-radius:6px; padding:4px 8px; color:var(--app-ink);">510</span>
+      <span>px</span>
+    </div>
+    <div style="margin-top:8px; font-size:10px; color:#93c5fd;">将应用 896×512（自动吸附 64 的倍数 · 每边 ≤1536 ✓ · 总像素 ≤ 1536×1536 ✓）</div>
+    <div style="margin-top:6px; font-size:10px; color:#fca5a5;">越界示例：高 2048 → 超出模型上限 1536，生成禁用</div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
+      <span style="border:1px solid var(--app-line); border-radius:6px; padding:3px 10px; color:var(--app-muted); font-size:10px;">取消</span>
+      <span style="background:var(--app-primary); border-radius:6px; padding:3px 10px; color:#fff; font-size:10px;">应用</span>
+    </div>
+  </div>
+</div>
+
+<table>
+  <tr><th>维度</th><th>评价</th></tr>
+  <tr><td>优点</td><td>改动量最小（纯布局与样式层）；高度恒定一屏；横向结果带天然适配 1~4 张</td></tr>
+  <tr><td>缺点</td><td>小槽位（64×48）拖动排序精准度一般；长提示词时 textarea 要手动扩高</td></tr>
+  <tr><td>适用</td><td>快速打磨当前实现，作为默认推荐</td></tr>
+</table>
+
+<h3>7.2 方案二 · 左右分栏工作台</h3>
+<p>对话框加宽到 max-w-3xl，左列「参考图 + 参数」、右列「提示词 + 结果」，空间各得其所。</p>
+
+<div class="phone" style="max-width:760px;">
+  <div class="cap">方案二 · Split：参考图 2×2 大槽位（可看清细节）+ 右列长提示词</div>
+  <div style="background:var(--app-panel); border-radius:12px; padding:12px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <b style="color:var(--app-ink); font-size:12px;">多图生图</b>
+      <span style="color:var(--app-muted); font-size:11px;">✕</span>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:14px;">
+      <div>
+        <div class="lab">参考图</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="slot full"><span class="main">主参考</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%23e07a2f' width='90' height='90'/%3E%3C/svg%3E"></div>
+          <div class="slot full"><span class="n">图 2</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%230f9d58' width='90' height='90'/%3E%3C/svg%3E"></div>
+          <div class="slot full"><span class="n">图 3</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%231a73e8' width='90' height='90'/%3E%3C/svg%3E"></div>
+          <div class="slot add">＋</div>
+        </div>
+        <div class="lab">比例</div>
+        <div class="seg"><span class="on">1:1</span><span>16:9</span><span>3:4</span><span>9:16</span></div>
+        <div class="lab">尺寸</div>
+        <div class="seg"><span>768×768</span><span class="on">1024×1024</span><span>1536×1536</span><span>自定义</span></div>
+        <div class="lab">数量</div>
+        <div class="seg"><span class="on">1</span><span>2</span></div>
+      </div>
+      <div style="display:flex; flex-direction:column;">
+        <div class="lab">提示词（@图N 引用）</div>
+        <div class="prompt2" style="flex:1; min-height:150px;">让 @图1 的小猫站在 @图2 的草地上，天空使用 @图3 的颜色，吉卜力风格…</div>
+        <div class="sug"><span>保持角色一致</span><span>风格迁移</span><span>场景融合</span><span>换背景</span></div>
+        <div class="lab">结果</div>
+        <div style="display:flex; gap:6px;">
+          <div class="res" style="width:72px;"><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='54'%3E%3Crect fill='%237c2d12' width='72' height='54'/%3E%3C/svg%3E"></div>
+          <div class="res" style="width:72px; background:var(--app-card);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:10px;">
+          <span class="cost">预计 <b>30 点</b> ｜ 余额 500 点</span>
+          <div class="gen">✨ 生成</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<table>
+  <tr><th>维度</th><th>评价</th></tr>
+  <tr><td>优点</td><td>参考图够大看得清细节（多图场景主参考判断更准）；长提示词友好；生成按钮位置固定不动</td></tr>
+  <tr><td>缺点</td><td>对话框明显变宽（max-w-3xl），小屏/侧栏窄时挤压；改动量中</td></tr>
+  <tr><td>适用</td><td>目标用户是「认真做参考图合成」的重度使用场景</td></tr>
+</table>
+
+<h3>7.3 方案三 · 右侧抽屉（与编辑器交互最一致）</h3>
+<p>放弃居中 Dialog，改右侧滑出全高抽屉（对齐任务抽屉/属性面板的容器习惯），生成时可同时看到预览画布与时间轴。</p>
+
+<div class="dtbar" style="max-width:860px;">
+  <div style="flex:1; padding:14px; color:var(--app-muted); font-size:11px;">
+    预览画布 + 时间轴（保持可见、可操作——生成等待期可以去别的面板干活）
+  </div>
+  <div class="drawer">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <b style="color:var(--app-ink); font-size:12px;">多图生图</b>
+      <span style="color:var(--app-muted); font-size:11px;">✕</span>
+    </div>
+    <div class="lab">参考图</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+      <div class="slot full"><span class="main">主</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%23e07a2f' width='90' height='90'/%3E%3C/svg%3E"></div>
+      <div class="slot full"><span class="n">图 2</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%230f9d58' width='90' height='90'/%3E%3C/svg%3E"></div>
+      <div class="slot full"><span class="n">图 3</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%231a73e8' width='90' height='90'/%3E%3C/svg%3E"></div>
+      <div class="slot add">＋</div>
+    </div>
+    <div class="lab">提示词</div>
+    <div class="prompt2" style="min-height:70px;">…</div>
+    <div class="sug"><span>角色一致</span><span>风格迁移</span><span>场景融合</span></div>
+    <div class="lab">比例 / 尺寸 / 数量</div>
+    <div class="seg"><span class="on">1:1</span><span>16:9</span><span>3:4</span><span>9:16</span></div>
+    <div class="seg" style="margin-left:6px;"><span>768×768</span><span class="on">1024×1024</span><span>自定义</span></div>
+    <div class="seg" style="margin-left:6px;"><span class="on">1</span><span>2</span></div>
+    <div class="lab">结果（纵向列表）</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; gap:6px; align-items:center; background:var(--app-card); border-radius:8px; padding:4px;">
+        <img class="img" alt="" style="width:52px;height:40px;border-radius:6px;object-fit:cover;" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='40'%3E%3Crect fill='%237c2d12' width='52' height='40'/%3E%3C/svg%3E">
+        <span style="color:var(--app-muted); font-size:10px; flex:1;">多图生图-182132.png · 已入库</span>
+        <span style="color:#93c5fd; font-size:10px;">插时间轴</span>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center; background:var(--app-card); border-radius:8px; padding:4px;">
+        <div style="width:52px;height:40px;border-radius:6px;background:linear-gradient(110deg,#1f1f23 8%,#2a2a30 18%,#1f1f23 33%);"></div>
+        <span style="color:var(--app-muted); font-size:10px; flex:1;">生成中…</span>
+      </div>
+    </div>
+    <div style="margin-top:auto; padding-top:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="cost">预计 <b>30 点</b></span>
+        <div class="gen" style="width:100%; text-align:center;">✨ 生成</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<table>
+  <tr><th>维度</th><th>评价</th></tr>
+  <tr><td>优点</td><td>与任务抽屉/属性面板同一容器语言，编辑器整体一致性最好；抽屉常驻，生成等待期可继续剪辑（进度续接体验最自然）；纵向空间充裕，结果列表化后天然支持历史</td></tr>
+  <tr><td>缺点</td><td>组件形态要换（Radix Sheet / 自绘 fixed 容器），改动量最大；抽屉打开时素材面板被遮挡</td></tr>
+  <tr><td>适用</td><td>把多图生图当「常驻工作流」而非「一次性弹窗」的定位；也为 M3 结果历史铺路</td></tr>
+</table>
+
+<h3>7.4 方案四 · 两段式（设置 ⇆ 结果）</h3>
+<p>对话框只有两个视图：生成前是<b>设置页</b>（槽位 + 提示词 + 参数 + 生成），点生成后整页切换为<b>结果页</b>（大图进度 / 结果网格 + 返回设置按钮）。两个视图互不挤压，结果页专门用来逐张审视挑选。</p>
+
+<div class="flow" style="margin-bottom:10px;">
+  <div class="st">视图 A · 设置页</div><div class="ar">── 点生成 ──▶</div>
+  <div class="st">视图 B · 结果页</div><div class="ar">──「返回设置」可回 A 再调参 ──</div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+  <div class="phone" style="margin:0;">
+    <div class="cap">视图 A · 设置页（生成前）</div>
+    <div style="background:var(--app-panel); border-radius:12px; padding:12px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+        <b style="color:var(--app-ink); font-size:12px;">多图生图 · 设置</b>
+        <span style="color:var(--app-muted); font-size:11px;">✕</span>
+      </div>
+      <div class="lab">参考图（2~4 张 · 首位=主参考）</div>
+      <div class="slots" style="grid-template-columns:repeat(4,1fr);">
+        <div class="slot full"><span class="main">主参考</span><span class="x">✕</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%23e07a2f' width='90' height='90'/%3E%3C/svg%3E"></div>
+        <div class="slot full"><span class="n">图 2</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%230f9d58' width='90' height='90'/%3E%3C/svg%3E"></div>
+        <div class="slot full"><span class="n">图 3</span><img class="img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Crect fill='%231a73e8' width='90' height='90'/%3E%3C/svg%3E"></div>
+        <div class="slot add">＋</div>
+      </div>
+      <div class="lab">提示词</div>
+      <div class="prompt2">让 @图1 的小猫戴上学士帽，背景用 @图2 的樱花树…</div>
+      <div class="sug"><span>角色一致</span><span>风格迁移</span><span>场景融合</span></div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <div class="seg"><span class="on">1:1</span><span>16:9</span><span>3:4</span><span>9:16</span></div>
+        <div class="seg"><span>768×768</span><span class="on">1024×1024</span><span>1536×1536</span><span>自定义</span></div>
+        <div class="seg"><span class="on">1 张</span><span>2 张</span></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+        <span class="cost">预计 <b>30 点</b> ｜ 余额 500 点</span>
+        <div class="gen">✨ 生成</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone" style="margin:0;">
+    <div class="cap">视图 B · 结果页（生成后）</div>
+    <div style="background:var(--app-panel); border-radius:12px; padding:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <b style="color:var(--app-ink); font-size:12px;">生成结果</b>
+        <span style="border:1px solid var(--app-line); border-radius:6px; padding:2px 8px; color:var(--app-muted); font-size:10px;">← 返回设置</span>
+      </div>
+      <div style="border:1px solid var(--app-line); border-radius:10px; overflow:hidden; margin-bottom:10px;">
+        <img class="img" alt="" style="width:100%; aspect-ratio:16/10; object-fit:cover; display:block;" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='200'%3E%3Crect fill='%237c2d12' width='320' height='200'/%3E%3Ccircle fill='%23fbbf24' cx='160' cy='86' r='34'/%3E%3Crect fill='%230f9d58' x='0' y='150' width='320' height='50'/%3E%3C/svg%3E">
+      </div>
+      <div style="display:flex; gap:6px; justify-content:center; margin-bottom:10px;">
+        <div style="width:56px; height:42px; border-radius:6px; overflow:hidden; outline:2px solid var(--app-primary);"><img class="img" alt="" style="width:100%;height:100%;object-fit:cover;" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='42'%3E%3Crect fill='%237c2d12' width='56' height='42'/%3E%3C/svg%3E"></div>
+        <div style="width:56px; height:42px; border-radius:6px; overflow:hidden; opacity:.6;"><img class="img" alt="" style="width:100%;height:100%;object-fit:cover;" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='42'%3E%3Crect fill='%23312e81' width='56' height='42'/%3E%3C/svg%3E"></div>
+      </div>
+      <div style="display:flex; gap:6px; justify-content:center; margin-bottom:10px;">
+        <span style="border:1px solid var(--app-line); border-radius:6px; padding:3px 10px; color:var(--app-ink); font-size:10px;">插时间轴</span>
+        <span style="border:1px solid var(--app-line); border-radius:6px; padding:3px 10px; color:var(--app-ink); font-size:10px;">下载</span>
+        <span style="border:1px solid var(--app-line); border-radius:6px; padding:3px 10px; color:var(--app-muted); font-size:10px;">删除</span>
+      </div>
+      <div style="background:var(--app-card); border-radius:8px; padding:6px 8px; font-size:10px; color:var(--app-muted);">
+        提示词 · 让 @图1 的小猫戴上学士帽…<span style="color:#93c5fd;">（点击可回设置页修改）</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<table>
+  <tr><th>维度</th><th>评价</th></tr>
+  <tr><td>优点</td><td>两个视图各自专注，互不挤压；结果页可以放很大（适合逐张审视 2 张结果再挑）；实现简单（同一 Dialog 内 state 切换）</td></tr>
+  <tr><td>缺点</td><td>想「改一下提示词再生成」必须来回切视图；结果与参数不同屏，对比调参略繁琐</td></tr>
+  <tr><td>适用</td><td>单次生成 1~2 张、生成后以「挑选」为主的轻使用</td></tr>
+</table>
+
+<h3>7.5 对比与推荐</h3>
+<table>
+  <tr><th>方案</th><th>改动量</th><th>一致性</th><th>高度控制</th><th>参考图可视</th><th>多任务并行</th><th>推荐度</th></tr>
+  <tr><td>一 · 紧凑单栏</td><td>★ 小</td><td>中</td><td>★★★ 恒定</td><td>★ 小图</td><td>★（横带）</td><td><b>M1 打磨首选</b></td></tr>
+  <tr><td>二 · 左右分栏</td><td>★★ 中</td><td>中</td><td>★☆ 较好</td><td>★★★ 大图</td><td>★★</td><td>重度用户向</td></tr>
+  <tr><td>三 · 右侧抽屉</td><td>★★★ 大</td><td>★★★ 与抽屉体系一致</td><td>★★★ 全高</td><td>★★ 中图</td><td>★★★ 列表天然支持</td><td>长期形态最佳（M3 合流）</td></tr>
+  <tr><td>四 · 两段式</td><td>★★ 中</td><td>中</td><td>★★★ 恒定</td><td>★☆ 设置页小图</td><td>★</td><td>轻使用向</td></tr>
+</table>
+
+<p><b>建议</b>：先按 <b>方案一</b> 打磨（一天内可完成，公共优化项 + 布局重排），把「结果横向条带 + 生成状态 store 化」这两个结构做对；M3 结果历史进任务队列时，若多图生图使用频次成立，再升级为 <b>方案三抽屉</b>（与任务抽屉合并成一个「生成」抽屉体系）。方案二适合等用户反馈「槽位看不清」后再切换。</p>
+
+<div class="note" style="margin-top:16px;">
+  <b>前置依赖提醒</b>：本能力走 <code>/api/ai/poll</code> 轻流程，其 jobId 归属校验缺口（见 <code>route.ts</code> 头注释与《智能编辑与AI辅助方案》）已在本次实现中部分加固（refId 必须属于调用者自己的冻结行）；jobId 级映射仍是后续项。
+</div>
+
+<footer>MyCut · docs/智能增强/多图生图能力ui以及ui交互设计.html · 2026-11-18 · 方案 B 详细版（基于当前仓库代码实测：src/selection/ 多选体系已就绪）</footer>
+
+</div>
+</body>
+</html>

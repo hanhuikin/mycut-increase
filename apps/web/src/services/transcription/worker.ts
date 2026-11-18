@@ -1,4 +1,5 @@
 import {
+	env,
 	pipeline,
 	type AutomaticSpeechRecognitionPipeline,
 	type AutomaticSpeechRecognitionOutput,
@@ -8,6 +9,13 @@ import {
 	DEFAULT_CHUNK_LENGTH_SECONDS,
 	DEFAULT_STRIDE_SECONDS,
 } from "@/transcription/audio";
+
+// 模型权重默认从 huggingface.co 下载，国内直连不通（转写初始化直接
+// "Failed to fetch"）。改走 hf-mirror 镜像——URL 路径结构与官方完全一致，
+// 仅换域名；可用 NEXT_PUBLIC_HF_ENDPOINT 覆盖（自建反代/内网镜像）。
+// 不尝试本地 /models 目录（应用里不存在），下载结果由浏览器 Cache Storage 缓存。
+env.remoteHost = process.env.NEXT_PUBLIC_HF_ENDPOINT || "https://hf-mirror.com";
+env.allowLocalModels = false;
 
 export type WorkerMessage =
 	| { type: "init"; modelId: string }
@@ -166,7 +174,7 @@ async function handleTranscribe({
 			type: "transcribe-complete",
 			text: result.text,
 			segments,
-			language: (result as Record<string, unknown>).language as string || "",
+			language: ((result as Record<string, unknown>).language as string) || "",
 		} satisfies WorkerResponse);
 	} catch (error) {
 		if (cancelled) return;

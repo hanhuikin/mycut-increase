@@ -2,7 +2,7 @@
 import { useLocale } from "@/locale/locale-context";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelView } from "@/components/editor/panels/assets/views/base-panel";
 import { MediaDragOverlay } from "@/components/editor/panels/assets/drag-overlay";
 import { DraggableItem } from "@/components/editor/panels/assets/draggable-item";
@@ -37,9 +37,15 @@ import {
 	SelectableItem,
 	SelectableSurface,
 	useSelection,
+	useSelectionContext,
 	useSelectionScope,
 } from "@/selection";
 import { buildElementFromMedia } from "@/timeline/element-utils";
+import { MultiImg2ImgDialog } from "@/components/ai/img2img-dialog";
+import {
+	useImg2ImgStore,
+	type Img2ImgSlot,
+} from "@/components/ai/img2img-store";
 import {
 	type MediaSortKey,
 	type MediaSortOrder,
@@ -190,22 +196,73 @@ export function MediaView() {
 		return filteredMediaItems.map((item) => item.id);
 	}, [filteredMediaItems]);
 
+	const img2img = useImg2ImgStore();
+	// 多选模式：点击素材只做选中切换（多图生图用），不再触发插入时间轴；
+	// 退出后恢复原生点击行为。普通模式完全不受影响。
+	const [selectMode, setSelectMode] = useState(false);
+
+	/** 打开对话框：有进行中的会话则恢复，否则用当前选中的图片预填。 */
+	const openImg2Img = (images: MediaAsset[]) => {
+		if (img2img.running || img2img.results.length > 0) {
+			img2img.setOpen(true);
+			return;
+		}
+		const slots: Img2ImgSlot[] = images.map((asset) => ({
+			key: `${asset.id}-${Date.now()}`,
+			name: asset.name,
+			file: asset.file,
+			previewUrl: asset.url ?? URL.createObjectURL(asset.file),
+			fromAssetId: asset.id,
+		}));
+		img2img.openWith(slots);
+	};
+
+	/** 结果卡「插时间轴」：图元素落到播放头位置。 */
+	const handleImg2ImgInsert = (assetId: string) => {
+		const asset = editor.media.getAssets().find((item) => item.id === assetId);
+		if (!asset || !activeProject) return;
+		const element = buildElementFromMedia({
+			mediaId: asset.id,
+			mediaType: asset.type,
+			name: asset.name,
+			duration: DEFAULT_NEW_ELEMENT_DURATION,
+			startTime: editor.playback.getCurrentTime(),
+		});
+		editor.timeline.insertElement({
+			element,
+			placement: { mode: "auto" },
+		});
+	};
+
 	return (
 		<>
 			<input {...fileInputProps} />
+			<MultiImg2ImgDialog onInsertTimeline={handleImg2ImgInsert} />
 
 			<PanelView
 				title={t["assets.assets"]}
 				actions={
-					<MediaActions
-						mediaViewMode={mediaViewMode}
-						setMediaViewMode={setMediaViewMode}
-						isProcessing={isProcessing}
-						sortBy={mediaSortBy}
-						sortOrder={mediaSortOrder}
-						onSort={handleSort}
-						onImport={openFilePicker}
-					/>
+					<div className="flex items-center gap-1.5">
+						<Button
+							size="sm"
+							variant={selectMode ? "default" : "ghost"}
+							className="h-8 px-2 text-xs"
+							onClick={() => setSelectMode(!selectMode)}
+						>
+							{selectMode
+								? t["assets.multi_select_exit"]
+								: t["assets.multi_select"]}
+						</Button>
+						<MediaActions
+							mediaViewMode={mediaViewMode}
+							setMediaViewMode={setMediaViewMode}
+							isProcessing={isProcessing}
+							sortBy={mediaSortBy}
+							sortOrder={mediaSortOrder}
+							onSort={handleSort}
+							onImport={openFilePicker}
+						/>
+					</div>
 				}
 				className={cn(isDragOver && "bg-accent/30")}
 				contentClassName="h-full"
@@ -230,7 +287,18 @@ export function MediaView() {
 							items={filteredMediaItems}
 							mode={mediaViewMode}
 							onRemove={handleRemove}
+							selectMode={selectMode}
 						/>
+						{selectMode && (
+							<Img2ImgBatchBar
+								items={filteredMediaItems}
+								onOpen={openImg2Img}
+								onExit={() => setSelectMode(false)}
+							/>
+						)}
+						{selectMode && (
+							<SelectModeEffects onExit={() => setSelectMode(false)} />
+						)}
 					</SelectableSurface>
 				)}
 			</PanelView>
@@ -243,18 +311,118 @@ function MediaScopeRegistrar() {
 	return null;
 }
 
+/** 多选模式的随行副作用：ESC = 清空选择并退出多选；退出时顺带清空选中。 */
+function SelectModeEffects({ onExit }: { onExit: () => void }) {
+	const { clearSelection } = useSelection();
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				clearSelection();
+				onExit();
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => {
+			window.removeEventListener("keydown", onKey);
+			// 任何方式退出多选（按钮/ESC/切面板）都收掉选中集合
+			clearSelection();
+		};
+	}, [clearSelection, onExit]);
+	return null;
+}
+
+/**
+ * 素材库批量动作条（仅多选模式渲染）：sticky 在滚动容器底部。
+ * 多图生图要求 2~4 张图片——不足/超出时按钮置灰并给出补选文案；
+ * 只统计图片，视频选中不拦截（可能还在用于批量删除）。
+ */
+function Img2ImgBatchBar({
+	items,
+	onOpen,
+	onExit,
+}: {
+	items: MediaAsset[];
+	onOpen: (images: MediaAsset[]) => void;
+	onExit: () => void;
+}) {
+	const { t } = useLocale();
+	const { selectedIds, clearSelection } = useSelection();
+
+	const selected = items.filter((item) => selectedIds.includes(item.id));
+	const images = selected.filter((item) => item.type === "image");
+	const videos = selected.length - images.length;
+	if (selected.length === 0) return null;
+
+	const tooFew = images.length < 2;
+	const tooMany = images.length > 4;
+	const canOpen = !tooFew && !tooMany;
+	const hint = tooFew
+		? t["ai_img2img.bar_need_more"].replace("{n}", String(2 - images.length))
+		: tooMany
+			? t["ai_img2img.bar_too_many"].replace("{n}", String(images.length - 4))
+			: null;
+
+	return (
+		<div
+			className="sticky bottom-1 z-10 mt-2"
+			onMouseDown={(event) => event.stopPropagation()}
+			onClick={(event) => event.stopPropagation()}
+		>
+			<div className="bg-background/95 border-border flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 shadow-sm backdrop-blur">
+				<span className="text-muted-foreground truncate text-[11px]">
+					{t["ai_img2img.bar_images"].replace("{n}", String(images.length))}
+					{videos > 0 &&
+						` · ${t["ai_img2img.bar_videos_ignored"].replace("{n}", String(videos))}`}
+				</span>
+				<div className="flex shrink-0 items-center gap-2">
+					<button
+						type="button"
+						className="text-muted-foreground hover:text-foreground rounded px-1 text-[11px]"
+						onClick={clearSelection}
+					>
+						{t["ai_img2img.bar_clear"]}
+					</button>
+					<button
+						type="button"
+						className="text-muted-foreground hover:text-foreground rounded px-1 text-[11px]"
+						onClick={() => {
+							clearSelection();
+							onExit();
+						}}
+					>
+						{t["assets.multi_select_exit"]}
+					</button>
+					<Button
+						size="sm"
+						className="h-7 px-2.5 text-[11px]"
+						disabled={!canOpen}
+						title={hint ?? undefined}
+						onClick={() => onOpen(images)}
+					>
+						{hint ?? t["ai_img2img.bar_action"]}
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 function MediaAssetDraggable({
 	item,
 	preview,
 	variant,
 	isRounded,
+	isDraggable = true,
 }: {
 	item: MediaAsset;
 	preview: React.ReactNode;
 	variant: "card" | "compact";
 	isRounded?: boolean;
+	/** 多选模式下禁用拖拽与点击插入，点击只做选中切换。 */
+	isDraggable?: boolean;
 }) {
 	const editor = useEditor();
+	const { t } = useLocale();
 
 	const addElementAtTime = ({
 		asset,
@@ -299,6 +467,13 @@ function MediaAssetDraggable({
 			}
 			variant={variant}
 			isRounded={isRounded}
+			isDraggable={isDraggable}
+			// 素材卡的「＋」常显：触屏/内嵌 webview 没有 hover，(hover:hover)
+			// 下的 group-hover 会永远不触发，用户就找不到添加到时间轴的入口。
+			// 常显时放右上角，右下角留给视频时长角标。
+			plusClassName={isDraggable ? "opacity-80 shadow-sm hover:opacity-100" : "hidden"}
+			plusPlacement="top-right"
+			plusTitle={t["common.add_to_timeline"]}
 		/>
 	);
 }
@@ -348,6 +523,7 @@ function MediaItemList({
 	items,
 	mode,
 	onRemove,
+	selectMode = false,
 }: {
 	items: MediaAsset[];
 	mode: MediaViewMode;
@@ -358,8 +534,25 @@ function MediaItemList({
 		event: React.MouseEvent;
 		ids: string[];
 	}) => void;
+	/** 多选模式：点击素材=切换选中（不触发插入时间轴）。 */
+	selectMode?: boolean;
 }) {
 	const isGrid = mode === "grid";
+	const { handleItemClick } = useSelectionContext();
+	const { isSelected } = useSelection();
+
+	/** 多选模式下的点击：capture 阶段拦下，原生「点击=插时间轴」不触发。 */
+	const toggleSelected = (event: React.MouseEvent, id: string) => {
+		event.preventDefault();
+		event.stopPropagation();
+		handleItemClick({
+			event: {
+				ctrlKey: true,
+				shiftKey: false,
+			} as React.MouseEvent<HTMLDivElement>,
+			id,
+		});
+	};
 
 	return (
 		<div
@@ -370,18 +563,39 @@ function MediaItemList({
 		>
 			{items.map((item) => (
 				<MediaItemWithContextMenu item={item} onRemove={onRemove} key={item.id}>
-					<SelectableItem className={cn(!isGrid && "w-full")} id={item.id}>
-						<MediaAssetDraggable
-							item={item}
-							preview={
-								<MediaPreview
-									item={item}
-									variant={isGrid ? "grid" : "compact"}
-								/>
-							}
-							variant={isGrid ? "card" : "compact"}
-							isRounded={isGrid ? false : undefined}
-						/>
+					<SelectableItem
+						className={cn(!isGrid && "w-full")}
+						id={item.id}
+						onClickCapture={
+							selectMode ? (event) => toggleSelected(event, item.id) : undefined
+						}
+					>
+						<div className="relative">
+							<MediaAssetDraggable
+								item={item}
+								preview={
+									<MediaPreview
+										item={item}
+										variant={isGrid ? "grid" : "compact"}
+									/>
+								}
+								variant={isGrid ? "card" : "compact"}
+								isRounded={isGrid ? false : undefined}
+								isDraggable={!selectMode}
+							/>
+							{selectMode && (
+								<span
+									className={cn(
+										"pointer-events-none absolute top-1 right-1 z-10 flex size-4 items-center justify-center rounded-full border text-[9px] text-white",
+										isSelected(item.id)
+											? "border-primary bg-primary"
+											: "border-white/70 bg-black/30",
+									)}
+								>
+									{isSelected(item.id) ? "✓" : ""}
+								</span>
+							)}
+						</div>
 					</SelectableItem>
 				</MediaItemWithContextMenu>
 			))}

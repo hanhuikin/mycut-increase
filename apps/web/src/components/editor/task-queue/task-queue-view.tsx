@@ -5,10 +5,7 @@ import { cn } from "@/utils/ui";
 import { useLocale } from "@/locale/locale-context";
 import { PanelView } from "@/components/editor/panels/assets/views/base-panel";
 import { useBilling } from "@/services/billing/client";
-import {
-	type GenerationTask,
-	useTaskQueue,
-} from "./provider";
+import { type GenerationTask, useTaskQueue } from "./provider";
 
 /**
  * 方案 D：任务作为素材面板的一等公民（独立标签页）。列表 + 详情两段，
@@ -18,9 +15,14 @@ import {
 
 const ACTIVE = new Set(["submitting", "queued", "generating"]);
 
-function formatClock(iso: string): string {
+/** 本地时区的完整时间戳：YYYY-MM-DD HH:mm:ss（任务提交时刻）。 */
+function formatDateTime(iso: string): string {
 	const date = new Date(iso);
-	return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+	const p = (n: number) => String(n).padStart(2, "0");
+	return (
+		`${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ` +
+		`${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+	);
 }
 
 function StatusPill({ task }: { task: GenerationTask }) {
@@ -120,7 +122,12 @@ export function TaskQueueView() {
 	const activeBatchCards = [...batches.entries()]
 		.filter(([, shots]) => shots.some((shot) => ACTIVE.has(shot.status)))
 		.map(([batchId, shots]) => (
-			<BatchCard key={batchId} batchId={batchId} shots={shots} onOpen={setDetailId} />
+			<BatchCard
+				key={batchId}
+				batchId={batchId}
+				shots={shots}
+				onOpen={setDetailId}
+			/>
 		));
 	const finishedSingleCards = singles
 		.filter((task) => !ACTIVE.has(task.status))
@@ -128,7 +135,12 @@ export function TaskQueueView() {
 	const finishedBatchCards = [...batches.entries()]
 		.filter(([, shots]) => !shots.some((shot) => ACTIVE.has(shot.status)))
 		.map(([batchId, shots]) => (
-			<BatchCard key={batchId} batchId={batchId} shots={shots} onOpen={setDetailId} />
+			<BatchCard
+				key={batchId}
+				batchId={batchId}
+				shots={shots}
+				onOpen={setDetailId}
+			/>
 		));
 
 	return (
@@ -172,9 +184,7 @@ export function TaskQueueView() {
 				</>
 			)}
 
-			{detail && (
-				<TaskDetail task={detail} onClose={() => setDetailId(null)} />
-			)}
+			{detail && <TaskDetail task={detail} onClose={() => setDetailId(null)} />}
 		</PanelView>
 	);
 
@@ -196,7 +206,9 @@ export function TaskQueueView() {
 				tabIndex={0}
 			>
 				<div className="flex items-center justify-between gap-2">
-					<span className="truncate text-xs font-semibold">{modelLabel(task.modelId)}</span>
+					<span className="truncate text-xs font-semibold">
+						{modelLabel(task.modelId)}
+					</span>
 					<StatusPill task={task} />
 				</div>
 				{task.prompt && (
@@ -223,6 +235,9 @@ export function TaskQueueView() {
 					{task.status === "succeeded" && importedAssets.has(task.id) && (
 						<span>{t["task_queue.in_library"]}</span>
 					)}
+				</div>
+				<div className="text-muted-foreground mt-1 text-[11px]">
+					{formatDateTime(task.createdAt)}
 				</div>
 			</div>
 		);
@@ -292,6 +307,13 @@ export function TaskQueueView() {
 						</div>
 					))}
 				</div>
+				<div className="text-muted-foreground mt-1 text-[11px]">
+					{formatDateTime(
+						shots
+							.map((shot) => shot.createdAt)
+							.reduce((a, b) => (a < b ? a : b)),
+					)}
+				</div>
 			</div>
 		);
 	}
@@ -358,7 +380,7 @@ export function TaskQueueView() {
 						<span className="text-muted-foreground">
 							{t["task_queue.submitted_at"]}
 						</span>
-						<span>{formatClock(task.createdAt)}</span>
+						<span>{formatDateTime(task.createdAt)}</span>
 						{task.pointsSettled != null && (
 							<>
 								<span className="text-muted-foreground">
@@ -395,7 +417,7 @@ export function TaskQueueView() {
 						<div className="space-y-1.5">
 							<TimelineStep
 								tone="done"
-								label={`${t["task_queue.submitted_at"]} · ${formatClock(task.createdAt)}`}
+								label={`${t["task_queue.submitted_at"]} · ${formatDateTime(task.createdAt)}`}
 							/>
 							{ACTIVE.has(task.status) && (
 								<TimelineStep
@@ -403,9 +425,9 @@ export function TaskQueueView() {
 									label={
 										task.status === "generating"
 											? t["task_queue.status_generating"]
-											: (task.status === "queued"
+											: task.status === "queued"
 												? t["task_queue.status_queued"]
-												: t["task_queue.status_submitting"])
+												: t["task_queue.status_submitting"]
 									}
 								/>
 							)}
@@ -444,8 +466,9 @@ export function TaskQueueView() {
 					)}
 
 					<div className="mt-4 flex flex-wrap gap-2 pb-2">
-						{task.status === "succeeded" && !isBatch && (
-							importedAssets.has(task.id) ? (
+						{task.status === "succeeded" &&
+							!isBatch &&
+							(importedAssets.has(task.id) ? (
 								<span className="text-muted-foreground bg-muted rounded-md px-2 py-1.5 text-[11px]">
 									{t["task_queue.in_library"]}
 								</span>
@@ -456,17 +479,14 @@ export function TaskQueueView() {
 									className="bg-primary text-primary-foreground rounded-md px-2.5 py-1.5 text-[11px] font-medium disabled:opacity-60"
 									onClick={() => {
 										setImportingId(task.id);
-										void importTask(task).finally(() =>
-											setImportingId(null),
-										);
+										void importTask(task).finally(() => setImportingId(null));
 									}}
 								>
 									{importingId === task.id
 										? t["task_queue.importing"]
 										: t["task_queue.import_to_library"]}
 								</button>
-							)
-						)}
+							))}
 						{batchImportable && (
 							<button
 								type="button"

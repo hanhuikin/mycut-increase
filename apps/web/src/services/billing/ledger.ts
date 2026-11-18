@@ -5,7 +5,12 @@ import { creditLedger, redeemCodes as redeemCodesTable } from "@/db/schema";
 export const SIGNUP_BONUS_CREDITS = 500;
 
 export type LedgerKind =
-	"grant" | "redeem" | "freeze" | "settle" | "refund" | "adjust";
+	| "grant"
+	| "redeem"
+	| "freeze"
+	| "settle"
+	| "refund"
+	| "adjust";
 
 /** Sum of all entries — the balance is always replayable from the books. */
 export async function getBalance({
@@ -141,8 +146,32 @@ export async function hasFrozenRef({
 	const rows = await db
 		.select({ id: creditLedger.id })
 		.from(creditLedger)
+		.where(and(eq(creditLedger.kind, "freeze"), eq(creditLedger.refId, refId)))
+		.limit(1);
+	return rows.length > 0;
+}
+
+/**
+ * Whether the caller's own ledger holds a freeze under this refId — the
+ * poll-route guard: a poll handle must at least point at a freeze the caller
+ * paid for (append-only ledger, so the row outlives settle/refund).
+ */
+export async function userOwnsFreezeRef({
+	userId,
+	refId,
+}: {
+	userId: string;
+	refId: string;
+}): Promise<boolean> {
+	const rows = await db
+		.select({ id: creditLedger.id })
+		.from(creditLedger)
 		.where(
-			and(eq(creditLedger.kind, "freeze"), eq(creditLedger.refId, refId)),
+			and(
+				eq(creditLedger.userId, userId),
+				eq(creditLedger.kind, "freeze"),
+				eq(creditLedger.refId, refId),
+			),
 		)
 		.limit(1);
 	return rows.length > 0;

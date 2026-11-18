@@ -138,6 +138,77 @@ export async function inpaintErase(
 	}
 }
 
+// ===== 多图参考生图 =====
+
+export interface MultiImageToImageOptions {
+	/** 压缩后的参考图 dataURL，按序——首位为主参考。 */
+	imageDataUrls: string[];
+	prompt: string;
+	aspectRatio?: "1:1" | "16:9" | "3:4" | "9:16";
+	/** 生图尺寸，"宽x高"（如 "1024x576"），由比例×尺寸档/自定义合成。 */
+	imageSize?: string;
+	onProgress?: (msg: string) => void;
+}
+
+export interface MultiImageToImageResult {
+	success: boolean;
+	file?: File;
+	error?: string;
+}
+
+/**
+ * 多图参考生图：N 张参考图 + 提示词 → 一张新图。
+ *
+ * input 逐字透传上游（fal 系多参考生图端点，具体端点由渠道按 modelId 映射），
+ * 与 removeBackground 同构；每次调用生成一张、冻结一次点数。
+ */
+export async function multiImageToImage(
+	options: MultiImageToImageOptions,
+): Promise<MultiImageToImageResult> {
+	const {
+		imageDataUrls,
+		prompt,
+		aspectRatio = "1:1",
+		imageSize,
+		onProgress,
+	} = options;
+
+	try {
+		const { url } = await runJob({
+			params: {
+				modelId: "ai-tools-img2img-multi",
+				input: {
+					prompt,
+					image_urls: imageDataUrls,
+					aspect_ratio: aspectRatio,
+					...(imageSize ? { image_size: imageSize } : {}),
+				},
+			},
+			onProgress,
+		});
+
+		onProgress?.("下载结果...");
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`下载生成结果失败 (${response.status})`);
+		}
+		const blob = await response.blob();
+		const file = new File(
+			[blob],
+			`多图生图-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "")}.png`,
+			{ type: blob.type || "image/png" },
+		);
+
+		return { success: true, file };
+	} catch (error) {
+		console.error("多图生图失败:", error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "未知错误",
+		};
+	}
+}
+
 // ===== 工具函数 =====
 
 async function fileToDataUrl(file: File): Promise<string> {

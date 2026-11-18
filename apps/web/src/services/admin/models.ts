@@ -166,6 +166,25 @@ const DEFAULT_MODELS: AdminModelConfig[] = [
 		requiresPro: false,
 		sortOrder: 5,
 	},
+	{
+		id: "ai-tools-img2img-multi",
+		label: "多图参考生图",
+		kind: "tool",
+		modes: [],
+		supportsAudio: false,
+		startImagePolicy: "any",
+		maxDuration: 15,
+		pricePerSecond720: null,
+		pricePerSecond1080: null,
+		pricePerCall: 30,
+		// 多图生图：input 逐字透传（prompt + image_urls[]），端点由渠道映射。
+		labelKey: null,
+		descriptionKey: null,
+		dailyLimit: null,
+		enabled: true,
+		requiresPro: false,
+		sortOrder: 6,
+	},
 ];
 
 /**
@@ -212,9 +231,7 @@ function toConfig(row: typeof aiModels.$inferSelect): AdminModelConfig {
 		modes: row.modes,
 		supportsAudio: row.supportsAudio,
 		startImagePolicy:
-			row.startImagePolicy === "public-url-only"
-				? "public-url-only"
-				: "any",
+			row.startImagePolicy === "public-url-only" ? "public-url-only" : "any",
 		maxDuration: row.maxDuration,
 		pricePerSecond720: row.pricePerSecond720,
 		pricePerSecond1080: row.pricePerSecond1080,

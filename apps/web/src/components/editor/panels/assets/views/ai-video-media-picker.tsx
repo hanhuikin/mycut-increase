@@ -14,6 +14,7 @@ import type { LocaleKey } from "@/locale";
 import { useLocale } from "@/locale/locale-context";
 
 type PickerFilter = "all" | "video" | "image";
+type PickerMode = "single" | "multi";
 
 const FILTERS: Array<{ value: PickerFilter; labelKey: LocaleKey }> = [
 	{ value: "all", labelKey: "ai_video.picker_all" },
@@ -29,12 +30,14 @@ const formatDuration = ({ seconds }: { seconds: number }): string => {
 };
 
 /**
- * "Choose from library" dialog for the image-to-video reference frame.
+ * "Choose from library" dialog for AI reference images.
  *
- * Lists the project's media assets (same source and order as the assets
- * panel). Confirming hands the asset back — the parent owns everything after
- * that point (cover frame vs. file validation), because it also knows which
- * target (single reference or one storyboard shot) opened the dialog.
+ * Two modes:
+ * - "single" (default): the image-to-video reference frame — one asset back.
+ * - "multi": the multi-image-to-image slot filler — up to `max` assets back.
+ *
+ * Confirming hands the assets back — the parent owns everything after that
+ * point, because it also knows which target opened the dialog.
  *
  * Filter/selection state lives in the body component, which only mounts while
  * the dialog is open, so every open starts clean.
@@ -43,16 +46,21 @@ export function AiVideoMediaPickerDialog({
 	open,
 	assets,
 	maxImageBytes,
+	mode = "single",
+	max = 1,
 	onClose,
 	onConfirm,
+	onConfirmMulti,
 	onLocalUpload,
 }: {
 	open: boolean;
 	assets: MediaAsset[];
 	maxImageBytes: number;
+	mode?: PickerMode;
+	max?: number;
 	onClose: () => void;
 	onConfirm: (args: { asset: MediaAsset }) => void;
-	/** Empty-library fallback: hands the flow back to the local file input. */
+	onConfirmMulti?: (args: { assets: MediaAsset[] }) => void;
 	onLocalUpload: () => void;
 }) {
 	const { t } = useLocale();
@@ -72,8 +80,11 @@ export function AiVideoMediaPickerDialog({
 					<PickerBody
 						assets={assets}
 						maxImageBytes={maxImageBytes}
+						mode={mode}
+						max={max}
 						onClose={onClose}
 						onConfirm={onConfirm}
+						onConfirmMulti={onConfirmMulti}
 						onLocalUpload={onLocalUpload}
 					/>
 				)}
@@ -85,24 +96,45 @@ export function AiVideoMediaPickerDialog({
 function PickerBody({
 	assets,
 	maxImageBytes,
+	mode,
+	max,
 	onClose,
 	onConfirm,
+	onConfirmMulti,
 	onLocalUpload,
 }: {
 	assets: MediaAsset[];
 	maxImageBytes: number;
+	mode: PickerMode;
+	max: number;
 	onClose: () => void;
 	onConfirm: (args: { asset: MediaAsset }) => void;
+	onConfirmMulti?: (args: { assets: MediaAsset[] }) => void;
 	onLocalUpload: () => void;
 }) {
 	const { t } = useLocale();
 	const [filter, setFilter] = useState<PickerFilter>("all");
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+	const isMulti = mode === "multi";
 	const visible = assets.filter(
 		(asset) => filter === "all" || asset.type === filter,
 	);
 	const selected = assets.find((asset) => asset.id === selectedId) ?? null;
+	const multiSelected = assets.filter((asset) => selectedIds.has(asset.id));
+
+	const toggleMulti = (asset: MediaAsset) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(asset.id)) {
+				next.delete(asset.id);
+			} else if (next.size < max) {
+				next.add(asset.id);
+			}
+			return next;
+		});
+	};
 
 	/** Why this tile cannot be picked, or null when it can. */
 	const blockedReason = (asset: MediaAsset): LocaleKey | null => {
@@ -147,16 +179,25 @@ function PickerBody({
 						const reason = blockedReason(asset);
 						const selectable = reason === null;
 						const thumb = asset.thumbnailUrl ?? asset.url;
+						const isSelected = isMulti
+							? selectedIds.has(asset.id)
+							: selectedId === asset.id;
 						return (
 							<button
 								key={asset.id}
 								type="button"
 								disabled={!selectable}
 								title={reason ? t[reason] : asset.name}
-								aria-pressed={selectedId === asset.id}
-								onClick={() => setSelectedId(asset.id)}
+								aria-pressed={isSelected}
+								onClick={() => {
+									if (isMulti) {
+										toggleMulti(asset);
+									} else {
+										setSelectedId(asset.id);
+									}
+								}}
 								className={`relative overflow-hidden rounded-md border text-left transition-colors ${
-									selectedId === asset.id
+									isSelected
 										? "border-primary ring-primary/50 ring-2"
 										: "border-border hover:border-primary/60"
 								} ${selectable ? "" : "opacity-45"}`}
@@ -179,7 +220,7 @@ function PickerBody({
 											{formatDuration({ seconds: asset.duration })}
 										</span>
 									)}
-									{selectedId === asset.id && (
+									{isSelected && (
 										<span className="bg-primary absolute top-1 right-1 flex size-4 items-center justify-center rounded-full text-[10px] text-white">
 											✓
 										</span>
@@ -196,20 +237,41 @@ function PickerBody({
 
 			<DialogFooter>
 				<span className="text-muted-foreground mr-auto text-[11.5px]">
-					{t["ai_video.picker_cover_hint"]}
+					{isMulti
+						? t["ai_img2img.picker_multi_hint"]
+								.replace("{n}", String(multiSelected.length))
+								.replace("{max}", String(max))
+						: t["ai_video.picker_cover_hint"]}
 				</span>
 				<Button variant="outline" size="sm" onClick={onClose}>
 					{t["common.cancel"]}
 				</Button>
-				<Button
-					size="sm"
-					disabled={!selected}
-					onClick={() => {
-						if (selected) onConfirm({ asset: selected });
-					}}
-				>
-					{t["ai_video.picker_confirm"]}
-				</Button>
+				{isMulti ? (
+					<Button
+						size="sm"
+						disabled={multiSelected.length === 0}
+						onClick={() => {
+							if (multiSelected.length > 0) {
+								onConfirmMulti?.({ assets: multiSelected });
+							}
+						}}
+					>
+						{t["ai_img2img.picker_multi_confirm"].replace(
+							"{n}",
+							String(multiSelected.length),
+						)}
+					</Button>
+				) : (
+					<Button
+						size="sm"
+						disabled={!selected}
+						onClick={() => {
+							if (selected) onConfirm({ asset: selected });
+						}}
+					>
+						{t["ai_video.picker_confirm"]}
+					</Button>
+				)}
 			</DialogFooter>
 		</>
 	);

@@ -29,6 +29,15 @@ export interface DraggableItemProps {
 	isRounded?: boolean;
 	variant?: "card" | "compact";
 	isDraggable?: boolean;
+	/**
+	 * 「＋」显隐样式。默认悬停显示；触屏/内嵌 webview 里 `(hover: hover)`
+	 * 不成立会导致永远看不见，素材卡改为常显。
+	 */
+	plusClassName?: string;
+	/** 「＋」的角标位置。默认右下角；常显时用右上角避开时长角标。 */
+	plusPlacement?: "bottom-right" | "top-right";
+	/** 「＋」的 title 文案（无障碍/提示）。 */
+	plusTitle?: string;
 }
 
 export function DraggableItem({
@@ -45,6 +54,9 @@ export function DraggableItem({
 	isRounded = true,
 	variant = "card",
 	isDraggable = true,
+	plusClassName = "opacity-0 group-hover:opacity-100",
+	plusPlacement = "bottom-right",
+	plusTitle,
 }: DraggableItemProps) {
 	const [isDragging, setIsDragging] = useState(false);
 	const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
@@ -119,7 +131,9 @@ export function DraggableItem({
 							{preview}
 							{!isDragging && (
 								<PlusButton
-									className="opacity-0 group-hover:opacity-100"
+									className={plusClassName}
+									placement={plusPlacement}
+									tooltipText={plusTitle}
 									onClick={handleAddToTimeline}
 								/>
 							)}
@@ -203,16 +217,19 @@ function PlusButton({
 	className,
 	onClick,
 	tooltipText,
+	placement = "bottom-right",
 }: {
 	className?: string;
 	onClick?: () => void;
 	tooltipText?: string;
+	placement?: "bottom-right" | "top-right";
 }) {
 	const button = (
 		<Button
 			size="icon"
 			className={cn(
-				"bg-background hover:bg-background text-foreground absolute right-2 bottom-2 size-5",
+				"bg-background hover:bg-background text-foreground absolute size-5",
+				placement === "top-right" ? "top-1.5 right-1.5" : "right-2 bottom-2",
 				className,
 			)}
 			onClick={(e) => {
@@ -221,6 +238,7 @@ function PlusButton({
 				onClick?.();
 			}}
 			title={tooltipText}
+			aria-label={tooltipText}
 		>
 			<Plus />
 		</Button>

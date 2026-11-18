@@ -8,23 +8,25 @@ import {
 } from "@/services/admin/channels";
 import { getModel } from "@/services/admin/models";
 import { getProtocol } from "@/services/ai/protocols";
-import { refundTask } from "@/services/billing/ledger";
+import { refundTask, userOwnsFreezeRef } from "@/services/billing/ledger";
 
 /**
  * Poll one submitted job (tool/audio only — video tasks are polled server-side
  * via GET /api/ai/tasks).
  *
- * Requires a session. Credits stay one account no matter what: refunds and
- * settles are always scoped to the caller's own ledger rows. A job that ends
- * up failed is refunded here — the amount comes from the frozen row, never
- * from the request.
+ * Requires a session, and the refId must reference a freeze row of the
+ * caller's own ledger — polls ride an attempt the caller actually paid for.
+ * Credits stay one account no matter what: refunds and settles are always
+ * scoped to the caller's own ledger rows. A job that ends up failed is
+ * refunded here — the amount comes from the frozen row, never from the
+ * request.
  *
- * Known gap (accepted for now): the caller sends back the channelId/jobId it
- * was given, and this route does not verify the job belongs to the caller —
- * tool/audio jobs have no generation_tasks row to check against. Anyone who
- * learns another tenant's upstream jobId could poll its state/artifact URL
- * (credits still cannot be moved cross-user). Proper fix: record the
- * jobId→user mapping at submit time and check it here.
+ * Remaining gap (accepted for now): the channelId/jobId pair itself is not
+ * verified to belong to the caller — tool/audio jobs have no generation_tasks
+ * row to check against, so anyone who learns another tenant's upstream jobId
+ * could still poll its state/artifact URL while holding one of their own
+ * freeze refs. Proper fix: record the jobId→user mapping at submit time and
+ * check it here.
  *
  * Everything else (protocol, upstream model name, endpoint, key) is
  * re-resolved here, and the channel is checked to actually serve this model,
@@ -77,6 +79,12 @@ async function postHandler(request: NextRequest) {
 
 	if (!modelId || !channelId || !jobId) {
 		return NextResponse.json({ error: "invalid_handle" }, { status: 400 });
+	}
+	// 归属校验（部分加固）：refId 必须指向调用者自己的冻结行——轻流程的每次
+	// 提交都先冻结，所以合法调用方必然持有；工具/音频任务没有任务行可查，
+	// jobId 与调用者的绑定仍待映射表（见头注释）。
+	if (!refId || !(await userOwnsFreezeRef({ userId: user.id, refId }))) {
+		return NextResponse.json({ error: "unknown_ref" }, { status: 403 });
 	}
 
 	const [model, channel] = await Promise.all([
