@@ -385,6 +385,9 @@ function getLockClient(): ReturnType<typeof postgres> {
 		lockSql = postgres(webEnv.DATABASE_URL, {
 			max: LOCK_POOL_MAX,
 			idle_timeout: 30,
+			// Same fail-fast rationale as the main pool: a dead DB host must
+			// not hold a task sync for ~20s.
+			connect_timeout: 5,
 		});
 	}
 	return lockSql;
