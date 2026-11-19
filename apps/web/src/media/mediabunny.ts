@@ -335,17 +335,29 @@ export const extractTimelineAudio = async ({
 	mediaAssets,
 	totalDuration,
 	onProgress,
+	/**
+	 * Output format. Defaults to the 44.1kHz stereo export format; callers
+	 * that only analyse audio (transcription) pass 16kHz mono to cut peak
+	 * memory ~5.5× on long timelines.
+	 */
+	sampleRate: targetSampleRate = SAMPLE_RATE,
+	channels: targetChannels = NUM_CHANNELS,
 }: {
 	tracks: SceneTracks;
 	mediaAssets: MediaAsset[];
 	totalDuration: number;
 	onProgress?: (progress: number) => void;
+	sampleRate?: number;
+	channels?: number;
 }): Promise<Blob> => {
 	if (totalDuration === 0) {
 		return createWavBlob({
 			samples: new Float32Array(
-				SAMPLE_RATE * EMPTY_TIMELINE_SILENT_DURATION_SECONDS,
+				targetSampleRate * EMPTY_TIMELINE_SILENT_DURATION_SECONDS *
+					targetChannels,
 			),
+			sampleRate: targetSampleRate,
+			channels: targetChannels,
 		});
 	}
 
@@ -355,7 +367,7 @@ export const extractTimelineAudio = async ({
 		tracks,
 		mediaAssets,
 		duration: totalDuration,
-		sampleRate: SAMPLE_RATE,
+		sampleRate: targetSampleRate,
 	});
 
 	if (!audioBuffer) {
@@ -364,33 +376,46 @@ export const extractTimelineAudio = async ({
 			totalDuration / TICKS_PER_SECOND,
 		);
 		const silentSamples = new Float32Array(
-			Math.ceil(silentDurationSeconds * SAMPLE_RATE) * NUM_CHANNELS,
+			Math.ceil(silentDurationSeconds * targetSampleRate) * targetChannels,
 		);
-		return createWavBlob({ samples: silentSamples });
+		return createWavBlob({
+			samples: silentSamples,
+			sampleRate: targetSampleRate,
+			channels: targetChannels,
+		});
 	}
 
 	onProgress?.(90);
 
-	const interleavedSamples = interleaveAudioBuffer({ audioBuffer });
+	const interleavedSamples = interleaveAudioBuffer({
+		audioBuffer,
+		channels: targetChannels,
+	});
 	onProgress?.(100);
 
-	return createWavBlob({ samples: interleavedSamples });
+	return createWavBlob({
+		samples: interleavedSamples,
+		sampleRate: targetSampleRate,
+		channels: targetChannels,
+	});
 };
 
 function interleaveAudioBuffer({
 	audioBuffer,
+	channels,
 }: {
 	audioBuffer: AudioBuffer;
+	channels: number;
 }): Float32Array {
-	const numChannels = Math.min(NUM_CHANNELS, audioBuffer.numberOfChannels);
+	const numChannels = Math.min(channels, audioBuffer.numberOfChannels);
 	const interleavedSamples = new Float32Array(
-		audioBuffer.length * NUM_CHANNELS,
+		audioBuffer.length * channels,
 	);
 
 	for (let sampleIndex = 0; sampleIndex < audioBuffer.length; sampleIndex++) {
-		for (let channel = 0; channel < NUM_CHANNELS; channel++) {
+		for (let channel = 0; channel < channels; channel++) {
 			const sourceChannel = Math.min(channel, Math.max(0, numChannels - 1));
-			interleavedSamples[sampleIndex * NUM_CHANNELS + channel] =
+			interleavedSamples[sampleIndex * channels + channel] =
 				audioBuffer.getChannelData(sourceChannel)[sampleIndex] ?? 0;
 		}
 	}
@@ -398,8 +423,16 @@ function interleaveAudioBuffer({
 	return interleavedSamples;
 }
 
-function createWavBlob({ samples }: { samples: Float32Array }): Blob {
-	const numChannels = NUM_CHANNELS;
+function createWavBlob({
+	samples,
+	sampleRate,
+	channels,
+}: {
+	samples: Float32Array;
+	sampleRate: number;
+	channels: number;
+}): Blob {
+	const numChannels = channels;
 	const bitsPerSample = 16;
 	const bytesPerSample = bitsPerSample / 8;
 	const numSamples = samples.length / numChannels;
@@ -417,8 +450,8 @@ function createWavBlob({ samples }: { samples: Float32Array }): Blob {
 	view.setUint32(16, 16, true);
 	view.setUint16(20, 1, true);
 	view.setUint16(22, numChannels, true);
-	view.setUint32(24, SAMPLE_RATE, true);
-	view.setUint32(28, SAMPLE_RATE * numChannels * bytesPerSample, true);
+	view.setUint32(24, sampleRate, true);
+	view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
 	view.setUint16(32, numChannels * bytesPerSample, true);
 	view.setUint16(34, bitsPerSample, true);
 

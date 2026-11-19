@@ -19,7 +19,12 @@ env.allowLocalModels = false;
 
 export type WorkerMessage =
 	| { type: "init"; modelId: string }
-	| { type: "transcribe"; audio: Float32Array; language: string }
+	| {
+			type: "transcribe";
+			audio: Float32Array;
+			language: string;
+			sampleRate: number;
+	  }
 	| { type: "cancel" };
 
 export type WorkerResponse =
@@ -41,24 +46,38 @@ let cancelled = false;
 let lastReportedProgress = -1;
 const fileBytes = new Map<string, { loaded: number; total: number }>();
 
-self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
-	const message = event.data;
+	self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
+		const message = event.data;
 
-	switch (message.type) {
-		case "init":
-			await handleInit({ modelId: message.modelId });
-			break;
-		case "transcribe":
-			await handleTranscribe({
-				audio: message.audio,
-				language: message.language,
-			});
-			break;
-		case "cancel":
-			cancelled = true;
-			self.postMessage({ type: "cancelled" } satisfies WorkerResponse);
-			break;
-	}
+		switch (message.type) {
+			case "init":
+				await handleInit({ modelId: message.modelId });
+				break;
+			case "transcribe":
+				await handleTranscribe({
+					audio: message.audio,
+					language: message.language,
+					sampleRate: message.sampleRate,
+				});
+				break;
+			case "cancel":
+				cancelled = true;
+				self.postMessage({ type: "cancelled" } satisfies WorkerResponse);
+				break;
+		}
+	};
+
+// 线程级兜底：未捕获异常（含部分 OOM 场景）走这里，保证主线程的 Promise
+// 能收到失败而不是永远 pending。
+self.onerror = (event) => {
+	const detail =
+		typeof event === "string"
+			? event
+			: ((event as ErrorEvent).message ?? "Transcription worker crashed");
+	self.postMessage({
+		type: "transcribe-error",
+		error: detail || "Transcription worker crashed",
+	} satisfies WorkerResponse);
 };
 
 async function handleInit({ modelId }: { modelId: string }) {
@@ -125,12 +144,23 @@ async function handleInit({ modelId }: { modelId: string }) {
 	}
 }
 
+// 分段转写参数。transformers.js 的 _call_whisper 会把所有 30s 窗口的特征
+// 张量一次性建好再逐个生成——长音频一次喂入是 GB 级内存，WASM 堆直接 OOM，
+// worker 崩掉后 UI 永远停在"转写中"。按 90s 切片逐段调用：每段内部只有
+// ~4 个窗口张量，峰值内存 MB 级；段间上报真实进度；单段失败可重试。
+const SLICE_SECONDS = 90;
+// 相邻切片的重叠秒数：避免在词中间硬切。重叠区两侧都会识别出边界词，
+// 合并时按「中点属于哪个切片」去重（见 handleTranscribe）。
+const OVERLAP_SECONDS = 2;
+
 async function handleTranscribe({
 	audio,
 	language,
+	sampleRate,
 }: {
 	audio: Float32Array;
 	language: string;
+	sampleRate: number;
 }) {
 	if (!transcriber) {
 		self.postMessage({
@@ -142,39 +172,106 @@ async function handleTranscribe({
 
 	cancelled = false;
 
+	const totalSamples = audio.length;
+	const sliceSamples = Math.max(
+		1,
+		Math.floor(SLICE_SECONDS * sampleRate),
+	);
+	const overlapSamples = Math.min(
+		sliceSamples - 1,
+		Math.floor(OVERLAP_SECONDS * sampleRate),
+	);
+
+	/** 全部时间戳已换算为相对整段音频的绝对秒。 */
+	const segments: TranscriptionSegment[] = [];
+
 	try {
-		const rawResult = await transcriber(audio, {
-			chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
-			stride_length_s: DEFAULT_STRIDE_SECONDS,
-			language: language === "auto" ? undefined : language,
-			return_timestamps: true,
-		});
+		let sliceStart = 0;
+		while (sliceStart < totalSamples) {
+			if (cancelled) return;
 
-		if (cancelled) return;
+			const isLastSlice = sliceStart + sliceSamples >= totalSamples;
+			// 非末段多喂 overlap 秒，边界词由两侧切片各识别一次
+			const sliceEnd = Math.min(
+				totalSamples,
+				sliceStart + sliceSamples + (isLastSlice ? 0 : overlapSamples),
+			);
+			const nextSliceStart = Math.min(
+				totalSamples,
+				sliceStart + sliceSamples - overlapSamples,
+			);
+			const offsetSeconds = sliceStart / sampleRate;
+			const boundarySeconds = nextSliceStart / sampleRate;
+			// subarray 是视图，零拷贝
+			const slice = audio.subarray(sliceStart, sliceEnd);
 
-		const result: AutomaticSpeechRecognitionOutput = Array.isArray(rawResult)
-			? rawResult[0]
-			: rawResult;
+			let rawResult:
+				| AutomaticSpeechRecognitionOutput
+				| AutomaticSpeechRecognitionOutput[];
+			try {
+				rawResult = await transcriber(slice, {
+					chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
+					stride_length_s: DEFAULT_STRIDE_SECONDS,
+					language: language === "auto" ? undefined : language,
+					return_timestamps: true,
+				});
+			} catch (error) {
+				if (cancelled) return;
+				// 单段重试一次：内存紧张/瞬时解码错误多见于段边界
+				rawResult = await transcriber(slice, {
+					chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
+					stride_length_s: DEFAULT_STRIDE_SECONDS,
+					language: language === "auto" ? undefined : language,
+					return_timestamps: true,
+				});
+			}
 
-		const segments: TranscriptionSegment[] = [];
+			if (cancelled) return;
 
-		if (result.chunks) {
-			for (const chunk of result.chunks) {
-				if (chunk.timestamp && chunk.timestamp.length >= 2) {
-					segments.push({
-						text: chunk.text,
-						start: chunk.timestamp[0] ?? 0,
-						end: chunk.timestamp[1] ?? chunk.timestamp[0] ?? 0,
-					});
+			const result: AutomaticSpeechRecognitionOutput = Array.isArray(rawResult)
+				? rawResult[0]
+				: rawResult;
+
+			// 重叠区去重：上一段遗留的「中点越过当前切片起点」的段落移除，
+			// 当前切片只保留中点落在自己区间内的段落（首段全保留）。
+			if (sliceStart > 0) {
+				for (let i = segments.length - 1; i >= 0; i--) {
+					const previous = segments[i];
+					if ((previous.start + previous.end) / 2 >= boundarySeconds) {
+						segments.splice(i, 1);
+					}
 				}
 			}
+
+			if (result.chunks) {
+				for (const chunk of result.chunks) {
+					if (!chunk.timestamp || chunk.timestamp.length < 2) continue;
+					const start = offsetSeconds + (chunk.timestamp[0] ?? 0);
+					const end = offsetSeconds + (chunk.timestamp[1] ?? chunk.timestamp[0] ?? 0);
+					if (sliceStart > 0 && (start + end) / 2 < boundarySeconds) {
+						// 属于上一切片的辖区
+						continue;
+					}
+					segments.push({ text: chunk.text, start, end });
+				}
+			}
+
+			const processedSamples = Math.min(
+				totalSamples,
+				sliceStart + sliceSamples,
+			);
+			self.postMessage({
+				type: "transcribe-progress",
+				progress: Math.min(100, (processedSamples / totalSamples) * 100),
+			} satisfies WorkerResponse);
+
+			sliceStart = nextSliceStart;
 		}
 
 		self.postMessage({
 			type: "transcribe-complete",
-			text: result.text,
+			text: segments.map((segment) => segment.text).join(" ").trim(),
 			segments,
-			language: ((result as Record<string, unknown>).language as string) || "",
 		} satisfies WorkerResponse);
 	} catch (error) {
 		if (cancelled) return;
