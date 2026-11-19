@@ -90,9 +90,55 @@ export interface GenerateImageResult {
 	dataUrls: string[];
 }
 
+/** Upstream-reported consumption for one finished job, when the vendor gives it. */
+export interface UsageStats {
+	promptTokens?: number;
+	completionTokens?: number;
+	totalTokens?: number;
+}
+
+/**
+ * Normalise a vendor `usage` object (snake_case or camelCase, partial) into
+ * UsageStats; null when the payload carries nothing usable.
+ */
+export function parseUsage(source: unknown): UsageStats | null {
+	if (!source || typeof source !== "object") return null;
+	const record = source as Record<string, unknown>;
+	const num = (value: unknown): number | undefined => {
+		const parsed = typeof value === "string" ? Number(value) : value;
+		return typeof parsed === "number" && Number.isFinite(parsed) && parsed >= 0
+			? Math.round(parsed)
+			: undefined;
+	};
+	const usage: UsageStats = {
+		promptTokens:
+			num(record.prompt_tokens) ?? num(record.promptTokens) ?? num(record.input_tokens),
+		completionTokens:
+			num(record.completion_tokens) ??
+			num(record.completionTokens) ??
+			num(record.output_tokens),
+		totalTokens: num(record.total_tokens) ?? num(record.totalTokens),
+	};
+	if (
+		usage.totalTokens === undefined &&
+		usage.promptTokens !== undefined &&
+		usage.completionTokens !== undefined
+	) {
+		usage.totalTokens = usage.promptTokens + usage.completionTokens;
+	}
+	if (
+		usage.promptTokens === undefined &&
+		usage.completionTokens === undefined &&
+		usage.totalTokens === undefined
+	) {
+		return null;
+	}
+	return usage;
+}
+
 export type JobState =
 	| { state: "pending" }
-	| { state: "done"; url: string }
+	| { state: "done"; url: string; usage?: UsageStats | null }
 	| { state: "failed"; error: string };
 
 export interface Protocol {

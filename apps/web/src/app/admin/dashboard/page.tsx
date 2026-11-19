@@ -40,6 +40,7 @@ interface StatsResponse {
 	totals: {
 		calls: number;
 		consumed: number;
+		tokens: number | null;
 		failed: number;
 		successRate: number | null;
 		seconds: number;
@@ -254,6 +255,15 @@ export default function AdminDashboardPage() {
 			caption: rangeLabel,
 		},
 		{
+			key: "tokens",
+			label: t["admin.dashboard.tokens"],
+			value: totals ? (totals.tokens === null ? "—" : fmtInt(totals.tokens)) : null,
+			caption:
+				totals?.tokens === null && (totals?.calls ?? 0) > 0
+					? t["admin.dashboard.tokens_none"]
+				: rangeLabel,
+		},
+		{
 			key: "rpm",
 			label: t["admin.dashboard.rpm"],
 			value: totals ? fmtDecimals(totals.averageRpm) : null,
@@ -300,7 +310,7 @@ export default function AdminDashboardPage() {
 				)}
 			</div>
 
-			<div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+			<div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
 				{cards.map((card) => (
 					<div
 						key={card.key}
@@ -347,7 +357,10 @@ export default function AdminDashboardPage() {
 
 			<Card title={t["admin.dashboard.by_model"]} hint={t["admin.dashboard.legend_hint"]}>
 				{!hasData ? (
-					<EmptyNote label={t["admin.dashboard.no_data"]} />
+					<EmptyNote
+							label={t["admin.dashboard.no_data"]}
+							caption={t["admin.dashboard.no_data_hint"]}
+						/>
 				) : (
 					<>
 						<div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -457,7 +470,10 @@ export default function AdminDashboardPage() {
 
 			<Card title={t["admin.dashboard.trend"]} hint={t["admin.dashboard.trend_hint"]}>
 				{!hasData ? (
-					<EmptyNote label={t["admin.dashboard.no_data"]} />
+					<EmptyNote
+							label={t["admin.dashboard.no_data"]}
+							caption={t["admin.dashboard.no_data_hint"]}
+						/>
 				) : (
 					<div className="h-[220px] w-full">
 						<ResponsiveContainer width="100%" height="100%">
@@ -542,10 +558,17 @@ function Card({
 	);
 }
 
-function EmptyNote({ label }: { label: string }) {
+function EmptyNote({
+	label,
+	caption,
+}: {
+	label: string;
+	caption?: string;
+}) {
 	return (
-		<div className="text-muted-foreground border-border flex h-[200px] items-center justify-center rounded-lg border border-dashed text-[13.5px]">
+		<div className="text-muted-foreground border-border flex h-[200px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed text-[13.5px]">
 			{label}
+			{caption && <div className="text-[12px] opacity-70">{caption}</div>}
 		</div>
 	);
 }

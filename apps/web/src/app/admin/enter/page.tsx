@@ -52,6 +52,8 @@ export default function AdminEnterPage() {
 			setError(
 				body.error === "bad_credentials"
 					? t["auth.error.bad_credentials"]
+					: body.error === "rate_limited"
+						? t["admin.enter.rate_limited"]
 					: body.error === "totp_required" || body.error === "totp_invalid"
 						? t["admin.gate.totp_hint"]
 						: body.error === "forbidden"

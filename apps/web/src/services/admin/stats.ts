@@ -19,6 +19,8 @@ const TOPUP_KINDS = sql`('grant', 'redeem', 'adjust')`;
 export interface StatsTotals {
 	calls: number;
 	consumed: number;
+	/** Upstream-reported token usage; null when no vendor reported any. */
+	tokens: number | null;
 	failed: number;
 	/** null when nothing ran in the window — not "0%" which would read as broken. */
 	successRate: number | null;
@@ -124,6 +126,7 @@ export async function getStats({
 				calls: sql<number>`count(*) filter (where ${creditLedger.kind} = 'freeze')`,
 				net: sql<number>`coalesce(sum(${creditLedger.amount}) filter (where ${creditLedger.kind} in ${CONSUMPTION_KINDS}), 0)`,
 				seconds: sql<number>`coalesce(sum(${creditLedger.seconds}) filter (where ${creditLedger.kind} = 'freeze'), 0)`,
+				tokens: sql<number>`coalesce(sum(${creditLedger.tokens}) filter (where ${creditLedger.kind} = 'freeze'), 0)`,
 			})
 			.from(creditLedger)
 			.where(gte(creditLedger.createdAt, since))
@@ -181,6 +184,12 @@ export async function getStats({
 		}))
 		.sort((a, b) => b.consumed - a.consumed || b.calls - a.calls);
 
+	// null when no vendor reported tokens — "0" would read as measured-zero.
+	const totalTokens = modelRows.reduce(
+		(sum, row) => sum + toNumber(row.tokens),
+		0,
+	);
+
 	const summary = summaryRows[0];
 	const calls = byModel.reduce((sum, entry) => sum + entry.calls, 0);
 	const failed = toNumber(summary?.failed);
@@ -233,6 +242,7 @@ export async function getStats({
 		totals: {
 			calls,
 			consumed: byModel.reduce((sum, entry) => sum + entry.consumed, 0),
+			tokens: totalTokens > 0 ? totalTokens : null,
 			failed,
 			successRate: calls > 0 ? Math.max(0, 1 - failed / calls) : null,
 			seconds: byModel.reduce((sum, entry) => sum + entry.seconds, 0),

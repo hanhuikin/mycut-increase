@@ -56,8 +56,11 @@ async function postHandler(request: NextRequest) {
 		return NextResponse.json({ error: "list_unsupported" }, { status: 409 });
 	}
 
-	const baseUrl = typeof body.baseUrl === "string" ? body.baseUrl : "";
-	if (!baseUrl || !isValidBaseUrl(baseUrl)) {
+	const rawBaseUrl = typeof body.baseUrl === "string" ? body.baseUrl.trim() : "";
+	// Blank means "use the protocol's default host" — the same semantics the
+	// channel router applies (and every protocol's listModels already honours).
+	// Rejecting blank here made probing impossible for default-host channels.
+	if (rawBaseUrl && !isValidBaseUrl(rawBaseUrl)) {
 		return NextResponse.json({ error: "invalid_base_url" }, { status: 400 });
 	}
 
@@ -67,7 +70,13 @@ async function postHandler(request: NextRequest) {
 	const channelId = typeof body.channelId === "string" ? body.channelId : "";
 	let apiKey = typedKey;
 	if (!apiKey && channelId) {
-		apiKey = (await getChannelCredential(channelId)) ?? "";
+		// Decryption throws when the credential secret is missing/rotated —
+		// surface that as key_required instead of an unhandled 500.
+		try {
+			apiKey = (await getChannelCredential(channelId)) ?? "";
+		} catch {
+			return NextResponse.json({ error: "key_required" }, { status: 400 });
+		}
 	}
 	if (!apiKey) {
 		return NextResponse.json({ error: "key_required" }, { status: 400 });
@@ -78,7 +87,7 @@ async function postHandler(request: NextRequest) {
 		const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 		let models: string[];
 		try {
-			models = await protocol.listModels({ apiKey, baseUrl });
+			models = await protocol.listModels({ apiKey, baseUrl: rawBaseUrl });
 		} finally {
 			clearTimeout(timer);
 		}
@@ -87,7 +96,7 @@ async function postHandler(request: NextRequest) {
 			actorId: gate.user.id,
 			actorEmail: gate.user.email,
 			action: "channel_probe",
-			target: channelId || `${protocol.label} ${baseUrl}`,
+			target: channelId || `${protocol.label} ${rawBaseUrl || "(default host)"}`,
 			detail: JSON.stringify({ protocol: protocolId, models: models.length }),
 			ip: clientIp({ request }),
 		});

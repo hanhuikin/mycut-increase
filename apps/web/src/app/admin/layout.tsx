@@ -29,6 +29,8 @@ function readGateUntil(): number | null {
 export default function AdminLayout({ children }: { children: ReactNode }) {
 	const { t } = useLocale();
 	const { data: session, isPending } = authClient.useSession();
+	const pathname = usePathname();
+	const [gateActive, setGateActive] = useState(false);
 
 	useEffect(() => {
 		// Lift the panel's type scale one step. Applied to <body> rather than this
@@ -36,6 +38,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 		// globals.css.
 		document.body.classList.add("admin-surface");
 		return () => document.body.classList.remove("admin-surface");
+	}, []);
+
+	useEffect(() => {
+		// Track the sessionStorage countdown the enter route writes; a tick per
+		// second is enough to flip the guide in and out at the 30-minute edge.
+		const check = () => setGateActive((readGateUntil() ?? 0) > Date.now());
+		check();
+		const timer = setInterval(check, 1000);
+		return () => clearInterval(timer);
 	}, []);
 
 	const isAdmin =
@@ -60,13 +71,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 			</div>
 			<div className="flex flex-1 flex-col md:grid md:grid-cols-[196px_1fr]">
 				<AdminNav />
-				<main className="min-w-0 flex-1 p-5 md:p-7">
-					{!isPending && !isAdmin ? (
-						<ForbiddenNotice />
-					) : (
-						children
-					)}
-				</main>
+			<main className="min-w-0 flex-1 p-5 md:p-7">
+				{!isPending && !isAdmin ? (
+					<ForbiddenNotice />
+				) : pathname !== "/admin/enter" && !gateActive ? (
+					// Every admin API 428s without the step-up gate; rendering the
+					// section anyway made each page die into its own error view.
+					// Guide straight to the verify page instead.
+					<GateGuide />
+				) : (
+					children
+				)}
+			</main>
 			</div>
 		</div>
 	);
@@ -197,5 +213,26 @@ function AdminNav() {
 				);
 			})}
 		</nav>
+	);
+}
+
+/** Shown in place of a section when the step-up gate is not active. */
+function GateGuide() {
+	const { t } = useLocale();
+	const pathname = usePathname();
+	const next = pathname === "/admin/enter" ? "/admin/users" : pathname;
+	return (
+		<div className="flex flex-col items-center gap-3 pt-20 text-center">
+			<p className="text-[15px] font-semibold">{t["admin.gate.guide_title"]}</p>
+			<p className="text-muted-foreground max-w-md text-[14px]">
+				{t["admin.gate.guide_body"]}
+			</p>
+			<Link
+				href={`/admin/enter?next=${encodeURIComponent(next)}`}
+				className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-lg px-4 py-2 text-[14px] font-medium"
+			>
+				{t["admin.gate.guide_action"]}
+			</Link>
+		</div>
 	);
 }

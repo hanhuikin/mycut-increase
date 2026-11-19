@@ -270,7 +270,7 @@ export default function AdminModelsPage() {
 								>
 									{onlyIssues
 										? t["admin.models.filter_all"]
-										: t["admin.models.loading"]}
+										: t["admin.models.empty"]}
 								</TableCell>
 							</TableRow>
 						) : (

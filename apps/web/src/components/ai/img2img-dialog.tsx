@@ -494,6 +494,15 @@ export function MultiImg2ImgDialog({
 										"{points}",
 										String(billing.balance ?? "—"),
 									)}
+									{billing.frozen != null && billing.frozen > 0 && (
+										<span className="opacity-70">
+											{" ｜ "}
+											{t["billing.frozen_note"].replace(
+												"{count}",
+												String(billing.frozen),
+											)}
+										</span>
+									)}
 									{insufficient && (
 										<span className="text-red-500">
 											{" "}

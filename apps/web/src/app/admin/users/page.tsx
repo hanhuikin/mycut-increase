@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -23,6 +23,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { authClient } from "@/auth/client";
 import type { LocaleKey } from "@/locale";
 import { useLocale } from "@/locale/locale-context";
 import {
@@ -41,6 +42,12 @@ interface AdminUserRow {
 	banned: boolean;
 	twoFactorEnabled: boolean;
 	createdAt: string;
+	/** Consumption aggregates from the credit ledger (30d window where noted). */
+	balance: number;
+	consumed30d: number;
+	calls30d: number;
+	tokens30d: number;
+	lastActiveAt: string | null;
 }
 
 type ActionKind = "ban" | "unban" | "set_role" | "set_plan";
@@ -48,19 +55,33 @@ type ActionKind = "ban" | "unban" | "set_role" | "set_plan";
 /** Actions that change what a user can do, and so ask first. */
 type Pending = { kind: ActionKind; row: AdminUserRow } | null;
 
+const COL_SPAN = 8;
+
+function formatTokens(value: number): string {
+	if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+	if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+	return String(value);
+}
+
 export default function AdminUsersPage() {
 	const { t } = useLocale();
+	const { data: session } = authClient.useSession();
 	const [rows, setRows] = useState<AdminUserRow[] | null>(null);
 	const [gateError, setGateError] = useState<GateStatus | null>(null);
 	const [loadFailure, setLoadFailure] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
 	const [pending, setPending] = useState<Pending>(null);
 	const [banReason, setBanReason] = useState("");
+	// Guards the search-as-you-type race: a slow response for an earlier
+	// keystroke must never overwrite the results of a newer one.
+	const loadSequence = useRef(0);
 
 	const load = useCallback(async (query: string) => {
+		const sequence = ++loadSequence.current;
 		const res = await fetch(
 			`/api/admin/users${query ? `?q=${encodeURIComponent(query)}` : ""}`,
 		);
+		if (sequence !== loadSequence.current) return; // stale response
 		if (!res.ok) {
 			if (isGateStatus(res.status)) {
 				setGateError(res.status);
@@ -71,7 +92,13 @@ export default function AdminUsersPage() {
 		}
 		setLoadFailure(null);
 		setGateError(null);
-		const body = (await res.json()) as { users: AdminUserRow[] };
+		const body = (await res
+			.json()
+			.catch(() => null)) as { users: AdminUserRow[] } | null;
+		if (!body) {
+			setLoadFailure("invalid_response");
+			return;
+		}
 		setRows(body.users);
 	}, []);
 
@@ -90,10 +117,12 @@ export default function AdminUsersPage() {
 			body: JSON.stringify({ userId: row.id, action, ...extra }),
 		});
 		if (!res.ok) {
-			const body = (await res.json()) as { error?: string };
+			const body = (await res.json().catch(() => null)) as {
+				error?: string;
+			} | null;
 			const selfBlocked: LocaleKey = "admin.users.cannot_modify_self";
 			toast.error(
-				body.error === "cannot modify your own account this way"
+				body?.error === "cannot modify your own account this way"
 					? t[selfBlocked]
 					: t["auth.error.generic"],
 			);
@@ -160,6 +189,10 @@ export default function AdminUsersPage() {
 		return <LoadErrorView status={loadFailure} onRetry={() => load(search)} />;
 	}
 
+	// The API refuses self-mutation — hide the destructive controls instead of
+	// offering buttons that can only fail.
+	const selfId = session?.user?.id;
+
 	return (
 		<div className="flex flex-col gap-4">
 			<Input
@@ -182,6 +215,9 @@ export default function AdminUsersPage() {
 								t["admin.users.col_created"],
 								t["admin.users.col_role"],
 								t["admin.users.col_status"],
+								t["admin.users.col_consumed"],
+								t["admin.users.col_tokens"],
+								t["admin.users.col_balance"],
 								t["admin.users.col_actions"],
 							].map((header) => (
 								<TableHead
@@ -197,7 +233,7 @@ export default function AdminUsersPage() {
 						{rows === null ? (
 							Array.from({ length: 5 }, (_, index) => (
 								<TableRow key={index}>
-									<TableCell colSpan={5}>
+									<TableCell colSpan={COL_SPAN}>
 										<Skeleton className="h-5 w-full" />
 									</TableCell>
 								</TableRow>
@@ -205,7 +241,7 @@ export default function AdminUsersPage() {
 						) : rows.length === 0 ? (
 							<TableRow>
 								<TableCell
-									colSpan={5}
+									colSpan={COL_SPAN}
 									className="text-muted-foreground py-8 text-center"
 								>
 									{t["admin.users.empty"]}
@@ -254,41 +290,69 @@ export default function AdminUsersPage() {
 											</span>
 										)}
 									</TableCell>
-									<TableCell>
-										<div className="flex flex-wrap items-center gap-3">
-											<Button
-												variant="link"
-												size="sm"
-												className={`h-auto p-0 text-[13.5px] ${row.banned ? "" : "text-destructive"}`}
-												onClick={() =>
-													request(row, row.banned ? "unban" : "ban")
-												}
-											>
-												{row.banned
-													? t["admin.users.action_unban"]
-													: t["admin.users.action_ban"]}
-											</Button>
-											<Button
-												variant="link"
-												size="sm"
-												className="h-auto p-0 text-[13.5px]"
-												onClick={() => request(row, "set_role")}
-											>
-												{row.role === "admin"
-													? t["admin.users.action_set_role_user"]
-													: t["admin.users.action_set_role_admin"]}
-											</Button>
-											<Button
-												variant="link"
-												size="sm"
-												className="h-auto p-0 text-[13.5px]"
-												onClick={() => request(row, "set_plan")}
-											>
-												{row.plan === "pro"
-													? t["admin.users.action_set_plan_free"]
-													: t["admin.users.action_set_plan_pro"]}
-											</Button>
+									<TableCell className="font-mono tabular-nums">
+										<div>{row.consumed30d.toLocaleString()}</div>
+										<div className="text-muted-foreground text-[12px]">
+											{row.calls30d} {t["admin.users.col_calls"]}
 										</div>
+									</TableCell>
+									<TableCell className="font-mono tabular-nums">
+										{row.tokens30d > 0
+											? formatTokens(row.tokens30d)
+											: "—"}
+									</TableCell>
+									<TableCell className="font-mono tabular-nums">
+										<div>{row.balance.toLocaleString()}</div>
+										{row.lastActiveAt && (
+											<div className="text-muted-foreground text-[12px]">
+												{t["admin.users.last_active"].replace(
+													"{date}",
+													row.lastActiveAt.slice(0, 10),
+												)}
+											</div>
+										)}
+									</TableCell>
+									<TableCell>
+										{row.id === selfId ? (
+											<span className="text-muted-foreground text-[12.5px]">
+												{t["admin.users.self_row"]}
+											</span>
+										) : (
+											<div className="flex flex-wrap items-center gap-3">
+												<Button
+													variant="link"
+													size="sm"
+													className={`h-auto p-0 text-[13.5px] ${row.banned ? "" : "text-destructive"}`}
+													onClick={() =>
+														request(row, row.banned ? "unban" : "ban")
+													}
+												>
+													{row.banned
+														? t["admin.users.action_unban"]
+														: t["admin.users.action_ban"]}
+												</Button>
+												<Button
+													variant="link"
+													size="sm"
+													className="h-auto p-0 text-[13.5px]"
+													onClick={() => request(row, "set_role")}
+												>
+													{row.role === "admin"
+														? t["admin.users.action_set_role_user"]
+														: t["admin.users.action_set_role_admin"]}
+												</Button>
+												<Button
+													variant="link"
+													size="sm"
+													className="h-auto p-0 text-[13.5px]"
+													onClick={() => request(row, "set_plan")}
+												>
+													{row.plan === "pro"
+														? t["admin.users.action_set_plan_free"]
+														: t["admin.users.action_set_plan_pro"]}
+												</Button>
+											</div>
+										)}
 									</TableCell>
 								</TableRow>
 							))

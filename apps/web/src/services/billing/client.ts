@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { authClient } from "@/auth/client";
+import type { UsageStats } from "@/services/ai/protocols/types";
 
 export interface BillingModel {
 	id: string;
@@ -29,6 +30,8 @@ export interface BillingModel {
 export interface BillingState {
 	models: Map<string, BillingModel>;
 	balance: number | null;
+	/** Freeze total inside balance — points reserved by running jobs. */
+	frozen: number | null;
 	plan: "free" | "pro" | null;
 	granted: string[];
 	signedIn: boolean;
@@ -40,6 +43,7 @@ export interface BillingState {
 export function useBilling(): BillingState {
 	const [models, setModels] = useState<Map<string, BillingModel>>(new Map());
 	const [balance, setBalance] = useState<number | null>(null);
+	const [frozen, setFrozen] = useState<number | null>(null);
 	const [plan, setPlan] = useState<"free" | "pro" | null>(null);
 	const [granted, setGranted] = useState<string[]>([]);
 	const [signedIn, setSignedIn] = useState(false);
@@ -50,8 +54,13 @@ export function useBilling(): BillingState {
 		if (!session?.user) return;
 		const res = await fetch("/api/billing/me");
 		if (!res.ok) return;
-		const body = (await res.json()) as { balance: number; plan: string };
+		const body = (await res.json()) as {
+			balance: number;
+			frozen?: number;
+			plan: string;
+		};
 		setBalance(body.balance);
+		setFrozen(body.frozen ?? null);
 		setPlan(body.plan === "pro" ? "pro" : "free");
 	}, [session?.user]);
 
@@ -86,6 +95,7 @@ export function useBilling(): BillingState {
 	return {
 		models,
 		balance,
+		frozen,
 		plan,
 		granted,
 		signedIn,
@@ -147,18 +157,20 @@ export async function settleCredits({
 	modelId,
 	resolution,
 	actualSeconds,
+	usage,
 	failed = false,
 }: {
 	refId: string;
 	modelId: string;
 	resolution: "480p" | "720p" | "1080p";
 	actualSeconds?: number;
+	usage?: UsageStats;
 	failed?: boolean;
 }): Promise<void> {
 	await fetch("/api/billing/settle", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ refId, modelId, resolution, actualSeconds, failed }),
+		body: JSON.stringify({ refId, modelId, resolution, actualSeconds, usage, failed }),
 	});
 }
 

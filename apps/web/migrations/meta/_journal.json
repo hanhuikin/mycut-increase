@@ -78,6 +78,13 @@
       "when": 1793702064294,
       "tag": "0010_cloudy_richard_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795103521696,
+      "tag": "0011_talented_hobgoblin",
+      "breakpoints": true
     }
   ]
 }

@@ -50,6 +50,7 @@ const ACTION_LABEL_KEY: Record<string, LocaleKey> = {
 	channel_create: "admin.audit.action_channel_create",
 	channel_update: "admin.audit.action_channel_update",
 	channel_delete: "admin.audit.action_channel_delete",
+	channel_probe: "admin.audit.action_channel_probe",
 	credential_update: "admin.audit.action_credential_update",
 	route_secret_update: "admin.audit.action_route_secret_update",
 	route_secret_clear: "admin.audit.action_route_secret_clear",

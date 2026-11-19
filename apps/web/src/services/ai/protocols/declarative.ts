@@ -7,10 +7,13 @@ import {
 	type PollCredentials,
 	type Protocol,
 	type SubmitResult,
+	pickFirst,
 	pickFirstString,
 	pickPath,
 	readJson,
+	type UsageStats,
 	trimBase,
+	parseUsage,
 } from "./types";
 
 /**
@@ -38,6 +41,12 @@ export interface JsonProtocolSpec {
 	submitBody: (input: JobInput) => Record<string, unknown>;
 	/** Candidate paths to the job id in the submit response. */
 	jobIdPaths: Array<Array<string | number>>;
+	/**
+	 * Optional candidate paths to the vendor's `usage` object on the poll
+	 * response — set for vendors that report token consumption. Missing or
+	 * empty usage stays null; it is a bonus metric, never required.
+	 */
+	usagePaths?: Array<Array<string | number>>;
 	/** Candidate paths to the result URL in the poll response. */
 	resultPaths: Array<Array<string | number>>;
 	doneStatuses: string[];
@@ -125,9 +134,13 @@ export function defineJsonProtocol(spec: JsonProtocolSpec): Protocol {
 
 			if (spec.doneStatuses.includes(status)) {
 				const url = pickFirstString(payload, spec.resultPaths);
-				return url
-					? { state: "done", url }
-					: { state: "failed", error: `${spec.label} 返回了空地址` };
+				if (!url) {
+					return { state: "failed", error: `${spec.label} 返回了空地址` };
+				}
+				const usage: UsageStats | null = spec.usagePaths
+					? parseUsage(pickFirst(payload, spec.usagePaths))
+					: null;
+				return { state: "done", url, usage };
 			}
 			if (spec.failedStatuses.includes(status)) {
 				const detail =

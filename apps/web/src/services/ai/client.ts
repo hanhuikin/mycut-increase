@@ -9,6 +9,7 @@
  */
 
 import { settleCredits } from "@/services/billing/client";
+import type { UsageStats } from "@/services/ai/protocols/types";
 
 /** Progress labels by protocol. Not localised — mirrors the server's wording. */
 const PROTOCOL_LABELS: Record<string, string> = {
@@ -39,7 +40,7 @@ export function protocolLabel(protocolId: string): string {
 
 export type PollState =
 	| { state: "pending" }
-	| { state: "done"; url: string }
+	| { state: "done"; url: string; usage?: UsageStats | null }
 	| { state: "failed"; error: string };
 
 /** Poll every 2s while a job is young, then back off to 5s once it is long. */
@@ -212,6 +213,14 @@ export async function pollJob({
 		});
 		if (!response.ok) {
 			const { meta } = await failureDetail(response);
+			// A transport failure is not an upstream failure: without an explicit
+			// release the submit-time freeze would stay on the books forever.
+			await releaseTask({
+				modelId,
+				channelId: job.channelId,
+				jobId: job.jobId,
+				refId: job.refId,
+			});
 			throw new JobError(
 				`${label} 轮询失败 (${response.status})`,
 				job.channelId,
@@ -221,6 +230,7 @@ export async function pollJob({
 
 		const state = (await response.json()) as PollState;
 		if (state.state === "done") {
+			const usage = state.usage ?? undefined;
 			// The freeze booked the estimate at submit time; close it out at what
 			// was actually produced. The settle route is idempotent per refId, and
 			// a failed call only leaves the freeze in place — never lose the
@@ -231,6 +241,7 @@ export async function pollJob({
 					modelId,
 					resolution: resolution ?? "720p",
 					actualSeconds: typeof seconds === "number" ? seconds : undefined,
+					usage,
 				});
 			} catch (error) {
 				console.error("settle failed:", error);
@@ -238,6 +249,15 @@ export async function pollJob({
 			return state.url;
 		}
 		if (state.state === "failed") {
+			// The server refunds in its failure branch, but that refund can itself
+			// fail and is swallowed there; release is idempotent per refId, so
+			// this second attempt closes any gap.
+			await releaseTask({
+				modelId,
+				channelId: job.channelId,
+				jobId: job.jobId,
+				refId: job.refId,
+			});
 			throw new JobError(state.error, job.channelId);
 		}
 		if (i % 5 === 0) {

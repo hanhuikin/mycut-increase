@@ -243,6 +243,18 @@ export const generationTasks = appSchema.table(
 			.$type<Array<{ channel: string; message: string; at: string }>>()
 			.default(sql`'[]'::jsonb`)
 			.notNull(),
+		/**
+		 * Upstream-reported token usage when the vendor provides one
+		 * {promptTokens,completionTokens,totalTokens}; null for vendors that
+		 * don't report usage (most media endpoints).
+		 */
+		usage: jsonb("usage")
+			.$type<{
+				promptTokens?: number;
+				completionTokens?: number;
+				totalTokens?: number;
+			} | null>()
+			.default(sql`null`),
 		pointsFrozen: integer("points_frozen").default(0).notNull(),
 		pointsSettled: integer("points_settled"),
 		createdAt: timestamp("created_at")
@@ -287,6 +299,12 @@ export const creditLedger = appSchema.table(
 		modelId: text("model_id"),
 		/** Seconds of video submitted, recorded on the freeze row of a job. */
 		seconds: integer("seconds"),
+		/**
+		 * Upstream-reported token usage, written onto the freeze row once the
+		 * vendor reports it (usage attribution reads freeze rows — settle rows
+		 * don't exist for pricePerCall models). Null when unreported.
+		 */
+		tokens: integer("tokens"),
 		note: text("note").default("").notNull(),
 		actorId: text("actor_id"),
 		createdAt: timestamp("created_at")

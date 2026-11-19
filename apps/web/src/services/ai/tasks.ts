@@ -11,9 +11,11 @@ import {
 } from "@/services/admin/channels";
 import { estimateModelCost, getModel } from "@/services/admin/models";
 import { getProtocol } from "@/services/ai/protocols";
+import type { UsageStats } from "@/services/ai/protocols/types";
 import {
 	freezeForTask,
 	refundTask,
+	setFreezeTokens,
 	settleTask,
 } from "@/services/billing/ledger";
 
@@ -523,7 +525,12 @@ async function syncTaskLocked({
 		});
 	}
 
-	let state: { state: string; url?: string; error?: string };
+	let state: {
+		state: string;
+		url?: string;
+		error?: string;
+		usage?: UsageStats | null;
+	};
 	try {
 		const polled = await protocol.poll(
 			{
@@ -546,6 +553,22 @@ async function syncTaskLocked({
 	}
 
 	if (state.state === "done" && state.url) {
+		// Usage attribution: the vendor's token report (when any) lands on the
+		// task row and the job's freeze row — the aggregates read freezes.
+		if (state.usage) {
+			try {
+				await db
+					.update(generationTasks)
+					.set({ usage: state.usage, updatedAt: new Date() })
+					.where(eq(generationTasks.id, task.id));
+				await setFreezeTokens({
+					refId: task.refId,
+					tokens: state.usage.totalTokens,
+				});
+			} catch (error) {
+				console.error("usage record failed:", error);
+			}
+		}
 		try {
 			const points = await settleAttempt({ userId, task, model });
 			return await markSucceeded({ task, videoUrl: state.url, points });

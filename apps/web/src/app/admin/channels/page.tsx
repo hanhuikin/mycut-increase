@@ -96,8 +96,18 @@ const ERROR_KEY: Record<string, string> = {
 	unknown_protocol: "admin.channels.error_unknown_protocol",
 	invalid_base_url: "admin.channels.error_invalid_base_url",
 	models_required: "admin.channels.error_models_required",
-	unknown_model: "admin.channels.error_unknown_model",
+	invalid_model_id: "admin.channels.error_invalid_model",
+	// parseChannelInput reports `models.<id> must be a name` style messages;
+	// map any code that actually reaches the UI onto the closest copy we have.
 };
+
+/** Server error code → localised copy; falls back for unmapped variants. */
+function errorKeyFor(code: string): string | null {
+	if (code in ERROR_KEY) return ERROR_KEY[code];
+	if (code.startsWith("invalid_model_id") || code.startsWith("models."))
+		return ERROR_KEY.invalid_model_id;
+	return null;
+}
 
 function draftFrom(channel: Channel | null): ChannelDraft {
 	if (!channel) {
@@ -230,7 +240,7 @@ export default function AdminChannelsPage() {
 					error?: string;
 				} | null;
 				const code = (body?.error ?? "").split(":")[0];
-				const key = ERROR_KEY[code];
+				const key = errorKeyFor(code);
 				setFormError(key ? t[key as never] : t["admin.models.save_failed"]);
 				return;
 			}

@@ -58,9 +58,13 @@ export function RedeemForm({ onDone }: { onDone: () => void }) {
 /** Balance pill shown in the AI panel header; 充值 opens the redeem dialog (v1). */
 export function BalanceChip({
 	balance,
+	frozen,
 	onRedeemed,
 }: {
 	balance: number | null;
+	/** Points reserved by running jobs — shown so "balance dropped" while a
+	 * generation runs is not mistaken for consumption. */
+	frozen?: number | null;
 	onRedeemed: () => void;
 }) {
 	const { t } = useLocale();
@@ -69,6 +73,11 @@ export function BalanceChip({
 	return (
 		<span className="border-primary/40 text-muted-foreground relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11.5px]">
 			{t["billing.balance"].replace("{count}", String(balance ?? "—"))}
+		{frozen != null && frozen > 0 && (
+			<span className="opacity-70">
+				· {t["billing.frozen_note"].replace("{count}", String(frozen))}
+			</span>
+		)}
 			<button
 				type="button"
 				onClick={() => setOpen(true)}

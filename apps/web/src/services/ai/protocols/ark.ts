@@ -9,6 +9,7 @@ import {
 	pickFirstString,
 	readJson,
 	trimBase,
+	parseUsage,
 } from "./types";
 
 const DEFAULT_BASE = "https://ark.cn-beijing.volces.com/api/v3";
@@ -94,9 +95,18 @@ export const arkProtocol: Protocol = {
 
 		if (status === "succeeded" || status === "completed") {
 			const url = pickFirstString(payload, [["content", "video_url"]]);
-			return url
-				? { state: "done", url }
-				: { state: "failed", error: "火山方舟返回了空视频地址" };
+			if (!url) {
+				return { state: "failed", error: "火山方舟返回了空视频地址" };
+			}
+			return {
+				state: "done",
+				url,
+				usage: parseUsage(
+					payload && typeof payload === "object" && "usage" in payload
+						? payload.usage
+						: null,
+				),
+			};
 		}
 		if (status === "failed" || status === "cancelled") {
 			const message =

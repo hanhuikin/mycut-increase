@@ -6,14 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLocale } from "@/locale/locale-context";
-import { GateErrorView, type GateStatus } from "../gate-error-view";
+import {
+	GateErrorView,
+	LoadErrorView,
+	type GateStatus,
+	isGateStatus,
+} from "../gate-error-view";
 
 /** Manual credit adjustments + redeem-code generation (v1 top-up channel). */
 export default function AdminBillingPage() {
-	const [gateError, setGateError] = useState<GateStatus | null>(null);
+	const [gateError, setGateError] = useState<GateStatus | number | null>(null);
 
 	if (gateError) {
-		return <GateErrorView status={gateError} />;
+		return isGateStatus(gateError) ? (
+			<GateErrorView status={gateError} />
+		) : (
+			<LoadErrorView status={String(gateError)} onRetry={() => setGateError(null)} />
+		);
 	}
 
 	return (
@@ -43,7 +52,7 @@ function FormCard({
 	);
 }
 
-function AdjustForm({ onError }: { onError: (status: GateStatus) => void }) {
+function AdjustForm({ onError }: { onError: (status: GateStatus | number) => void }) {
 	const { t } = useLocale();
 	const [email, setEmail] = useState("");
 	const [delta, setDelta] = useState("");
@@ -58,13 +67,16 @@ function AdjustForm({ onError }: { onError: (status: GateStatus) => void }) {
 			onError(String(res.status) as GateStatus);
 			return null;
 		}
-		const body = (await res.json()) as {
+		const body = (await res.json().catch(() => null)) as {
 			users: Array<{ id: string; email: string }>;
-		};
-		const match = body.users.find(
-			(user) => user.email.toLowerCase() === email.trim().toLowerCase(),
+		} | null;
+		// Accept partial matches ("han" → hanhuikin@…); ambiguity is fine as
+		// long as exactly one result survives the filter.
+		const needle = email.trim().toLowerCase();
+		const matches = (body?.users ?? []).filter((user) =>
+			user.email.toLowerCase().includes(needle),
 		);
-		return match?.id ?? null;
+		return matches.length === 1 ? (matches[0]?.id ?? null) : null;
 	};
 
 	const submit = async (event: React.FormEvent) => {
@@ -90,7 +102,13 @@ function AdjustForm({ onError }: { onError: (status: GateStatus) => void }) {
 				onError(String(res.status) as GateStatus);
 				return;
 			}
-			const body = (await res.json()) as { balance: number };
+			const body = (await res.json().catch(() => null)) as {
+				balance: number;
+			} | null;
+			if (!body) {
+				onError(res.status);
+				return;
+			}
 			toast.success(
 				t["admin.billing.adjust_done"].replace("{count}", String(body.balance)),
 			);
@@ -133,7 +151,7 @@ function AdjustForm({ onError }: { onError: (status: GateStatus) => void }) {
 	);
 }
 
-function CodesGenerator({ onError }: { onError: (status: GateStatus) => void }) {
+function CodesGenerator({ onError }: { onError: (status: GateStatus | number) => void }) {
 	const { t } = useLocale();
 	const [count, setCount] = useState("10");
 	const [credits, setCredits] = useState("500");
@@ -156,7 +174,13 @@ function CodesGenerator({ onError }: { onError: (status: GateStatus) => void }) 
 				onError(String(res.status) as GateStatus);
 				return;
 			}
-			const body = (await res.json()) as { codes: string[] };
+			const body = (await res.json().catch(() => null)) as {
+				codes: string[];
+			} | null;
+			if (!body) {
+				onError(res.status);
+				return;
+			}
 			setCodes(body.codes);
 		} finally {
 			setBusy(false);

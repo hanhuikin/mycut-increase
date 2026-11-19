@@ -1,6 +1,20 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	lte,
+	sql,
+} from "drizzle-orm";
 import { db } from "@/db";
-import { creditLedger, redeemCodes as redeemCodesTable } from "@/db/schema";
+import {
+	creditLedger,
+	generationTasks,
+	redeemCodes as redeemCodesTable,
+} from "@/db/schema";
 
 export const SIGNUP_BONUS_CREDITS = 500;
 
@@ -122,11 +136,22 @@ export async function getFrozenAmount({
 }: {
 	userId: string;
 }): Promise<number> {
+	// Open freezes only: the ledger is append-only, so a refunded or settled
+	// job keeps its freeze row — it must not keep counting as reserved credit.
 	const rows = await db
 		.select({ total: sql<number>`coalesce(sum(${creditLedger.amount}), 0)` })
 		.from(creditLedger)
 		.where(
-			and(eq(creditLedger.userId, userId), eq(creditLedger.kind, "freeze")),
+			and(
+				eq(creditLedger.userId, userId),
+				eq(creditLedger.kind, "freeze"),
+				sql`not exists (
+					select 1 from ${creditLedger} closed
+					where closed.user_id = ${creditLedger.userId}
+						and closed.ref_id = ${creditLedger.refId}
+						and closed.kind in ('settle', 'refund')
+				)`,
+			),
 		);
 	return -Number(rows[0]?.total ?? 0);
 }
@@ -222,24 +247,44 @@ export async function freezeForTask({
 	modelId?: string | null;
 	seconds?: number | null;
 }): Promise<{ balanceAfter: number }> {
-	const balance = await getBalance({ userId });
-	if (balance < amount) {
-		throw new LedgerError("insufficient balance", "insufficient");
-	}
-	const result = await appendEntry({
-		userId,
-		amount: -amount,
-		kind: "freeze",
-		refId,
-		note,
-		modelId,
-		seconds,
+	// One transaction holding a per-user advisory lock: the balance check and
+	// the insert cannot interleave with a concurrent freeze, so two parallel
+	// submits can no longer both pass the check and drive the balance negative.
+	return db.transaction(async (tx) => {
+		await tx.execute(
+			sql`select pg_advisory_xact_lock(hashtext(${userId}))`,
+		);
+		const sums = await tx
+			.select({ total: sql<number>`coalesce(sum(${creditLedger.amount}), 0)` })
+			.from(creditLedger)
+			.where(eq(creditLedger.userId, userId));
+		const balance = Number(sums[0]?.total ?? 0);
+		if (balance < amount) {
+			throw new LedgerError("insufficient balance", "insufficient");
+		}
+
+		const inserted = await tx
+			.insert(creditLedger)
+			.values({
+				id: crypto.randomUUID(),
+				userId,
+				amount: -amount,
+				balanceAfter: balance - amount,
+				kind: "freeze",
+				refId,
+				modelId,
+				seconds,
+				note,
+			})
+			.onConflictDoNothing()
+			.returning({ id: creditLedger.id });
+
+		if (inserted.length === 0) {
+			// Already frozen for this task — return the effective balance.
+			return { balanceAfter: balance };
+		}
+		return { balanceAfter: balance - amount };
 	});
-	if (!result) {
-		// Already frozen for this task — return the effective balance.
-		return { balanceAfter: await getBalance({ userId }) };
-	}
-	return result;
 }
 
 /**
@@ -321,6 +366,112 @@ export async function refundTask({
 		note: note || "task failed",
 		modelId,
 	});
+}
+
+/**
+ * Refund freezes that never got a settle or refund — jobs whose client died
+ * mid-poll (tab closed, network dropped). Light-flow jobs (tools/audio/image)
+ * have no task row, so nothing else reconciles them and the points used to
+ * stay spent forever. A freeze older than the TTL whose refId has no matching
+ * settle/refund row is refunded here; refIds still owned by an active
+ * generation_task are skipped, so long renders are never cut short.
+ * Called on /api/billing/me, which every balance refresh hits — the books
+ * self-heal the next time the user shows up.
+ */
+const ORPHAN_FREEZE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export async function sweepOrphanFreezes({
+	userId,
+	olderThanMs = ORPHAN_FREEZE_TTL_MS,
+}: {
+	userId: string;
+	olderThanMs?: number;
+}): Promise<number> {
+	const cutoff = new Date(Date.now() - olderThanMs);
+	const candidates = await db
+		.select({
+			refId: creditLedger.refId,
+			modelId: creditLedger.modelId,
+		})
+		.from(creditLedger)
+		.where(
+			and(
+				eq(creditLedger.userId, userId),
+				eq(creditLedger.kind, "freeze"),
+				isNotNull(creditLedger.refId),
+				// Freeze rows written before the cutoff: no live job can still
+				// own them (active jobs are minutes old, TTL is a day).
+				lte(creditLedger.createdAt, cutoff),
+			),
+		);
+	if (candidates.length === 0) return 0;
+
+	const activeRefs = new Set(
+		(
+			await db
+				.select({ refId: generationTasks.refId })
+				.from(generationTasks)
+				.where(
+					and(
+						eq(generationTasks.userId, userId),
+						inArray(generationTasks.status, [
+							"submitting",
+							"queued",
+							"generating",
+						]),
+					),
+				)
+		)
+			.map((row) => row.refId)
+			.filter((refId): refId is string => Boolean(refId)),
+	);
+
+	let refunded = 0;
+	for (const candidate of candidates) {
+		const refId = candidate.refId;
+		if (!refId || activeRefs.has(refId)) continue;
+		const closed = await db
+			.select({ id: creditLedger.id })
+			.from(creditLedger)
+			.where(
+				and(
+					eq(creditLedger.userId, userId),
+					inArray(creditLedger.kind, ["settle", "refund"]),
+					eq(creditLedger.refId, refId),
+				),
+			)
+			.limit(1);
+		if (closed.length > 0) continue;
+		await refundTask({
+			userId,
+			refId,
+			note: "orphan freeze sweep",
+			modelId: candidate.modelId,
+		});
+		refunded += 1;
+	}
+	return refunded;
+}
+
+/**
+ * Attribute upstream-reported token usage to the job's freeze row — the
+ * per-model/per-user aggregation reads freezes, so the usage lands there
+ * instead of on a settle row that may not exist (pricePerCall models).
+ */
+export async function setFreezeTokens({
+	refId,
+	tokens,
+}: {
+	refId: string | null | undefined;
+	tokens: number | null | undefined;
+}): Promise<void> {
+	if (!refId || !tokens || tokens <= 0) return;
+	await db
+		.update(creditLedger)
+		.set({ tokens })
+		.where(
+			and(eq(creditLedger.kind, "freeze"), eq(creditLedger.refId, refId)),
+		);
 }
 
 export async function adjustCredits({

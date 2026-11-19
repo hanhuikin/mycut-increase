@@ -71,10 +71,14 @@ export async function issueAdminGate(): Promise<void> {
 		sameSite: "lax",
 		path: "/",
 		maxAge: ADMIN_GATE_TTL_MS / 1000,
-		// Production is served over HTTPS behind the LB; without this the gate
-		// cookie would also ride plain-http hops. Dev (http://localhost) keeps
-		// working because NODE_ENV is "development" there.
-		secure: process.env.NODE_ENV === "production",
+		// Secure only when the request itself is HTTPS. Marking it secure on a
+		// plain-HTTP deployment made browsers drop the cookie server-side had
+		// already "set" — elevate returned 200, the countdown ticked, yet every
+		// API kept answering 428: verification that never takes effect.
+		secure:
+				(await headers()).get("x-forwarded-proto") === "https" ||
+				new URL(process.env.BETTER_AUTH_URL ?? "http://localhost").protocol ===
+					"https:",
 	});
 }
 

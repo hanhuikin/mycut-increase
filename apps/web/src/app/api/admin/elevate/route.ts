@@ -48,6 +48,14 @@ async function postHandler(request: NextRequest) {
 			// The password itself was accepted; only the second factor is missing.
 			passwordOk = true;
 			twoFactorRequired = true;
+		} else if (
+			code === "429" ||
+			/rate.?limit|too many/i.test(message) ||
+			(error as { status?: number })?.status === 429
+		) {
+			// The shared sign-in rate limit (10/min per IP) trips in production
+			// where every admin shares one egress IP — "wrong password" was a lie.
+			return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 		}
 	}
 

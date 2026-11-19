@@ -937,6 +937,7 @@ export function AIVideoView() {
 						</button>
 						<BalanceChip
 							balance={billing.balance}
+							frozen={billing.frozen}
 							onRedeemed={billing.refreshBalance}
 						/>
 					</div>

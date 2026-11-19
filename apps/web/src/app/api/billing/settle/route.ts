@@ -2,7 +2,12 @@ import { withRoute } from "@/services/logging/with-route";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth/guard";
 import { estimateModelCost, getModel } from "@/services/admin/models";
-import { getBalance, refundTask, settleTask } from "@/services/billing/ledger";
+import {
+	getBalance,
+	refundTask,
+	setFreezeTokens,
+	settleTask,
+} from "@/services/billing/ledger";
 
 /**
  * Close out a frozen generation task: settle the actual usage (difference
@@ -20,6 +25,11 @@ async function postHandler(request: NextRequest) {
 		modelId?: string;
 		resolution?: "480p" | "720p" | "1080p";
 		actualSeconds?: number;
+		usage?: {
+			promptTokens?: number;
+			completionTokens?: number;
+			totalTokens?: number;
+		} | null;
 		failed?: boolean;
 	};
 	if (!body.refId) {
@@ -58,6 +68,10 @@ async function postHandler(request: NextRequest) {
 			note: `${model.label} ${actualSeconds}s`,
 			modelId: model.id,
 		});
+	}
+	// Token usage lands on the freeze row whether or not a settle row exists.
+	if (body.usage?.totalTokens) {
+		await setFreezeTokens({ refId: body.refId, tokens: body.usage.totalTokens });
 	}
 
 	return NextResponse.json({ balance: await getBalance({ userId: user.id }) });
