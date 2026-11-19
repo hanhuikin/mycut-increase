@@ -1,10 +1,21 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/utils/ui";
 import { useLocale } from "@/locale/locale-context";
 import { PanelView } from "@/components/editor/panels/assets/views/base-panel";
 import { useBilling } from "@/services/billing/client";
+import { useEditor } from "@/editor/use-editor";
+import {
+	useTranscriptionQueue,
+	type TranscriptionTask,
+} from "@/transcription/task-store";
+import {
+	transcriptionLanguageLabel,
+	transcriptionModelLabel,
+	transcriptionStepLabel,
+} from "@/transcription/labels";
 import { type GenerationTask, useTaskQueue } from "./provider";
 
 /**
@@ -25,30 +36,28 @@ function formatDateTime(iso: string): string {
 	);
 }
 
-function StatusPill({ task }: { task: GenerationTask }) {
-	const { t } = useLocale();
-	const labels: Record<string, string> = {
-		submitting: t["task_queue.status_submitting"],
-		queued: t["task_queue.status_queued"],
-		generating: t["task_queue.status_generating"],
-		succeeded: t["task_queue.status_succeeded"],
-		failed: t["task_queue.status_failed"],
-		canceled: t["task_queue.status_canceled"],
-	};
+function StatusPill({
+	status,
+	label,
+}: {
+	status: string;
+	label: string;
+}) {
+	const isActive = ACTIVE.has(status) || status === "running";
 	return (
 		<span
 			className={cn(
 				"inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-				task.status === "succeeded" && "text-emerald-500 bg-emerald-500/10",
-				task.status === "failed" && "text-red-500 bg-red-500/10",
-				ACTIVE.has(task.status) && "text-primary bg-primary/10",
-				task.status === "canceled" && "text-muted-foreground bg-muted",
+				status === "succeeded" && "text-emerald-500 bg-emerald-500/10",
+				status === "failed" && "text-red-500 bg-red-500/10",
+				isActive && "text-primary bg-primary/10",
+				status === "canceled" && "text-muted-foreground bg-muted",
 			)}
 		>
-			{ACTIVE.has(task.status) && (
+			{isActive && (
 				<span className="size-1.5 animate-pulse rounded-full bg-current" />
 			)}
-			{labels[task.status] ?? task.status}
+			{label}
 		</span>
 	);
 }
@@ -89,7 +98,37 @@ export function TaskQueueView() {
 		importTask,
 		insertBatchIntoTimeline,
 	} = useTaskQueue();
+	const editor = useEditor();
+	const activeProjectId = useEditor(
+		(e) => e.project.getActiveOrNull()?.metadata.id ?? null,
+	);
+	const transcriptionTasks = useTranscriptionQueue((state) => state.tasks);
+	const cancelTranscription = useTranscriptionQueue((state) => state.cancel);
+	const removeTranscription = useTranscriptionQueue((state) => state.removeTask);
+	const clearTranscriptionFinished = useTranscriptionQueue(
+		(state) => state.clearFinished,
+	);
+	const insertTranscription = useTranscriptionQueue((state) => state.insertTask);
 	const [detailId, setDetailId] = useState<string | null>(null);
+
+	// 本地转写任务按当前项目过滤：字幕只属于发起它的那个项目。
+	const localTasks = activeProjectId
+		? transcriptionTasks.filter((task) => task.projectId === activeProjectId)
+		: [];
+	const activeLocalTasks = localTasks.filter((task) => task.status === "running");
+	const finishedLocalTasks = localTasks.filter(
+		(task) => task.status !== "running",
+	);
+
+	const statusLabels: Record<string, string> = {
+		submitting: t["task_queue.status_submitting"],
+		queued: t["task_queue.status_queued"],
+		generating: t["task_queue.status_generating"],
+		succeeded: t["task_queue.status_succeeded"],
+		failed: t["task_queue.status_failed"],
+		canceled: t["task_queue.status_canceled"],
+		running: t["task_queue.status_transcribing"],
+	};
 
 	const active = tasks.filter((task) => ACTIVE.has(task.status));
 	const finished = tasks.filter((task) => !ACTIVE.has(task.status));
@@ -147,38 +186,50 @@ export function TaskQueueView() {
 		<PanelView
 			title={t["task_queue.title"]}
 			actions={
-				finished.length > 0 ? (
+				finished.length + finishedLocalTasks.length > 0 ? (
 					<button
 						type="button"
 						className="text-muted-foreground hover:text-foreground rounded px-1.5 py-1 text-xs"
-						onClick={() => void clearFinished()}
+						onClick={() => {
+							void clearFinished();
+							if (activeProjectId) {
+								clearTranscriptionFinished(activeProjectId);
+							}
+						}}
 					>
 						{t["task_queue.clear"]}
 					</button>
 				) : undefined
 			}
 		>
-			{tasks.length === 0 && (
+			{tasks.length === 0 && localTasks.length === 0 && (
 				<div className="text-muted-foreground py-16 text-center text-xs">
 					{t["task_queue.empty"]}
 				</div>
 			)}
 
-			{active.length > 0 && (
+			{active.length + activeLocalTasks.length > 0 && (
 				<>
 					<div className="text-muted-foreground px-1 pt-1 pb-1.5 text-[11px]">
-						{t["task_queue.group_active"]} · {active.length}
+						{t["task_queue.group_active"]} ·{" "}
+						{active.length + activeLocalTasks.length}
 					</div>
+					{activeLocalTasks.map((task) => (
+						<TranscriptionCard key={task.id} task={task} />
+					))}
 					{activeSingleCards}
 					{activeBatchCards}
 				</>
 			)}
 
-			{finished.length > 0 && (
+			{finished.length + finishedLocalTasks.length > 0 && (
 				<>
 					<div className="text-muted-foreground px-1 pt-3 pb-1.5 text-[11px]">
 						{t["task_queue.group_earlier"]}
 					</div>
+					{finishedLocalTasks.map((task) => (
+						<TranscriptionCard key={task.id} task={task} />
+					))}
 					{finishedSingleCards}
 					{finishedBatchCards}
 				</>
@@ -187,6 +238,100 @@ export function TaskQueueView() {
 			{detail && <TaskDetail task={detail} onClose={() => setDetailId(null)} />}
 		</PanelView>
 	);
+
+	function TranscriptionCard({ task }: { task: TranscriptionTask }) {
+		const running = task.status === "running";
+		const progress =
+			task.progress != null ? Math.min(100, Math.max(2, task.progress)) : null;
+		return (
+			<div className="bg-accent/40 mb-1.5 rounded-lg border border-transparent p-2.5">
+				<div className="flex items-center justify-between gap-2">
+					<span className="truncate text-xs font-semibold">
+						{t["task_queue.kind_transcription"]}
+					</span>
+					<StatusPill
+						status={task.status}
+						label={statusLabels[task.status] ?? task.status}
+					/>
+				</div>
+				<div className="text-muted-foreground mt-1 truncate text-xs">
+					{transcriptionModelLabel({ modelId: task.modelId, t })} ·{" "}
+					{transcriptionLanguageLabel({ language: task.language, t })}
+				</div>
+				{running && (
+					<>
+						<div className="text-muted-foreground mt-1 text-[11px]">
+							{transcriptionStepLabel({ task, t })}
+						</div>
+						<div className="bg-border mt-2 h-1 overflow-hidden rounded-full">
+							{progress != null ? (
+								<div
+									className="bg-primary/80 h-full transition-[width]"
+									style={{ width: `${progress}%` }}
+								/>
+							) : (
+								<div className="bg-primary/60 h-full w-1/3 animate-pulse" />
+							)}
+						</div>
+					</>
+				)}
+				{task.status === "failed" && (
+					<div className="mt-1 text-[11px] text-red-500">
+						{task.errorCode === "no_captions"
+							? t["captions.no_captions_generated"]
+							: (task.error ?? t["task_queue.toast_transcription_failed"])}
+					</div>
+				)}
+				{task.status === "succeeded" && (
+					<div className="text-muted-foreground mt-1 text-[11px]">
+						{t["task_queue.transcription_captions"].replace(
+							"{n}",
+							String(task.captions.length),
+						)}
+						{task.inserted && ` · ${t["task_queue.inserted"]}`}
+					</div>
+				)}
+				<div className="text-muted-foreground mt-1 flex items-center justify-between text-[11px]">
+					<span>{formatDateTime(task.createdAt)}</span>
+					<div className="flex items-center gap-2">
+						{running && (
+							<button
+								type="button"
+								className="hover:text-foreground"
+								onClick={cancelTranscription}
+							>
+								{t["captions.cancel"]}
+							</button>
+						)}
+						{task.status === "succeeded" && !task.inserted && (
+							<button
+								type="button"
+								className="hover:text-foreground"
+								onClick={() => {
+									if (
+										!insertTranscription({ id: task.id, editor })
+									) {
+										toast.error(t["task_queue.insert_captions_failed"]);
+									}
+								}}
+							>
+								{t["task_queue.insert_captions"]}
+							</button>
+						)}
+						{!running && (
+							<button
+								type="button"
+								className="hover:text-foreground"
+								onClick={() => removeTranscription(task.id)}
+							>
+								{t["task_queue.delete"]}
+							</button>
+						)}
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	function TaskCard({
 		task,
@@ -209,7 +354,10 @@ export function TaskQueueView() {
 					<span className="truncate text-xs font-semibold">
 						{modelLabel(task.modelId)}
 					</span>
-					<StatusPill task={task} />
+					<StatusPill
+						status={task.status}
+						label={statusLabels[task.status] ?? task.status}
+					/>
 				</div>
 				{task.prompt && (
 					<div className="text-muted-foreground mt-1 truncate text-xs">

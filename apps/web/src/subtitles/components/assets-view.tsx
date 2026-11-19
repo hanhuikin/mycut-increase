@@ -8,26 +8,22 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useReducer, useRef, useState } from "react";
-import { extractTimelineAudio } from "@/media/mediabunny";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useEditor } from "@/editor/use-editor";
 import { TRANSCRIPTION_DIAGNOSTICS_SCOPE } from "@/transcription/diagnostics";
-import { DEFAULT_TRANSCRIPTION_SAMPLE_RATE } from "@/transcription/audio";
 import { TRANSCRIPTION_LANGUAGES } from "@/transcription/supported-languages";
 import type {
 	CaptionChunk,
 	TranscriptionLanguage,
 	TranscriptionModelId,
-	TranscriptionProgress,
 } from "@/transcription/types";
-import { transcriptionService } from "@/services/transcription/service";
-import { decodeAudioToFloat32 } from "@/media/audio";
-import { buildCaptionChunks } from "@/transcription/caption";
 import { insertCaptionChunksAsTextTrack } from "@/subtitles/insert";
 import { parseSubtitleFile } from "@/subtitles/parse";
 import { exportSrt, exportVtt } from "@/subtitles/export";
 import { mediaTimeFromSeconds } from "@/wasm";
 import { Spinner } from "@/components/ui/spinner";
+import { useTranscriptionQueue } from "@/transcription/task-store";
+import { transcriptionStepLabel } from "@/transcription/labels";
 import {
 	Section,
 	SectionContent,
@@ -69,14 +65,13 @@ type ProcessingState =
 			status: "idle";
 			error: string | null;
 			warnings: string[];
-			captions: CaptionChunk[];
 	  }
 	| { status: "processing"; step: string };
 
 type ProcessingAction =
 	| { type: "start"; step: string }
 	| { type: "update_step"; step: string }
-	| { type: "succeed"; captions: CaptionChunk[]; warnings: string[] }
+	| { type: "succeed"; warnings: string[] }
 	| { type: "fail"; error: string }
 	| { type: "clear" };
 
@@ -84,7 +79,6 @@ const IDLE_STATE: ProcessingState = {
 	status: "idle",
 	error: null,
 	warnings: [],
-	captions: [],
 };
 
 /* eslint-disable opencut/prefer-object-params -- React reducers must accept (state, action). */
@@ -103,10 +97,9 @@ function processingReducer(
 				status: "idle",
 				error: null,
 				warnings: action.warnings,
-				captions: action.captions,
 			};
 		case "fail":
-			return { status: "idle", error: action.error, warnings: [], captions: [] };
+			return { status: "idle", error: action.error, warnings: [] };
 		case "clear":
 			return { ...IDLE_STATE };
 	}
@@ -124,26 +117,75 @@ export function Captions() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const editor = useEditor();
 
+	// 转写任务在全局 store 里跑：面板卸载/切换标签后仍继续，任务抽屉同源展示。
+	const transcriptionTasks = useTranscriptionQueue((state) => state.tasks);
+	const startTranscription = useTranscriptionQueue((state) => state.start);
+	const cancelTranscription = useTranscriptionQueue((state) => state.cancel);
+	const activeProjectId = useEditor(
+		(e) => e.project.getActiveOrNull()?.metadata.id ?? null,
+	);
+	const projectTasks = useMemo(
+		() =>
+			activeProjectId
+				? transcriptionTasks.filter(
+						(task) => task.projectId === activeProjectId,
+					)
+				: [],
+		[transcriptionTasks, activeProjectId],
+	);
+	const activeTask =
+		projectTasks.find((task) => task.status === "running") ?? null;
+	const anyRunning = transcriptionTasks.some((task) => task.status === "running");
+	const latestSucceeded =
+		projectTasks.find(
+			(task) => task.status === "succeeded" && task.captions.length > 0,
+		) ?? null;
+
+	// 预览列表的单一来源：最近一次转写成功 / 最近一次导入，谁后发生显示谁。
+	const [captions, setCaptions] = useState<CaptionChunk[]>([]);
+	const syncedTaskRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!latestSucceeded || latestSucceeded.id === syncedTaskRef.current) return;
+		syncedTaskRef.current = latestSucceeded.id;
+		setCaptions(latestSucceeded.captions);
+	}, [latestSucceeded]);
+
+	// 自动检测语言提示：只对刚完成不久的任务弹一次。
+	const toastedLanguagesRef = useRef<Set<string>>(new Set());
+	useEffect(() => {
+		for (const task of projectTasks) {
+			if (
+				task.status !== "succeeded" ||
+				task.language !== "auto" ||
+				!task.detectedLanguage ||
+				toastedLanguagesRef.current.has(task.id)
+			) {
+				continue;
+			}
+			const finishedAt = task.finishedAt ? new Date(task.finishedAt).getTime() : 0;
+			if (Date.now() - finishedAt > 60_000) {
+				toastedLanguagesRef.current.add(task.id);
+				continue;
+			}
+			toastedLanguagesRef.current.add(task.id);
+			const matchedLabelKey = TRANSCRIPTION_LANGUAGES.find(
+				(language) => language.code === task.detectedLanguage,
+			)?.labelKey;
+			toast.info(
+				t["captions.detected_language"].replace(
+					"{lang}",
+					matchedLabelKey ? t[matchedLabelKey] : task.detectedLanguage,
+				),
+			);
+		}
+	}, [projectTasks, t]);
+
 	const isProcessing = processing.status === "processing";
-	const captions = processing.status === "idle" ? processing.captions : [];
+	const stepLabel = activeTask ? transcriptionStepLabel({ task: activeTask, t }) : null;
 
 	const activeDiagnostics = useEditor((e) =>
 		e.diagnostics.getActive({ scope: TRANSCRIPTION_DIAGNOSTICS_SCOPE }),
 	);
-
-	const handleProgress = (progress: TranscriptionProgress) => {
-		if (progress.status === "loading-model") {
-			dispatch({
-				type: "update_step",
-				step: t["captions.loading_model"].replace(
-					"{progress}",
-					String(Math.round(progress.progress)),
-				),
-			});
-		} else if (progress.status === "transcribing") {
-			dispatch({ type: "update_step", step: t["captions.transcribing"] });
-		}
-	};
 
 	const insertCaptions = ({
 		captions,
@@ -154,78 +196,18 @@ export function Captions() {
 		return trackId !== null;
 	};
 
-	const handleGenerateTranscript = async () => {
-		dispatch({ type: "start", step: t["captions.extracting_audio"] });
-		try {
-			const audioBlob = await extractTimelineAudio({
-				tracks: editor.scenes.getActiveScene().tracks,
-				mediaAssets: editor.media.getAssets(),
-				totalDuration: editor.timeline.getTotalDuration(),
-			});
-
-			dispatch({
-				type: "update_step",
-				step: t["captions.preparing_audio"],
-			});
-			const { samples } = await decodeAudioToFloat32({
-				audioBlob,
-				sampleRate: DEFAULT_TRANSCRIPTION_SAMPLE_RATE,
-			});
-
-			const result = await transcriptionService.transcribe({
-				audioData: samples,
-				language: selectedLanguage === "auto" ? undefined : selectedLanguage,
-				modelId: selectedModel,
-				onProgress: handleProgress,
-			});
-
-			dispatch({
-				type: "update_step",
-				step: t["captions.generating_captions"],
-			});
-			const captionChunks = buildCaptionChunks({ segments: result.segments });
-
-			if (!insertCaptions({ captions: captionChunks })) {
-				dispatch({ type: "fail", error: t["captions.no_captions_generated"] });
-				return;
-			}
-
-			// 语言检测反馈
-			const detectedLang = result.language;
-			if (detectedLang && selectedLanguage === "auto") {
-				const matchedLabelKey = TRANSCRIPTION_LANGUAGES.find(
-					(l) => l.code === detectedLang,
-				)?.labelKey;
-				const langName = matchedLabelKey
-					? t[matchedLabelKey]
-					: detectedLang;
-				toast.info(
-					t["captions.detected_language"].replace("{lang}", langName),
-				);
-			}
-
-			dispatch({ type: "succeed", captions: captionChunks, warnings: [] });
-		} catch (error) {
-			if (
-				error instanceof Error &&
-				error.message === "Transcription cancelled"
-			) {
-				dispatch({ type: "clear" });
-				return;
-			}
-			console.error("Transcription failed:", error);
-			dispatch({
-				type: "fail",
-				error:
-					error instanceof Error
-						? error.message
-						: t["captions.no_captions_generated"],
-			});
-		}
+	const handleGenerateTranscript = () => {
+		if (!activeProjectId || anyRunning) return;
+		void startTranscription({
+			editor,
+			projectId: activeProjectId,
+			language: selectedLanguage,
+			modelId: selectedModel,
+		});
 	};
 
 	const handleCancel = () => {
-		transcriptionService.cancel();
+		cancelTranscription();
 	};
 
 	const handleImportClick = () => {
@@ -267,9 +249,9 @@ export function Captions() {
 
 			dispatch({
 				type: "succeed",
-				captions: result.captions,
 				warnings: nextWarnings,
 			});
+			setCaptions(result.captions);
 		} catch (error) {
 			console.error("Subtitle import failed:", error);
 			dispatch({
@@ -336,6 +318,7 @@ export function Captions() {
 
 	const handleClearCaptions = () => {
 		dispatch({ type: "clear" });
+		setCaptions([]);
 		toast.success(t["captions.clear_all"]);
 	};
 
@@ -472,19 +455,23 @@ export function Captions() {
 							type="button"
 							className="flex-1"
 							onClick={handleGenerateTranscript}
-							disabled={isProcessing || activeDiagnostics.length > 0}
+							disabled={
+								isProcessing ||
+								anyRunning ||
+								activeDiagnostics.length > 0
+							}
 						>
-							{isProcessing && <Spinner className="mr-1" />}
-							{isProcessing
-								? processing.step
-								: t["captions.generate"]}
+							{(isProcessing || anyRunning) && <Spinner className="mr-1" />}
+							{activeTask
+								? stepLabel
+								: isProcessing
+									? processing.step
+									: anyRunning
+										? t["captions.transcribing"]
+										: t["captions.generate"]}
 						</Button>
-						{isProcessing && (
-							<Button
-								type="button"
-								variant="outline"
-								onClick={handleCancel}
-							>
+						{activeTask && (
+							<Button type="button" variant="outline" onClick={handleCancel}>
 								{t["captions.cancel"]}
 							</Button>
 						)}
@@ -549,3 +536,4 @@ export function Captions() {
 		</PanelView>
 	);
 }
+

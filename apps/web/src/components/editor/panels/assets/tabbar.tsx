@@ -15,11 +15,16 @@ import {
 } from "@/components/editor/panels/assets/assets-panel-store";
 import { useLocale } from "@/locale/locale-context";
 import { useTaskQueue } from "@/components/editor/task-queue/provider";
+import { useTranscriptionQueue } from "@/transcription/task-store";
 
 export function TabBar() {
 	const { activeTab, setActiveTab } = useAssetsPanelStore();
 	const { t } = useLocale();
 	const taskQueue = useTaskQueue();
+	const localActiveCount = useTranscriptionQueue(
+		(state) => state.tasks.filter((task) => task.status === "running").length,
+	);
+	const activeCount = taskQueue.activeCount + localActiveCount;
 	const tabs = getTabConfig(t);
 	const [showTopFade, setShowTopFade] = useState(false);
 	const [showBottomFade, setShowBottomFade] = useState(false);
@@ -73,12 +78,12 @@ export function TabBar() {
 									onClick={() => setActiveTab(tabKey)}
 								>
 									<tab.icon />
-									{tabKey === "task" && taskQueue.activeCount > 0 && (
+									{tabKey === "task" && activeCount > 0 && (
 										<span
 											aria-label={t["task_queue.entry"]}
 											className="bg-primary text-primary-foreground absolute -top-0.5 -right-0.5 min-w-4 rounded-full px-1 text-[10px] leading-4 font-semibold"
 										>
-											{taskQueue.activeCount}
+											{activeCount}
 										</span>
 									)}
 								</Button>

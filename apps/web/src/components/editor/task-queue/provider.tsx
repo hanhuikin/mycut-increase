@@ -16,6 +16,7 @@ import { useEditor } from "@/editor/use-editor";
 import { useLocale } from "@/locale/locale-context";
 import { buildElementFromMedia } from "@/timeline/element-utils";
 import { mediaTimeFromSeconds } from "@/wasm";
+import { useTranscriptionQueue } from "@/transcription/task-store";
 
 /**
  * Global generation-task layer. Owns the poll loop against /api/ai/tasks and
@@ -404,6 +405,25 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 		() => tasks.filter((task) => ACTIVE.has(task.status)).length,
 		[tasks],
 	);
+
+	/**
+	 * 本地转写任务没有服务端记录，完成/失败由这里统一弹提示——字幕面板可能
+	 * 已经切走，提示不能只挂在面板上。
+	 */
+	const transcriptionTasks = useTranscriptionQueue((state) => state.tasks);
+	const seenTranscriptionStatus = useRef<Map<string, string>>(new Map());
+	useEffect(() => {
+		for (const task of transcriptionTasks) {
+			const previous = seenTranscriptionStatus.current.get(task.id);
+			seenTranscriptionStatus.current.set(task.id, task.status);
+			if (previous === undefined || previous !== "running") continue;
+			if (task.status === "succeeded") {
+				toast.success(t["task_queue.toast_transcription_done"]);
+			} else if (task.status === "failed") {
+				toast.error(t["task_queue.toast_transcription_failed"]);
+			}
+		}
+	}, [transcriptionTasks, t]);
 
 	const state: TaskQueueState = {
 		tasks,
