@@ -42,6 +42,9 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_DEBUG_FRAMES=$NEXT_PUBLIC_DEBUG_FRAMES
 
 WORKDIR /app/apps/web
+# Dockerfile 直接调 next build（不走 package.json 脚本），ORT wasm 同步需单独执行：
+# 转写 worker 同源加载 public/ort/ 下的 wasm，绕开被墙的 cdn.jsdelivr.net
+RUN node scripts/sync-ort-wasm.mjs
 # Build-time env stubs to pass zod validation. REDIS_URL mirrors the runtime
 # schema (ioredis direct — the old UPSTASH_REST_* pair predates that switch
 # and fails env parsing now). Values are placeholders: nothing connects during

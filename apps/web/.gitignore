@@ -7,6 +7,9 @@
 
 .next/
 
+# ONNX Runtime wasm synced from node_modules by scripts/sync-ort-wasm.mjs
+/public/ort/
+
 .font-cache/
 
 next-env.d.ts

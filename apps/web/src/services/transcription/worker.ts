@@ -17,6 +17,12 @@ import {
 env.remoteHost = process.env.NEXT_PUBLIC_HF_ENDPOINT || "https://hf-mirror.com";
 env.allowLocalModels = false;
 
+// ONNX Runtime 的 wasm 二进制默认从 cdn.jsdelivr.net 拉（transformers.js 内部
+// 硬编码，remoteHost 管不到这条路径），国内对 jsdelivr 间歇性不可达时同样
+// "Failed to fetch"。构建期由 scripts/sync-ort-wasm.mjs 把 dist 里的 ort-wasm-*
+// 拷进 public/ort/，这里改同源加载；文件带 etag，浏览器 304 校验不会反复重下。
+env.backends.onnx.wasm.wasmPaths = "/ort/";
+
 export type WorkerMessage =
 	| { type: "init"; modelId: string }
 	| {
