@@ -18,6 +18,7 @@ import {
 	AudioBufferSink,
 	BlobSource,
 	Input,
+	InputDisposedError,
 	type WrappedAudioBuffer,
 } from "mediabunny";
 
@@ -269,82 +270,93 @@ export class AudioManager {
 		this.clipIterators.set(clip.id, iterator);
 		let consecutiveDroppedBufferCount = 0;
 
-		for await (const { buffer, timestamp } of iterator) {
-			if (!this.editor.playback.getIsPlaying()) return;
-			if (sessionId !== this.playbackSessionId) return;
+		// 播放停止/seek/媒体替换会把底层 Input dispose 掉，此时迭代器以
+		// InputDisposedError 拒绝——这是 stopPlayback 既有竞态的另一种表现，
+		// 与循环内的 stale-session 守卫同义，按正常结束处理而不是让它变成
+		// 未处理的 Promise 拒绝。finally 保证迭代器表项被清掉。
+		try {
+			for await (const { buffer, timestamp } of iterator) {
+				if (!this.editor.playback.getIsPlaying()) return;
+				if (sessionId !== this.playbackSessionId) return;
 
-			const timelineTime =
-				clip.startTime +
-				getClipTimeAtSourceTime({
-					sourceTime: timestamp - clip.trimStart,
-					retime: clip.retime,
-				});
-			if (timelineTime >= clipEnd) break;
+				const timelineTime =
+					clip.startTime +
+					getClipTimeAtSourceTime({
+						sourceTime: timestamp - clip.trimStart,
+						retime: clip.retime,
+					});
+				if (timelineTime >= clipEnd) break;
 
-			const node = audioContext.createBufferSource();
-			node.buffer = buffer;
-			if (clip.retime) {
-				node.playbackRate.value = clampRetimeRate({ rate: clip.retime.rate });
-			}
-			const clipGain = audioContext.createGain();
-			clipGain.gain.value = clip.volume;
-			node.connect(clipGain);
-			clipGain.connect(this.masterGain ?? audioContext.destination);
+				const node = audioContext.createBufferSource();
+				node.buffer = buffer;
+				if (clip.retime) {
+					node.playbackRate.value = clampRetimeRate({ rate: clip.retime.rate });
+				}
+				const clipGain = audioContext.createGain();
+				clipGain.gain.value = clip.volume;
+				node.connect(clipGain);
+				clipGain.connect(this.masterGain ?? audioContext.destination);
 
-			const startTimestamp =
-				this.playbackStartContextTime +
-				this.playbackLatencyCompensationSeconds +
-				(timelineTime - this.playbackStartTime);
+				const startTimestamp =
+					this.playbackStartContextTime +
+					this.playbackLatencyCompensationSeconds +
+					(timelineTime - this.playbackStartTime);
 
-			if (startTimestamp >= audioContext.currentTime) {
-				node.start(startTimestamp);
-				consecutiveDroppedBufferCount = 0;
-			} else {
-				const offset = audioContext.currentTime - startTimestamp;
-				if (offset < buffer.duration) {
-					node.start(audioContext.currentTime, offset);
+				if (startTimestamp >= audioContext.currentTime) {
+					node.start(startTimestamp);
 					consecutiveDroppedBufferCount = 0;
 				} else {
-					consecutiveDroppedBufferCount += 1;
-					if (consecutiveDroppedBufferCount >= 5) {
-						const nextCompensationSeconds = Math.max(
-							this.playbackLatencyCompensationSeconds,
-							Math.min(0.25, offset + 0.01),
-						);
-						if (
-							nextCompensationSeconds >
-							this.playbackLatencyCompensationSeconds + 0.001
-						) {
-							this.playbackLatencyCompensationSeconds = nextCompensationSeconds;
+					const offset = audioContext.currentTime - startTimestamp;
+					if (offset < buffer.duration) {
+						node.start(audioContext.currentTime, offset);
+						consecutiveDroppedBufferCount = 0;
+					} else {
+						consecutiveDroppedBufferCount += 1;
+						if (consecutiveDroppedBufferCount >= 5) {
+							const nextCompensationSeconds = Math.max(
+								this.playbackLatencyCompensationSeconds,
+								Math.min(0.25, offset + 0.01),
+							);
+							if (
+								nextCompensationSeconds >
+								this.playbackLatencyCompensationSeconds + 0.001
+							) {
+								this.playbackLatencyCompensationSeconds =
+									nextCompensationSeconds;
+							}
+							const resyncStartTime = this.getPlaybackTime();
+							this.clipIterators.delete(clip.id);
+							void this.runClipIterator({
+								clip,
+								startTime: resyncStartTime,
+								sessionId,
+							});
+							return;
 						}
-						const resyncStartTime = this.getPlaybackTime();
-						this.clipIterators.delete(clip.id);
-						void this.runClipIterator({
-							clip,
-							startTime: resyncStartTime,
-							sessionId,
-						});
-						return;
+						continue;
 					}
-					continue;
+				}
+
+				this.queuedSources.add(node);
+				node.addEventListener("ended", () => {
+					node.disconnect();
+					clipGain.disconnect();
+					this.queuedSources.delete(node);
+				});
+
+				const aheadTime = timelineTime - this.getPlaybackTime();
+				if (aheadTime >= 1) {
+					await this.waitUntilCaughtUp({ timelineTime, targetAhead: 1 });
+					if (sessionId !== this.playbackSessionId) return;
 				}
 			}
-
-			this.queuedSources.add(node);
-			node.addEventListener("ended", () => {
-				node.disconnect();
-				clipGain.disconnect();
-				this.queuedSources.delete(node);
-			});
-
-			const aheadTime = timelineTime - this.getPlaybackTime();
-			if (aheadTime >= 1) {
-				await this.waitUntilCaughtUp({ timelineTime, targetAhead: 1 });
-				if (sessionId !== this.playbackSessionId) return;
+		} catch (error) {
+			if (!(error instanceof InputDisposedError)) {
+				throw error;
 			}
+		} finally {
+			this.clipIterators.delete(clip.id);
 		}
-
-		this.clipIterators.delete(clip.id);
 		// don't remove from activeClipIds - prevents scheduler from restarting this clip
 		// the set is cleared on stopPlayback anyway
 	}
