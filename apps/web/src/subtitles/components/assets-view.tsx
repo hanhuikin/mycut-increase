@@ -34,6 +34,7 @@ import {
 	AlertCircleIcon,
 	CloudUploadIcon,
 	Download02Icon,
+	PaintBrushIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -49,6 +50,13 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
 import { toast } from "sonner";
 
@@ -186,6 +194,65 @@ export function Captions() {
 	const activeDiagnostics = useEditor((e) =>
 		e.diagnostics.getActive({ scope: TRANSCRIPTION_DIAGNOSTICS_SCOPE }),
 	);
+
+	// 整条字幕批量样式：作用域 = 时间轴上全部 text track 的元素。
+	const activeScene = useEditor((e) => e.scenes.getActiveSceneOrNull());
+	const captionTargets = useMemo(() => {
+		const tracks = activeScene?.tracks.overlay.filter(
+			(track) => track.type === "text",
+		);
+		return (
+			tracks?.flatMap((track) =>
+				track.elements.map((element) => ({ trackId: track.id, element })),
+			) ?? []
+		);
+	}, [activeScene]);
+
+	const [isBatchStyleOpen, setIsBatchStyleOpen] = useState(false);
+	const [batchStyle, setBatchStyle] = useState({
+		fontFamily: "Arial",
+		fontSize: 15,
+		color: "#FFFFFF",
+		fontWeight: "normal",
+		lineHeight: 1.2,
+	});
+	const syncBatchStyleFromTimeline = () => {
+		const first = captionTargets[0]?.element;
+		if (!first) return;
+		const { params } = first;
+		setBatchStyle({
+			fontFamily: String(params.fontFamily ?? "Arial"),
+			fontSize: Number(params.fontSize ?? 15),
+			color: String(params.color ?? "#ffffff").toUpperCase(),
+			fontWeight: String(params.fontWeight ?? "normal"),
+			lineHeight: Number(params.lineHeight ?? 1.2),
+		});
+	};
+
+	const applyBatchStyle = () => {
+		if (captionTargets.length === 0) return;
+		editor.timeline.updateElements({
+			updates: captionTargets.map(({ trackId, element }) => ({
+				trackId,
+				elementId: element.id,
+				patch: {
+					params: {
+						fontFamily: batchStyle.fontFamily,
+						fontSize: batchStyle.fontSize,
+						color: batchStyle.color,
+						fontWeight: batchStyle.fontWeight,
+						lineHeight: batchStyle.lineHeight,
+					},
+				},
+			})),
+		});
+		toast.success(
+			t["captions.apply_to_all_count"].replace(
+				"{count}",
+				String(captionTargets.length),
+			),
+		);
+	};
 
 	const insertCaptions = ({
 		captions,
@@ -368,6 +435,136 @@ export function Captions() {
 							<HugeiconsIcon icon={CloudUploadIcon} />
 							{t["captions.import"]}
 						</Button>
+						{captionTargets.length > 0 && (
+							<Popover
+								open={isBatchStyleOpen}
+								onOpenChange={(open) => {
+									setIsBatchStyleOpen(open);
+									if (open) syncBatchStyleFromTimeline();
+								}}
+							>
+								<PopoverTrigger asChild>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="items-center justify-center gap-1.5"
+									>
+										<HugeiconsIcon icon={PaintBrushIcon} />
+										{t["captions.batch_style"]}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent align="end" className="w-60">
+									<div className="flex flex-col gap-2.5">
+										<p className="text-muted-foreground text-xs">
+											{t["captions.batch_style_hint"].replace(
+												"{count}",
+												String(captionTargets.length),
+											)}
+										</p>
+										<label className="flex flex-col gap-1">
+											<span className="text-muted-foreground text-xs">
+												{t["prop.font"]}
+											</span>
+											<Input
+												value={batchStyle.fontFamily}
+												onChange={(event) =>
+													setBatchStyle((prev) => ({
+														...prev,
+														fontFamily: event.currentTarget.value,
+													}))
+												}
+											/>
+										</label>
+										<label className="flex flex-col gap-1">
+											<span className="text-muted-foreground text-xs">
+												{t["prop.font_size"]}
+											</span>
+											<Input
+												type="number"
+												min={1}
+												step={1}
+												value={batchStyle.fontSize}
+												onChange={(event) =>
+													setBatchStyle((prev) => ({
+														...prev,
+														fontSize: Number(event.currentTarget.value),
+													}))
+												}
+											/>
+										</label>
+										<div className="flex flex-col gap-1">
+											<span className="text-muted-foreground text-xs">
+												{t["prop.color"]}
+											</span>
+											<ColorPicker
+												value={batchStyle.color.replace(/^#/, "").toUpperCase()}
+												onChangeEnd={(color) =>
+													setBatchStyle((prev) => ({
+														...prev,
+														color: `#${color.toUpperCase()}`,
+													}))
+												}
+											/>
+										</div>
+										<label className="flex flex-col gap-1">
+											<span className="text-muted-foreground text-xs">
+												{t["prop.font_weight"]}
+											</span>
+											<Select
+												value={batchStyle.fontWeight}
+												onValueChange={(value) =>
+													setBatchStyle((prev) => ({
+														...prev,
+														fontWeight: value,
+													}))
+												}
+											>
+												<SelectTrigger>
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="normal">
+														{t["prop.font_weight.normal"]}
+													</SelectItem>
+													<SelectItem value="bold">
+														{t["prop.font_weight.bold"]}
+													</SelectItem>
+												</SelectContent>
+											</Select>
+										</label>
+										<label className="flex flex-col gap-1">
+											<span className="text-muted-foreground text-xs">
+												{t["prop.line_height"]}
+											</span>
+											<Input
+												type="number"
+												min={0.5}
+												step={0.1}
+												value={batchStyle.lineHeight}
+												onChange={(event) =>
+													setBatchStyle((prev) => ({
+														...prev,
+														lineHeight: Number(event.currentTarget.value),
+													}))
+												}
+											/>
+										</label>
+										<Button
+											type="button"
+											size="sm"
+											className="mt-1"
+											onClick={applyBatchStyle}
+										>
+											{t["captions.apply_to_all_count"].replace(
+												"{count}",
+												String(captionTargets.length),
+											)}
+										</Button>
+									</div>
+								</PopoverContent>
+							</Popover>
+						)}
 						{captions.length > 0 && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>

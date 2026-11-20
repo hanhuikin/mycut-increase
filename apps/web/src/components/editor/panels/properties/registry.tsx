@@ -36,6 +36,7 @@ import {
 	DashboardSpeed02Icon,
 } from "@hugeicons/core-free-icons";
 import { ElementParamsTab } from "./components/element-params-tab";
+import type { BatchParamTarget } from "./hooks/use-batch-param-property";
 import { ClipEffectsTab, StandaloneEffectTab } from "@/effects/components/effects-tab";
 import { MasksTab } from "@/masks/components/masks-tab";
 import { SpeedTab } from "@/speed/components/speed-tab";
@@ -74,6 +75,8 @@ const TEXT_PARAM_KEYS = [
 
 export type TabContentProps = {
 	trackId: string;
+	/** 多选批量编辑时提供（全部为 text 元素）；tab 内部据此切批量模式。 */
+	batchTargets?: BatchParamTarget[];
 };
 
 export type PropertiesTabDef = {
@@ -201,12 +204,13 @@ function buildTextTab({ element }: { element: TextElement }): PropertiesTabDef {
 		id: "text",
 		label: t["property.text"],
 		icon: <HugeiconsIcon icon={TextFontIcon} size={16} />,
-		content: ({ trackId }) => (
+		content: ({ trackId, batchTargets }) => (
 			<ElementParamsTab
 				element={element}
 				trackId={trackId}
 				paramKeys={TEXT_PARAM_KEYS}
 				sectionKey="text"
+				targets={batchTargets}
 			/>
 		),
 	};

@@ -392,6 +392,26 @@ export function useEditorActions() {
 	);
 
 	useActionHandler(
+		"select-track-elements",
+		({ trackId }) => {
+			const scene = editor.scenes.getActiveScene();
+			const track = [
+				...scene.tracks.overlay,
+				scene.tracks.main,
+				...scene.tracks.audio,
+			].find((candidate) => candidate.id === trackId);
+			if (!track) return;
+			setElementSelection({
+				elements: track.elements.map((element) => ({
+					trackId: track.id,
+					elementId: element.id,
+				})),
+			});
+		},
+		undefined,
+	);
+
+	useActionHandler(
 		"cancel-interaction",
 		() => {
 			if (!cancelInteraction()) {

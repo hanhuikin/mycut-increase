@@ -3,6 +3,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Delete02Icon,
+	ListViewIcon,
 	MagicWand05Icon,
 	MusicNote03Icon,
 	TaskAdd02Icon,
@@ -841,6 +842,15 @@ function TimelineTrackRows({
 						</div>
 					</ContextMenuTrigger>
 					<ContextMenuContent className="w-40">
+						<ContextMenuItem
+							icon={<HugeiconsIcon icon={ListViewIcon} />}
+							onClick={(event: React.MouseEvent) => {
+								event.stopPropagation();
+								invokeAction("select-track-elements", { trackId: track.id });
+							}}
+						>
+							{t["timeline.select_track_elements"]}
+						</ContextMenuItem>
 						<ContextMenuItem
 							icon={<HugeiconsIcon icon={TaskAdd02Icon} />}
 							onClick={(event: React.MouseEvent) => {

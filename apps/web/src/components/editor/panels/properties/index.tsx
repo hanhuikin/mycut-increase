@@ -33,6 +33,91 @@ export function PropertiesPanel() {
 	}
 
 	if (selectedElements.length > 1) {
+		const batchElementsWithTracks = editor.timeline.getElementsWithTracks({
+			elements: selectedElements,
+		});
+		// 全部是文本元素才进入批量编辑；混合类型维持提示文案。
+		const isAllText = batchElementsWithTracks.every(
+			({ element }) => element.type === "text",
+		);
+		const first = batchElementsWithTracks[0];
+
+		if (isAllText && first) {
+			const mediaAssets = editor.media.getAssets();
+			const config = getPropertiesConfig({
+				element: first.element,
+				mediaAssets,
+			});
+			const visibleTabs = config.tabs;
+
+			const storedTabId = activeTabPerType[first.element.type];
+			const isStoredTabVisible = visibleTabs.some((t) => t.id === storedTabId);
+			const activeTabId = isStoredTabVisible
+				? storedTabId
+				: config.defaultTab;
+			const activeTab =
+				visibleTabs.find((t) => t.id === activeTabId) ?? visibleTabs[0];
+
+			if (!activeTab) return null;
+
+			return (
+				<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-sm border">
+					<p className="text-muted-foreground border-b px-3 py-2 text-xs">
+						{t["properties.elements_selected"].replace(
+							"{count}",
+							String(selectedElements.length),
+						)}
+					</p>
+					<div className="flex min-h-0 flex-1">
+						<TooltipProvider delayDuration={0}>
+							<div className="flex shrink-0 flex-col gap-0.5 border-r p-1 scrollbar-hidden overflow-y-auto">
+								{visibleTabs.map((tab) => (
+									<Tooltip key={tab.id}>
+										<TooltipTrigger asChild>
+											<Button
+												variant={
+													tab.id === activeTab.id ? "secondary" : "ghost"
+												}
+												size="icon"
+												onClick={() =>
+													setActiveTab({
+														elementType: first.element.type,
+														tabId: tab.id,
+													})
+												}
+												aria-label={tab.label}
+												className={cn(
+													"shrink-0",
+													"h-8 w-8",
+													tab.id !== activeTab.id && "text-muted-foreground",
+												)}
+											>
+												{tab.icon}
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent side="right">
+											{tab.label}
+										</TooltipContent>
+									</Tooltip>
+								))}
+							</div>
+						</TooltipProvider>
+						<ScrollArea className="flex-1 scrollbar-hidden">
+							{activeTab.content({
+								trackId: first.track.id,
+								batchTargets: batchElementsWithTracks.map(
+									({ element, track }) => ({
+										trackId: track.id,
+										element,
+									}),
+								),
+							})}
+						</ScrollArea>
+					</div>
+				</div>
+			);
+		}
+
 		return (
 			<div className="panel bg-background flex h-full flex-col items-center justify-center overflow-hidden rounded-sm border">
 				<p className="text-muted-foreground text-sm">

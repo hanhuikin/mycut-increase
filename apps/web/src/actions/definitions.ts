@@ -107,6 +107,10 @@ export const ACTIONS = {
 		descriptionKey: "action.select_all",
 		category: "selection",
 	},
+	"select-track-elements": {
+		descriptionKey: "action.select_track_elements",
+		category: "selection",
+	},
 	"cancel-interaction": {
 		descriptionKey: "action.cancel_interaction",
 		category: "controls",

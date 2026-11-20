@@ -10,6 +10,7 @@ export type TActionArgsMap = {
 	"jump-backward": { seconds: number } | undefined;
 	"remove-media-asset": { projectId: string; assetId: string };
 	"remove-media-assets": { projectId: string; assetIds: string[] };
+	"select-track-elements": { trackId: string };
 };
 
 type TKeysWithValueUndefined<T> = {
