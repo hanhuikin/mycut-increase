@@ -80,6 +80,12 @@ class TranscriptionService {
 						});
 						break;
 
+					case "slice-debug":
+						console.info(
+							`[transcription] slice ${response.start.toFixed(1)}s-${response.end.toFixed(1)}s rms=${response.rms.toFixed(4)} chunks=${response.chunks}`,
+						);
+						break;
+
 					case "transcribe-complete":
 						settle(() =>
 							resolve({

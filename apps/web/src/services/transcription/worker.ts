@@ -10,18 +10,31 @@ import {
 	DEFAULT_STRIDE_SECONDS,
 } from "@/transcription/audio";
 
-// 模型权重默认从 huggingface.co 下载，国内直连不通（转写初始化直接
-// "Failed to fetch"）。改走 hf-mirror 镜像——URL 路径结构与官方完全一致，
-// 仅换域名；可用 NEXT_PUBLIC_HF_ENDPOINT 覆盖（自建反代/内网镜像）。
-// 不尝试本地 /models 目录（应用里不存在），下载结果由浏览器 Cache Storage 缓存。
-env.remoteHost = process.env.NEXT_PUBLIC_HF_ENDPOINT || "https://hf-mirror.com";
+// 模型权重默认走魔搭（ModelScope）。原方案 hf-mirror.com 已失效：它现在对
+// 所有文件 308 裸跳 huggingface.co，国内连不上官方站，转写初始化直接
+// "Failed to fetch"。魔搭镜像了 onnx-community 的 whisper 仓库，且全链路带
+// CORS（小文件 200 内联，大文件 302 → cdn-lfs-cn-*.modelscope.cn 后
+// Access-Control-Allow-Origin: *，实测 ~8MB/s），resolve/main 也可用。
+// 与 HF 路径结构只差一个 /models 前缀，改模板补上即可。注意
+// whisper-medium 魔搭暂缺（见 transcription/models.ts）。
+// 自建反代等 HF 兼容源可用 NEXT_PUBLIC_HF_ENDPOINT 覆盖（此时沿用 HF 模板）。
+const hfEndpoint = process.env.NEXT_PUBLIC_HF_ENDPOINT;
+if (hfEndpoint) {
+	env.remoteHost = hfEndpoint;
+} else {
+	env.remoteHost = "https://modelscope.cn";
+	env.remotePathTemplate = "models/{model}/resolve/{revision}/";
+}
 env.allowLocalModels = false;
 
 // ONNX Runtime 的 wasm 二进制默认从 cdn.jsdelivr.net 拉（transformers.js 内部
 // 硬编码，remoteHost 管不到这条路径），国内对 jsdelivr 间歇性不可达时同样
 // "Failed to fetch"。构建期由 scripts/sync-ort-wasm.mjs 把 dist 里的 ort-wasm-*
 // 拷进 public/ort/，这里改同源加载；文件带 etag，浏览器 304 校验不会反复重下。
-env.backends.onnx.wasm.wasmPaths = "/ort/";
+// 路径必须是绝对 URL：turbopack 会把 worker 打包成 blob（worker loader 的
+// __turbopack_context__.b(chunks)），blob worker 的脚本 base 不可用于相对路径
+// 解析——emscripten 的同步 XHR 拿相对路径直接 "Invalid URL"。
+env.backends.onnx.wasm.wasmPaths = `${self.location.origin}/ort/`;
 
 export type WorkerMessage =
 	| { type: "init"; modelId: string }
@@ -45,7 +58,14 @@ export type WorkerResponse =
 			language?: string;
 	  }
 	| { type: "transcribe-error"; error: string }
-	| { type: "cancelled" };
+	| { type: "cancelled" }
+	| {
+			type: "slice-debug";
+			start: number;
+			end: number;
+			rms: number;
+			chunks: number;
+	  };
 
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let cancelled = false;
@@ -270,6 +290,22 @@ async function handleTranscribe({
 				type: "transcribe-progress",
 				progress: Math.min(100, (processedSamples / totalSamples) * 100),
 			} satisfies WorkerResponse);
+
+			// 诊断：切片 RMS 能量 + 本片产出条数。识别漏段 vs 音频本身静音，
+			// 一条日志即可区分（RMS≈0 是音频没内容，RMS 高但 chunks=0 才是识别问题）。
+			{
+				let sumSquares = 0;
+				for (let i = 0; i < slice.length; i++) {
+					sumSquares += slice[i] * slice[i];
+				}
+				self.postMessage({
+					type: "slice-debug",
+					start: offsetSeconds,
+					end: sliceEnd / sampleRate,
+					rms: Math.sqrt(sumSquares / Math.max(1, slice.length)),
+					chunks: result.chunks?.length ?? 0,
+				} satisfies WorkerResponse);
+			}
 
 			sliceStart = nextSliceStart;
 		}

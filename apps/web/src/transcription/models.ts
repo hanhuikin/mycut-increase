@@ -18,13 +18,9 @@ export const TRANSCRIPTION_MODELS: TranscriptionModel[] = [
 		huggingFaceId: "onnx-community/whisper-small",
 		descriptionKey: "transcription.model.small_desc",
 	},
-	{
-		id: "whisper-medium",
-		name: "Medium",
-		labelKey: "transcription.model.medium",
-		huggingFaceId: "onnx-community/whisper-medium",
-		descriptionKey: "transcription.model.medium_desc",
-	},
+	// whisper-medium 暂不提供：默认模型源（魔搭，见 services/transcription/worker.ts）
+	// 没有镜像 onnx-community/whisper-medium，选中会在加载阶段失败。魔搭补货后
+	// 加回：{ id: "whisper-medium", huggingFaceId: "onnx-community/whisper-medium" }
 	{
 		id: "whisper-large-v3-turbo",
 		name: "Large v3 Turbo",
