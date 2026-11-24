@@ -13,30 +13,11 @@ const nextConfig: NextConfig = {
 	 * keep seeing them, and remove this once the debt is paid.
 	 */
 	typescript: { ignoreBuildErrors: true },
-	/**
-	 * 编辑器页启用跨域隔离（COOP + COEP credentialless）：解锁 SharedArrayBuffer
-	 * 后，字幕转写的 ONNX Runtime wasm 自动切多线程——无独显机器的 CPU 推理
-	 * 提速 2~4 倍。只作用于 /editor/*，避免影响登录 OAuth 弹窗与落地页外链。
-	 * credentialless 允许不带 CORP 的跨域 no-cors 子资源（Chrome 96+）；不支持
-	 * credentialless 的旧浏览器拿不到 SAB，自动退回单线程（变慢但不坏）。
-	 */
-	async headers() {
-		return [
-			{
-				source: "/editor/:path*",
-				headers: [
-					{
-						key: "Cross-Origin-Opener-Policy",
-						value: "same-origin",
-					},
-					{
-						key: "Cross-Origin-Embedder-Policy",
-						value: "credentialless",
-					},
-				],
-			},
-		];
-	},
+	// 曾经为字幕转写开启跨域隔离（COOP + COEP）以解锁 SharedArrayBuffer 让
+	// ONNX Runtime wasm 走多线程，但实测多线程会挂起会话创建（详见
+	// services/transcription/worker.ts 的 numThreads 注释），worker 现在固定
+	// 单线程，隔离已无收益，反而会让 credentialless 下的跨域资源更容易被拦，
+	// 因此整体移除。
 	compiler: {
 		// Production strips stray console.* debugging from the bundle, but
 		// error/warn survive: the structured logger (services/logging/) and

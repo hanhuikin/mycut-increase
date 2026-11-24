@@ -37,6 +37,14 @@ env.allowLocalModels = false;
 const onnxWasmConfig = env.backends.onnx?.wasm;
 if (onnxWasmConfig) {
 	onnxWasmConfig.wasmPaths = `${self.location.origin}/ort/`;
+	// 固定单线程。ONNX Runtime 的 wasm 多线程靠 emscripten pthread：
+	// 跨域隔离页面（SharedArrayBuffer 可用）下会自动开 numThreads=4，
+	// 但实测会话创建会永久挂起——页面主线程和 blob worker 里都会挂，
+	// 不是 turbopack 打包的问题（对照实验：同页面 4 线程挂死 >95s，
+	// 单线程 3s 内建好）。挂起的后果就是 UI 卡在「加载模型 100%」，
+	// 无独显机器上必现。单线程虽然慢 2~3 倍，但稳定出结果：
+	// 实测 RTF≈0.58（whisper-small q4，16 线程桌面 CPU，30s 音频 17.5s）。
+	onnxWasmConfig.numThreads = 1;
 }
 export type WorkerMessage =
 	| { type: "init"; modelId: string }
@@ -146,9 +154,12 @@ const WEBGPU_SLICE_TIMEOUT_MS = 90_000;
 async function disposeTranscriber(): Promise<void> {
 	const current = transcriber;
 	transcriber = null;
-	// 尽力释放：释放 ONNX 会话，交还 wasm/webgpu 内存
+	// 尽力释放：dispose 方法本身也要防（可选链只保护 current，不保护
+	// dispose 不是函数的运行时变体），失败一律忽略——降级优先于清理
 	try {
-		await current?.dispose();
+		if (current && typeof current.dispose === "function") {
+			await current.dispose();
+		}
 	} catch {
 		// 已释放/不支持的实现忽略
 	}
@@ -445,7 +456,8 @@ async function handleTranscribe({
 				if (cancelled) return;
 
 				if (error instanceof SliceTimeoutError) {
-					// webgpu 推理挂起 → 降级 wasm 重建并重跑本切片（只降级一次）
+					// webgpu 推理挂起 → 降级 wasm 重建并重跑本切片（只降级一次）。
+					// wasm 已是固定单线程（见文件头部 numThreads 注释）。
 					if (currentDevice === "auto") {
 						await disposeTranscriber();
 						currentDevice = "wasm";

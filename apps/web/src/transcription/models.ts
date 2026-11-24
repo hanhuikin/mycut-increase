@@ -12,6 +12,13 @@ export const TRANSCRIPTION_MODELS: TranscriptionModel[] = [
 		descriptionKey: "transcription.model.tiny_desc",
 	},
 	{
+		id: "whisper-base",
+		name: "Base",
+		labelKey: "transcription.model.base",
+		huggingFaceId: "onnx-community/whisper-base",
+		descriptionKey: "transcription.model.base_desc",
+	},
+	{
 		id: "whisper-small",
 		name: "Small",
 		labelKey: "transcription.model.small",

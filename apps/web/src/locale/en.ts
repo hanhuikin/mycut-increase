@@ -762,6 +762,9 @@ export const en = {
 	// ===== Transcription models and languages =====
 	"transcription.model.tiny": "Tiny",
 	"transcription.model.tiny_desc": "Fastest, lower accuracy",
+	"transcription.model.base": "Base",
+	"transcription.model.base_desc":
+		"Recommended for CPU: about 3-4x faster than Small",
 	"transcription.model.small": "Small",
 	"transcription.model.small_desc": "Good balance of speed and accuracy",
 	"transcription.model.medium": "Medium",

@@ -734,6 +734,8 @@ export const zh = {
 	// ===== 转写模型与语言 =====
 	"transcription.model.tiny": "Tiny",
 	"transcription.model.tiny_desc": "最快，准确度较低",
+	"transcription.model.base": "Base",
+	"transcription.model.base_desc": "CPU 推荐，速度约为 Small 的 3~4 倍",
 	"transcription.model.small": "Small",
 	"transcription.model.small_desc": "速度与准确度均衡",
 	"transcription.model.medium": "Medium",
