@@ -230,6 +230,13 @@ export class ProjectManager {
 	}
 
 	async export({ options }: { options: ExportOptions }): Promise<ExportResult> {
+		// 导出与播放共享主线程渲染、媒体解码与编码资源：边播边导会让两者互相
+		// 争抢——导出的逐帧渲染被预览循环拖到近乎停滞，预览画面也会持续走动。
+		// 导出前先停播放（标准剪辑软件行为），结束后不自动恢复。
+		if (this.editor.playback.getIsPlaying()) {
+			this.editor.playback.pause();
+		}
+
 		this.exportCancelRequested = false;
 		this.exportState = { isExporting: true, progress: 0, result: null };
 		this.notify();

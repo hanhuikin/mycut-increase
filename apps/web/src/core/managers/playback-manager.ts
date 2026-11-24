@@ -45,6 +45,13 @@ export class PlaybackManager {
 			return;
 		}
 
+		// 导出与播放共享渲染/解码/编码资源，边播边导会让导出近乎停滞
+		// （project-manager.export 已在导出开始时停播放）。导出期间拒绝
+		// 重新播放，与主流剪辑软件的阻断式导出一致。
+		if (this.editor.project.getExportState().isExporting) {
+			return;
+		}
+
 		if (this.currentTime >= maxTime) {
 			this.seek({ time: ZERO_MEDIA_TIME });
 		}
