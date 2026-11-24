@@ -62,6 +62,8 @@ export type WorkerResponse =
 	| { type: "transcribe-error"; error: string }
 	| { type: "cancelled" }
 	| { type: "device-fallback"; device: "wasm" }
+	| { type: "slice-heartbeat"; start: number; end: number }
+	| { type: "transcribe-start"; totalSeconds: number; language: string }
 	| { type: "transcribe-start"; totalSeconds: number; language: string }
 	| {
 			type: "slice-debug";
@@ -101,6 +103,35 @@ function withTimeout<T>({
 	]).finally(() => {
 		if (timer !== undefined) clearTimeout(timer);
 	});
+}
+
+/**
+ * 长推理（wasm 慢 CPU）期间定期心跳：主线程看门狗对所有消息都会续期，
+ * 有心跳就永远不会把「慢但活着」的推理误判成「挂起」。
+ */
+async function withHeartbeat<T>({
+	promise,
+	start,
+	end,
+	intervalMs = 20_000,
+}: {
+	promise: Promise<T>;
+	start: number;
+	end: number;
+	intervalMs?: number;
+}): Promise<T> {
+	const timer = setInterval(() => {
+		self.postMessage({
+			type: "slice-heartbeat",
+			start,
+			end,
+		} satisfies WorkerResponse);
+	}, intervalMs);
+	try {
+		return await promise;
+	} finally {
+		clearInterval(timer);
+	}
 }
 
 /**
@@ -389,14 +420,27 @@ async function handleTranscribe({
 				return_timestamps: true,
 			};
 
+			// webgpu 路径带超时（挂起检测→降级 wasm）；wasm 路径不限时——
+			// 弱 CPU 上一个切片可能要几分钟，靠心跳喂主线程看门狗而不是超时。
+			const inferPromise = transcriber(slice, transcribeOptions);
+			// 超时弃用后原推理 promise 可能仍在跑，吞掉迟到的 rejection
+			void inferPromise.catch(() => {});
+
 			let rawResult:
 				| AutomaticSpeechRecognitionOutput
 				| AutomaticSpeechRecognitionOutput[];
 			try {
-				rawResult = await withTimeout({
-					promise: transcriber(slice, transcribeOptions),
-					timeoutMs: WEBGPU_SLICE_TIMEOUT_MS,
-				});
+				rawResult =
+					currentDevice === "auto"
+						? await withTimeout({
+								promise: inferPromise,
+								timeoutMs: WEBGPU_SLICE_TIMEOUT_MS,
+							})
+						: await withHeartbeat({
+								promise: inferPromise,
+								start: offsetSeconds,
+								end: sliceEnd / sampleRate,
+							});
 			} catch (error) {
 				if (cancelled) return;
 
@@ -414,7 +458,11 @@ async function handleTranscribe({
 							device: "wasm",
 							timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
 						});
-						rawResult = await transcriber(slice, transcribeOptions);
+						rawResult = await withHeartbeat({
+							promise: transcriber(slice, transcribeOptions),
+							start: offsetSeconds,
+							end: sliceEnd / sampleRate,
+						});
 					} else {
 						// 已经是 wasm 还超时：交给主线程看门狗兜底
 						throw error;

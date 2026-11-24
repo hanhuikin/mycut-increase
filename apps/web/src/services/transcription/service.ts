@@ -101,6 +101,10 @@ class TranscriptionService {
 						);
 						break;
 
+					case "slice-heartbeat":
+						// wasm 慢推理的心跳：handleMessage 顶部已续期看门狗，静默即可
+						break;
+
 					case "slice-debug":
 						console.info(
 							response.rms < 0
