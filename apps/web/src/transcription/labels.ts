@@ -13,7 +13,10 @@ export function transcriptionStepLabel({
 }): string {
 	switch (task.stage) {
 		case "extracting_audio":
-			return t["captions.extracting_audio"];
+			return appendProgress({
+				label: t["captions.extracting_audio"],
+				progress: task.progress,
+			});
 		case "preparing_audio":
 			return t["captions.preparing_audio"];
 		case "loading_model":
@@ -22,14 +25,25 @@ export function transcriptionStepLabel({
 				String(Math.round(task.progress ?? 0)),
 			);
 		case "transcribing":
-			return task.progress != null
-				? `${t["captions.transcribing"]} ${Math.round(task.progress)}%`
-				: t["captions.transcribing"];
+			return appendProgress({
+				label: t["captions.transcribing"],
+				progress: task.progress,
+			});
 		case "generating_captions":
 			return t["captions.generating_captions"];
 		default:
 			return t["captions.transcribing"];
 	}
+}
+
+function appendProgress({
+	label,
+	progress,
+}: {
+	label: string;
+	progress: number | null;
+}): string {
+	return progress != null ? `${label} ${Math.round(progress)}%` : label;
 }
 
 export function transcriptionModelLabel({

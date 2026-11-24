@@ -342,6 +342,7 @@ export const extractTimelineAudio = async ({
 	 */
 	sampleRate: targetSampleRate = SAMPLE_RATE,
 	channels: targetChannels = NUM_CHANNELS,
+	onElementProgress,
 }: {
 	tracks: SceneTracks;
 	mediaAssets: MediaAsset[];
@@ -349,16 +350,56 @@ export const extractTimelineAudio = async ({
 	onProgress?: (progress: number) => void;
 	sampleRate?: number;
 	channels?: number;
+	onElementProgress?: (completed: number, total: number) => void;
 }): Promise<Blob> => {
+	const samples = await extractTimelineAudioSamples({
+		tracks,
+		mediaAssets,
+		totalDuration,
+		onProgress,
+		sampleRate: targetSampleRate,
+		channels: targetChannels,
+		onElementProgress,
+	});
+
+	return createWavBlob({
+		samples: samples.samples,
+		sampleRate: samples.sampleRate,
+		channels: targetChannels,
+	});
+};
+
+/**
+ * 与 extractTimelineAudio 相同的提取逻辑，但直接返回单声道/交织浮点 samples，
+ * 跳过「编码 int16 WAV → blob → decodeAudioData 解码」的往返。长内容下该
+ * 往返意味着多份全量拷贝（blob/arrayBuffer/解码 AudioBuffer/mixdown），
+ * decodeAudioData 还是个无进度的黑盒——是「准备音频中」假死的元凶。
+ */
+export const extractTimelineAudioSamples = async ({
+	tracks,
+	mediaAssets,
+	totalDuration,
+	onProgress,
+	sampleRate: targetSampleRate = SAMPLE_RATE,
+	channels: targetChannels = NUM_CHANNELS,
+	onElementProgress,
+}: {
+	tracks: SceneTracks;
+	mediaAssets: MediaAsset[];
+	totalDuration: number;
+	onProgress?: (progress: number) => void;
+	sampleRate?: number;
+	channels?: number;
+	onElementProgress?: (completed: number, total: number) => void;
+}): Promise<{ samples: Float32Array; sampleRate: number }> => {
 	if (totalDuration === 0) {
-		return createWavBlob({
+		return {
 			samples: new Float32Array(
 				targetSampleRate * EMPTY_TIMELINE_SILENT_DURATION_SECONDS *
 					targetChannels,
 			),
 			sampleRate: targetSampleRate,
-			channels: targetChannels,
-		});
+		};
 	}
 
 	onProgress?.(10);
@@ -368,6 +409,8 @@ export const extractTimelineAudio = async ({
 		mediaAssets,
 		duration: totalDuration,
 		sampleRate: targetSampleRate,
+		channels: targetChannels,
+		onElementProgress,
 	});
 
 	if (!audioBuffer) {
@@ -378,11 +421,7 @@ export const extractTimelineAudio = async ({
 		const silentSamples = new Float32Array(
 			Math.ceil(silentDurationSeconds * targetSampleRate) * targetChannels,
 		);
-		return createWavBlob({
-			samples: silentSamples,
-			sampleRate: targetSampleRate,
-			channels: targetChannels,
-		});
+		return { samples: silentSamples, sampleRate: targetSampleRate };
 	}
 
 	onProgress?.(90);
@@ -393,11 +432,7 @@ export const extractTimelineAudio = async ({
 	});
 	onProgress?.(100);
 
-	return createWavBlob({
-		samples: interleavedSamples,
-		sampleRate: targetSampleRate,
-		channels: targetChannels,
-	});
+	return { samples: interleavedSamples, sampleRate: targetSampleRate };
 };
 
 function interleaveAudioBuffer({

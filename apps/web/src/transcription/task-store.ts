@@ -2,8 +2,7 @@
 
 import { create } from "zustand";
 import type { EditorCore } from "@/core";
-import { decodeAudioToFloat32 } from "@/media/audio";
-import { extractTimelineAudio } from "@/media/mediabunny";
+import { extractTimelineAudioSamples } from "@/media/mediabunny";
 import { transcriptionService } from "@/services/transcription/service";
 import { insertCaptionChunksAsTextTrack } from "@/subtitles/insert";
 import { DEFAULT_TRANSCRIPTION_SAMPLE_RATE } from "@/transcription/audio";
@@ -135,9 +134,11 @@ export const useTranscriptionQueue = create<TranscriptionQueueState>(
 			};
 
 			try {
-				// 转写只需要 16kHz 单声道：直接按目标格式提取，长时间轴的
-				// 主线程峰值内存比默认 44.1kHz 双声道低 ~5.5×。
-				const audioBlob = await extractTimelineAudio({
+				// 转写只需要 16kHz 单声道：直接按目标格式提取并取回浮点 samples。
+				// 不走 WAV blob → decodeAudioData 的往返——长内容下那段解码是
+				// 无进度黑盒且内存峰值数倍于 samples 本身，曾表现为「准备音频中」
+				// 永远转圈。onElementProgress 让长时间轴的提取阶段有真实进度。
+				const { samples } = await extractTimelineAudioSamples({
 					tracks: editor.scenes.getActiveScene().tracks,
 					mediaAssets: editor.media.getAssets(),
 					totalDuration: editor.timeline.getTotalDuration(),
@@ -146,13 +147,12 @@ export const useTranscriptionQueue = create<TranscriptionQueueState>(
 					onProgress: (progress) => {
 						update({ stage: "extracting_audio", progress });
 					},
-				});
-				if (run.aborted) return null;
-
-				update({ stage: "preparing_audio" });
-				const { samples } = await decodeAudioToFloat32({
-					audioBlob,
-					sampleRate: DEFAULT_TRANSCRIPTION_SAMPLE_RATE,
+					onElementProgress: (completed, total) => {
+						update({
+							stage: "extracting_audio",
+							progress: 10 + (80 * completed) / Math.max(1, total),
+						});
+					},
 				});
 				if (run.aborted) return null;
 

@@ -34,8 +34,10 @@ env.allowLocalModels = false;
 // 路径必须是绝对 URL：turbopack 会把 worker 打包成 blob（worker loader 的
 // __turbopack_context__.b(chunks)），blob worker 的脚本 base 不可用于相对路径
 // 解析——emscripten 的同步 XHR 拿相对路径直接 "Invalid URL"。
-env.backends.onnx.wasm.wasmPaths = `${self.location.origin}/ort/`;
-
+const onnxWasmConfig = env.backends.onnx?.wasm;
+if (onnxWasmConfig) {
+	onnxWasmConfig.wasmPaths = `${self.location.origin}/ort/`;
+}
 export type WorkerMessage =
 	| { type: "init"; modelId: string }
 	| {
@@ -48,7 +50,7 @@ export type WorkerMessage =
 
 export type WorkerResponse =
 	| { type: "init-progress"; progress: number }
-	| { type: "init-complete" }
+	| { type: "init-complete"; device: "auto" | "wasm" }
 	| { type: "init-error"; error: string }
 	| { type: "transcribe-progress"; progress: number }
 	| {
@@ -59,6 +61,8 @@ export type WorkerResponse =
 	  }
 	| { type: "transcribe-error"; error: string }
 	| { type: "cancelled" }
+	| { type: "device-fallback"; device: "wasm" }
+	| { type: "transcribe-start"; totalSeconds: number; language: string }
 	| {
 			type: "slice-debug";
 			start: number;
@@ -68,22 +72,114 @@ export type WorkerResponse =
 	  };
 
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
+let currentModelId: string | null = null;
+// "auto" 表示尚未降级过；超时降级后固定为 "wasm"，不再重复降级。
+let currentDevice: "auto" | "wasm" = "auto";
 let cancelled = false;
 let lastReportedProgress = -1;
 const fileBytes = new Map<string, { loaded: number; total: number }>();
 
-	self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
-		const message = event.data;
+class SliceTimeoutError extends Error {}
 
-		switch (message.type) {
+/** race 输掉后清掉 timer，避免悬挂的 reject 定时器。 */
+function withTimeout<T>({
+	promise,
+	timeoutMs,
+}: {
+	promise: Promise<T>;
+	timeoutMs: number;
+}): Promise<T> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	return Promise.race([
+		promise,
+		new Promise<never>((_, reject) => {
+			timer = setTimeout(
+				() => reject(new SliceTimeoutError(`inference timeout after ${timeoutMs}ms`)),
+				timeoutMs,
+			);
+		}),
+	]).finally(() => {
+		if (timer !== undefined) clearTimeout(timer);
+	});
+}
+
+/**
+ * WebGPU 推理在部分驱动/GPU 上会整体挂起（promise 永不 resolve，事件循环
+ * 仍存活）。切片超时 → 丢弃 webgpu 会话、用 wasm（CPU，稳定但慢）重建后
+ * 重跑当前切片——异步等待期间事件循环空闲，降级可以自愈。
+ */
+const WEBGPU_PIPELINE_TIMEOUT_MS = 120_000;
+const WASM_PIPELINE_TIMEOUT_MS = 240_000;
+const WEBGPU_SLICE_TIMEOUT_MS = 90_000;
+
+async function disposeTranscriber(): Promise<void> {
+	const current = transcriber;
+	transcriber = null;
+	// 尽力释放：释放 ONNX 会话，交还 wasm/webgpu 内存
+	try {
+		await current?.dispose();
+	} catch {
+		// 已释放/不支持的实现忽略
+	}
+}
+
+async function createTranscriber({
+	modelId,
+	device,
+	timeoutMs,
+	onProgress,
+}: {
+	modelId: string;
+	device: "auto" | "wasm";
+	timeoutMs: number;
+	onProgress?: (progressInfo: {
+		status?: string;
+		file?: string;
+		loaded?: number;
+		total?: number;
+	}) => void;
+}): Promise<AutomaticSpeechRecognitionPipeline> {
+	// device 用字面量分支调用：union 变量传入会让 TS 推导爆炸（TS2590），
+	// 又得靠断言收口（会触发 no-unsafe-type-assertion）。
+	const created =
+		device === "wasm"
+			? await withTimeout({
+					promise: pipeline(
+						"automatic-speech-recognition",
+						modelId,
+						{
+							dtype: "q4",
+							device: "wasm",
+							progress_callback: onProgress,
+						},
+					),
+					timeoutMs,
+				})
+			: await withTimeout({
+					promise: pipeline(
+						"automatic-speech-recognition",
+						modelId,
+						{
+							dtype: "q4",
+							device: "auto",
+							progress_callback: onProgress,
+						},
+					),
+					timeoutMs,
+				});
+	return created;
+}
+
+	self.onmessage = async ({ data }: MessageEvent<WorkerMessage>) => {
+		switch (data.type) {
 			case "init":
-				await handleInit({ modelId: message.modelId });
+				await handleInit({ modelId: data.modelId });
 				break;
 			case "transcribe":
 				await handleTranscribe({
-					audio: message.audio,
-					language: message.language,
-					sampleRate: message.sampleRate,
+					audio: data.audio,
+					language: data.language,
+					sampleRate: data.sampleRate,
 				});
 				break;
 			case "cancel":
@@ -95,31 +191,31 @@ const fileBytes = new Map<string, { loaded: number; total: number }>();
 
 // 线程级兜底：未捕获异常（含部分 OOM 场景）走这里，保证主线程的 Promise
 // 能收到失败而不是永远 pending。
-self.onerror = (event) => {
-	const detail =
-		typeof event === "string"
-			? event
-			: ((event as ErrorEvent).message ?? "Transcription worker crashed");
-	self.postMessage({
-		type: "transcribe-error",
-		error: detail || "Transcription worker crashed",
-	} satisfies WorkerResponse);
-};
+	self.onerror = (event) => {
+		const detail =
+			typeof event === "string"
+				? event
+				: event instanceof ErrorEvent
+					? event.message
+					: "Transcription worker crashed";
+		self.postMessage({
+			type: "transcribe-error",
+			error: detail || "Transcription worker crashed",
+		} satisfies WorkerResponse);
+	};
 
 async function handleInit({ modelId }: { modelId: string }) {
 	lastReportedProgress = -1;
 	fileBytes.clear();
+	currentModelId = modelId;
+	currentDevice = "auto";
 
 	try {
-		transcriber = (await pipeline("automatic-speech-recognition", modelId, {
-			dtype: "q4",
+		transcriber = await createTranscriber({
+			modelId,
 			device: "auto",
-			progress_callback: (progressInfo: {
-				status?: string;
-				file?: string;
-				loaded?: number;
-				total?: number;
-			}) => {
+			timeoutMs: WEBGPU_PIPELINE_TIMEOUT_MS,
+			onProgress: (progressInfo) => {
 				const file = progressInfo.file;
 				if (!file) return;
 
@@ -159,22 +255,61 @@ async function handleInit({ modelId }: { modelId: string }) {
 					} satisfies WorkerResponse);
 				}
 			},
-		})) as unknown as AutomaticSpeechRecognitionPipeline;
+		});
 
-		self.postMessage({ type: "init-complete" } satisfies WorkerResponse);
-	} catch (error) {
 		self.postMessage({
-			type: "init-error",
-			error: error instanceof Error ? error.message : "Failed to load model",
+			type: "init-complete",
+			device: currentDevice,
 		} satisfies WorkerResponse);
+	} catch (error) {
+		// auto（webgpu）会话创建超时/失败 → 降级 wasm 重建。权重此时多半已
+		// 在 Cache Storage，重建只需重新编译会话。
+		const timedOut = error instanceof SliceTimeoutError;
+		if (!timedOut) {
+			self.postMessage({
+				type: "init-error",
+				error:
+					error instanceof Error ? error.message : "Failed to load model",
+			} satisfies WorkerResponse);
+			return;
+		}
+
+		await disposeTranscriber();
+		currentDevice = "wasm";
+		self.postMessage({
+			type: "device-fallback",
+			device: "wasm",
+		} satisfies WorkerResponse);
+		try {
+			transcriber = await createTranscriber({
+				modelId,
+				device: "wasm",
+				timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
+			});
+			self.postMessage({
+				type: "init-complete",
+				device: currentDevice,
+			} satisfies WorkerResponse);
+		} catch (fallbackError) {
+			self.postMessage({
+				type: "init-error",
+				error:
+					fallbackError instanceof Error
+						? fallbackError.message
+						: "Failed to load model",
+			} satisfies WorkerResponse);
+		}
 	}
 }
 
 // 分段转写参数。transformers.js 的 _call_whisper 会把所有 30s 窗口的特征
 // 张量一次性建好再逐个生成——长音频一次喂入是 GB 级内存，WASM 堆直接 OOM，
-// worker 崩掉后 UI 永远停在"转写中"。按 90s 切片逐段调用：每段内部只有
-// ~4 个窗口张量，峰值内存 MB 级；段间上报真实进度；单段失败可重试。
-const SLICE_SECONDS = 90;
+// worker 崩掉后 UI 永远停在"转写中"。切片取 28s + 2s 重叠 = 每次喂给
+// whisper 的恰好是 30s **原生窗口**：若切成 30s+2s 重叠（32s 输入），
+// whisper 内部会再切出一个 12s 尾巴窗口，非原生长度窗口容易幻觉/漏识别
+// （实测整段字幕碎片化 + 大段空洞）。峰值内存 MB 级；段间上报真实进度；
+// 单段失败可重试。
+const SLICE_SECONDS = 28;
 // 相邻切片的重叠秒数：避免在词中间硬切。重叠区两侧都会识别出边界词，
 // 合并时按「中点属于哪个切片」去重（见 handleTranscribe）。
 const OVERLAP_SECONDS = 2;
@@ -199,6 +334,13 @@ async function handleTranscribe({
 	cancelled = false;
 
 	const totalSamples = audio.length;
+
+	// 观测：实际进入推理的音频总长。若远小于时间轴时长，说明提取阶段截断。
+	self.postMessage({
+		type: "transcribe-start",
+		totalSeconds: totalSamples / sampleRate,
+		language,
+	} satisfies WorkerResponse);
 	const sliceSamples = Math.max(
 		1,
 		Math.floor(SLICE_SECONDS * sampleRate),
@@ -231,25 +373,56 @@ async function handleTranscribe({
 			// subarray 是视图，零拷贝
 			const slice = audio.subarray(sliceStart, sliceEnd);
 
+			// 切片开始即上报：主线程看门狗被喂活，console 里也能看到切片在推进
+			self.postMessage({
+				type: "slice-debug",
+				start: offsetSeconds,
+				end: sliceEnd / sampleRate,
+				rms: -1,
+				chunks: -1,
+			} satisfies WorkerResponse);
+
+			const transcribeOptions = {
+				chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
+				stride_length_s: DEFAULT_STRIDE_SECONDS,
+				language: language === "auto" ? undefined : language,
+				return_timestamps: true,
+			};
+
 			let rawResult:
 				| AutomaticSpeechRecognitionOutput
 				| AutomaticSpeechRecognitionOutput[];
 			try {
-				rawResult = await transcriber(slice, {
-					chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
-					stride_length_s: DEFAULT_STRIDE_SECONDS,
-					language: language === "auto" ? undefined : language,
-					return_timestamps: true,
+				rawResult = await withTimeout({
+					promise: transcriber(slice, transcribeOptions),
+					timeoutMs: WEBGPU_SLICE_TIMEOUT_MS,
 				});
 			} catch (error) {
 				if (cancelled) return;
-				// 单段重试一次：内存紧张/瞬时解码错误多见于段边界
-				rawResult = await transcriber(slice, {
-					chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
-					stride_length_s: DEFAULT_STRIDE_SECONDS,
-					language: language === "auto" ? undefined : language,
-					return_timestamps: true,
-				});
+
+				if (error instanceof SliceTimeoutError) {
+					// webgpu 推理挂起 → 降级 wasm 重建并重跑本切片（只降级一次）
+					if (currentDevice === "auto") {
+						await disposeTranscriber();
+						currentDevice = "wasm";
+						self.postMessage({
+							type: "device-fallback",
+							device: "wasm",
+						} satisfies WorkerResponse);
+						await createTranscriber({
+							modelId: currentModelId ?? "",
+							device: "wasm",
+							timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
+						});
+						rawResult = await transcriber(slice, transcribeOptions);
+					} else {
+						// 已经是 wasm 还超时：交给主线程看门狗兜底
+						throw error;
+					}
+				} else {
+					// 非超时错误重试一次：内存紧张/瞬时解码错误多见于段边界
+					rawResult = await transcriber(slice, transcribeOptions);
+				}
 			}
 
 			if (cancelled) return;
@@ -258,26 +431,19 @@ async function handleTranscribe({
 				? rawResult[0]
 				: rawResult;
 
-			// 重叠区去重：上一段遗留的「中点越过当前切片起点」的段落移除，
-			// 当前切片只保留中点落在自己区间内的段落（首段全保留）。
-			if (sliceStart > 0) {
-				for (let i = segments.length - 1; i >= 0; i--) {
-					const previous = segments[i];
-					if ((previous.start + previous.end) / 2 >= boundarySeconds) {
-						segments.splice(i, 1);
-					}
-				}
-			}
-
+			// 重叠区去重：按 chunk 中点划归唯一辖区 [sliceStart, boundarySeconds)。
+			// 中点落在上一切片辖区的（理论上不存在，防御性跳过）与落在下一切片
+			// 辖区的（下片会重新识别）都不保留——旧实现把上界写成了保留条件
+			// （中点 < 本片终点即跳过），导致每个切片只留下尾部 2s 重叠区的
+			// 碎片，其余产出全部丢弃：字幕碎片化 + 大段空洞。
 			if (result.chunks) {
 				for (const chunk of result.chunks) {
 					if (!chunk.timestamp || chunk.timestamp.length < 2) continue;
 					const start = offsetSeconds + (chunk.timestamp[0] ?? 0);
 					const end = offsetSeconds + (chunk.timestamp[1] ?? chunk.timestamp[0] ?? 0);
-					if (sliceStart > 0 && (start + end) / 2 < boundarySeconds) {
-						// 属于上一切片的辖区
-						continue;
-					}
+					const midpoint = (start + end) / 2;
+					if (midpoint < offsetSeconds) continue;
+					if (midpoint >= boundarySeconds) continue;
 					segments.push({ text: chunk.text, start, end });
 				}
 			}

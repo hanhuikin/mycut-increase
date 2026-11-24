@@ -53,6 +53,14 @@ class TranscriptionService {
 		if (this.cancelled) {
 			throw new Error("Transcription cancelled");
 		}
+		// 模型就绪后立刻报 转写中 0%：文件下载进度停在 100% 之后还有一段
+		// ORT 会话编译的静默期（无回调），不切阶段的话 UI 会一直停在
+		// 「加载模型 100%」看起来像卡死。第一片转写完成前都显示 0%。
+		onProgress?.({
+			status: "transcribing",
+			progress: 0,
+			message: "Transcribing audio...",
+		});
 
 		return new Promise((resolve, reject) => {
 			if (!this.worker) {
@@ -80,9 +88,24 @@ class TranscriptionService {
 						});
 						break;
 
+					case "transcribe-start":
+						console.info(
+							`[transcription] 开始转写: 音频 ${response.totalSeconds.toFixed(1)}s, 语言 ${response.language}`,
+						);
+						break;
+
+					case "device-fallback":
+						// WebGPU 推理挂起，worker 已自行降级 CPU(wasm) 并重跑当前切片
+						console.info(
+							"[transcription] WebGPU 推理无响应，已降级 CPU(wasm) 继续",
+						);
+						break;
+
 					case "slice-debug":
 						console.info(
-							`[transcription] slice ${response.start.toFixed(1)}s-${response.end.toFixed(1)}s rms=${response.rms.toFixed(4)} chunks=${response.chunks}`,
+							response.rms < 0
+								? `[transcription] slice ${response.start.toFixed(1)}s-${response.end.toFixed(1)}s 推理中...`
+								: `[transcription] slice ${response.start.toFixed(1)}s-${response.end.toFixed(1)}s rms=${response.rms.toFixed(4)} chunks=${response.chunks}`,
 						);
 						break;
 
@@ -204,6 +227,9 @@ class TranscriptionService {
 							this.isInitialized = true;
 							this.isInitializing = false;
 							this.currentModelId = modelId;
+							console.info(
+								`[transcription] 模型就绪 (backend: ${response.device})`,
+							);
 							resolve();
 						});
 						break;

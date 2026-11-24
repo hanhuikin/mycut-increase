@@ -628,12 +628,18 @@ export async function createTimelineAudioBuffer({
 	duration,
 	sampleRate = EXPORT_SAMPLE_RATE,
 	audioContext,
+	channels = 2,
+	onElementProgress,
 }: {
 	tracks: SceneTracks;
 	mediaAssets: MediaAsset[];
 	duration: number;
 	sampleRate?: number;
 	audioContext?: AudioContext;
+	/** 输出声道数。导出默认 2；纯分析场景（转写）传 1 可把最大分配减半。 */
+	channels?: number;
+	/** 每混完一个元素回调一次，供长内容进度展示。 */
+	onElementProgress?: (completed: number, total: number) => void;
 }): Promise<AudioBuffer | null> {
 	const context = audioContext ?? createAudioContext({ sampleRate });
 
@@ -645,7 +651,7 @@ export async function createTimelineAudioBuffer({
 
 	if (audioElements.length === 0) return null;
 
-	const outputChannels = 2;
+	const outputChannels = channels;
 	const durationSeconds = duration / TICKS_PER_SECOND;
 	const outputLength = Math.ceil(durationSeconds * sampleRate);
 	const outputBuffer = context.createBuffer(
@@ -654,8 +660,14 @@ export async function createTimelineAudioBuffer({
 		sampleRate,
 	);
 
+	let completedElements = 0;
+	const totalElements = audioElements.length;
 	for (const element of audioElements) {
-		if (element.muted) continue;
+		if (element.muted) {
+			completedElements += 1;
+			onElementProgress?.(completedElements, totalElements);
+			continue;
+		}
 
 		const renderedBuffer = shouldMaintainPitch({
 			rate: element.retime?.rate ?? 1,
@@ -680,6 +692,8 @@ export async function createTimelineAudioBuffer({
 			outputLength,
 			sampleRate,
 		});
+		completedElements += 1;
+		onElementProgress?.(completedElements, totalElements);
 	}
 
 	return await applyAudioMasteringToBuffer({ audioBuffer: outputBuffer });
@@ -833,7 +847,7 @@ function mixAudioChannels({
 	const outputStartSample = Math.floor(startTime * sampleRate);
 	const renderedLength = Math.ceil(elementDuration * sampleRate);
 
-	const outputChannels = 2;
+	const outputChannels = outputBuffer.numberOfChannels;
 	for (let channel = 0; channel < outputChannels; channel++) {
 		const outputData = outputBuffer.getChannelData(channel);
 		const sourceChannel = Math.min(channel, buffer.numberOfChannels - 1);
