@@ -1,5 +1,4 @@
 pipeline {
-  // 改成你装了 Docker 的 agent 标签；只有一台机器且装了 docker 就写 agent any
   agent { label '143-test' }
   options {
     // Multibranch 下这个选项只约束"同一分支"的并发；不同分支仍可并行
@@ -14,14 +13,23 @@ pipeline {
     REGISTRY   = 'harbor.sunwin-sh.com'
     APP        = 'mycut'
     DOCKERFILE = 'Dockerfile'
-    // 若 Dockerfile 的 FROM 指向私有项目里的镜像（如 harbor.sunwin-sh.com/uat/bun:...），
-    // 把它填在这里，stage 2 会先预拉一次，避免构建期解析元数据失败
-    BASE_IMAGE = 'harbor.sunwin-sh.com/uat/bun:1.2.18-alpine' // 与 Dockerfile 的 ARG BASE_IMAGE 一致；留空则跳过预拉取
+    // 若 Dockerfile 的 FROM 指向私有项目里的镜像（如 harbor.sunwin-sh.com/uat/bun:1.2.18-alpine），
+    // 把它填在这里，stage 3 会先预拉一次，避免构建期解析元数据失败
+    BASE_IMAGE = ''                              // ← 按 Dockerfile 实际 FROM 填写；留空则跳过预拉取
     // ===== Argo CD 专属 Git 仓库 =====
     GITOPS_REPO   = 'http://192.168.88.42/devops/argocd/mycut.git'
     GITOPS_BRANCH = 'main'
     // GITOPS_FILE 与 HARBOR_PROJECT 由 stage 1 按分支赋值，不在这里写死
     // 注：多分支下不再同时改 test 与 prod，各分支只改自己那份清单
+    // ===== Trivy =====
+    // 漏洞库用 Harbor 私有项目 uat 里已有的 OCI 库，不依赖 ghcr.io 出网
+    TRIVY_DB_REPOSITORY      = 'harbor.sunwin-sh.com/uat/trivy-db:2'
+    TRIVY_JAVA_DB_REPOSITORY = 'harbor.sunwin-sh.com/uat/trivy-java-db:1'
+    TRIVY_CACHE_DIR          = '/data/jenkins-agent/cache/trivy'
+    // agent 上没装 trivy 二进制时才会用到这个镜像；tag 按 Harbor 里实际的改
+    TRIVY_IMAGE              = 'harbor.sunwin-sh.com/uat/trivy:latest'
+    STRICT_SCA               = 'false'   // true=高危漏洞阻断构建；当前先收集基线
+    STRICT_IMAGE_SCAN        = 'false'   // true=镜像存在 CRITICAL 漏洞时阻断推送
   }
   stages {
     stage('1. 分支环境映射 + 生成日期时间 tag') {
@@ -39,7 +47,7 @@ pipeline {
               env.HARBOR_PROJECT = 'prod'                                 // ← 按 Harbor 实际项目名改
               env.GITOPS_FILE    = 'overlays/prod/kustomization.yaml'
               break
-            // ⚠ 你原文件里 SRC_BRANCH 写的是 main。如果这个仓库只有 main 一条分支，
+            // ⚠ 你单分支文件里 SRC_BRANCH 写的是 main。如果这个仓库只有 main 一条分支，
             //   下面的 default 会把构建直接打死。确认 main 对应哪个环境后，取消注释这一段：
             // case 'main':
             //   env.DEPLOY_ENV     = 'test'
@@ -61,17 +69,105 @@ pipeline {
         }
       }
     }
-    // ★ 关键改动：构建前先登录 Harbor。
-    //   BuildKit 解析 Dockerfile 的 FROM 时会自己向 registry 发 HEAD 请求，
-    //   这一步不继承"推送到 Harbor"那一阶段的登录态，未登录就会报：
-    //   401 Unauthorized ... /v2/<项目>/<镜像>/manifests/<tag>
-    stage('2. 登录 Harbor + 构建镜像') {
+
+    // ===== Trivy 依赖漏洞扫描（SCA）— 逻辑与原单分支文件一致 =====
+    stage('2. Trivy 依赖漏洞扫描（SCA）') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'harbor-robot',
                                          usernameVariable: 'HUSER', passwordVariable: 'HPASS')]) {
           sh '''
             set -e
             set +x
+            export TRIVY_CACHE_DIR
+            mkdir -p "$TRIVY_CACHE_DIR"
+
+            # 漏洞库在 Harbor 私有项目 uat 里，trivy 拉库必须带凭据
+            export TRIVY_USERNAME="$HUSER"
+            export TRIVY_PASSWORD="$HPASS"
+
+            echo "=== ⓪ 漏洞库鉴权探测（200/307=凭据可用；401=robot 账号没有 uat 项目的 pull 权限）==="
+            DBPATH="${TRIVY_DB_REPOSITORY%:*}"
+            DBPATH="${DBPATH#*/}"
+            DBTAG="${TRIVY_DB_REPOSITORY##*:}"
+            CODE=$(curl -sS -o /dev/null -w '%{http_code}' -u "$HUSER:$HPASS" \
+                   -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+                   "https://$REGISTRY/v2/${DBPATH}/manifests/${DBTAG}" 2>/dev/null || echo 000)
+            echo "GET /v2/${DBPATH}/manifests/${DBTAG} → HTTP $CODE"
+            echo "（401 就去 Harbor 控制台检查 robot 账号对 $HARBOR_PROJECT 项目的权限）"
+
+            # 有二进制就用二进制，没有就走镜像（两种方式后续参数完全一致）
+            run_trivy() {
+              if command -v trivy >/dev/null 2>&1; then
+                echo "[trivy] 使用 agent 本机二进制：$(command -v trivy)"
+                trivy "$@"
+              else
+                echo "[trivy] 本机无二进制，改用镜像：$TRIVY_IMAGE"
+                printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin >/dev/null
+                docker run --rm \
+                  -v "$WORKSPACE:/work" -w /work \
+                  -v "$TRIVY_CACHE_DIR:/cache" \
+                  -e TRIVY_CACHE_DIR=/cache \
+                  -e TRIVY_USERNAME -e TRIVY_PASSWORD \
+                  -e TRIVY_DB_REPOSITORY -e TRIVY_JAVA_DB_REPOSITORY \
+                  "$TRIVY_IMAGE" "$@"
+              fi
+            }
+
+            echo "=== ① 版本 + 漏洞库连通性（这里能过就说明库镜像可用）==="
+            run_trivy --version
+
+            echo "=== ② 扫描工作区（依赖 / 密钥 / 配置），输出 JSON 供归档 ==="
+            EXIT_CODE=0
+            [ "$STRICT_SCA" = "true" ] && EXIT_CODE=1
+            set +e
+            run_trivy fs \
+              --scanners vuln,secret,misconfig \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --skip-dirs node_modules \
+              --skip-dirs .git \
+              --skip-dirs gitops \
+              --exit-code "$EXIT_CODE" \
+              --format json -o trivy-fs.json .
+            RC=$?
+            set -e
+            echo "扫描退出码：$RC"
+
+            echo "=== ③ 控制台可读摘要（便于确认扫描确实命中了依赖）==="
+            if command -v trivy >/dev/null 2>&1; then
+              trivy convert --format table trivy-fs.json | tail -40 || true
+            else
+              docker run --rm -v "$WORKSPACE:/work" -w /work \
+                -v "$TRIVY_CACHE_DIR:/cache" -e TRIVY_CACHE_DIR=/cache \
+                "$TRIVY_IMAGE" convert --format table trivy-fs.json | tail -40 || true
+            fi
+            echo "报告文件：$(ls -lh trivy-fs.json | awk '{print $5, $9}')"
+
+            if [ "$STRICT_SCA" = "true" ] && [ "$RC" -ne 0 ]; then
+              echo "SCA 硬门禁未通过：存在 HIGH/CRITICAL 漏洞（退出码 $RC）"
+              exit "$RC"
+            fi
+            [ "$STRICT_SCA" = "true" ] || echo "SCA 基线阶段：检测到漏洞但暂不阻断构建"
+          '''
+        }
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'trivy-fs.json', allowEmptyArchive: true
+        }
+      }
+    }
+
+    // ★ 构建前先登录 Harbor（BuildKit 解析 FROM 时自己发 HEAD，不继承推镜像阶段的登录态）
+    stage('3. 登录 Harbor + 构建镜像') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'harbor-robot',
+                                         usernameVariable: 'HUSER', passwordVariable: 'HPASS')]) {
+          sh '''
+            set -e
+            set +x
+            # Dockerfile 的 FROM 是 Harbor 私有项目 uat 里的基础镜像（如 bun:1.2.18-alpine），
+            # build 前必须先登录，否则 HEAD /v2/uat/bun/manifests/... 返回 401 Unauthorized
             # 机器人账号的用户名必须是全名 robot$xxx，写成 jenkins 这类普通名会认证不上
             printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin
             [ -f "$HOME/.docker/config.json" ] && echo "凭据已写入 $HOME/.docker/config.json"
@@ -87,21 +183,96 @@ pipeline {
         }
       }
     }
-    stage('3. 推送到 Harbor') {
+
+    // ===== 镜像漏洞扫描（推送前拦截）— 同原文件的 DB 源 + 凭据 + 兜底 =====
+    stage('4. Trivy 镜像漏洞扫描（推送前）') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'harbor-robot',
                                          usernameVariable: 'HUSER', passwordVariable: 'HPASS')]) {
           sh '''
             set -e
             set +x
-            # 阶段 2 已登录，这里再登录一次是幂等的，保证本阶段单独重跑时也有凭据
+            export TRIVY_CACHE_DIR
+            mkdir -p "$TRIVY_CACHE_DIR"
+            export TRIVY_USERNAME="$HUSER"
+            export TRIVY_PASSWORD="$HPASS"
+
+            # 镜像是 stage 3 刚 build 出来的本地镜像，还没 push，
+            # 用 --image-src docker 从本机 daemon 读；镜像方式要挂 docker.sock，
+            # 并且必须把 workspace 挂进来，否则 -o 出来的 JSON 只留在容器里、宿主机上拿不到
+            # （若 docker.sock 挂不了，把本 stage 移到 stage 5 之后改为从 Harbor 拉镜像扫）
+            run_trivy() {
+              if command -v trivy >/dev/null 2>&1; then
+                echo "[trivy] 使用 agent 本机二进制：$(command -v trivy)"
+                trivy "$@"
+              else
+                echo "[trivy] 本机无二进制，改用镜像：$TRIVY_IMAGE"
+                printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin >/dev/null
+                docker run --rm \
+                  -v /var/run/docker.sock:/var/run/docker.sock \
+                  -v "$WORKSPACE:/work" -w /work \
+                  -v "$TRIVY_CACHE_DIR:/cache" \
+                  -e TRIVY_CACHE_DIR=/cache \
+                  -e TRIVY_USERNAME -e TRIVY_PASSWORD \
+                  -e TRIVY_DB_REPOSITORY -e TRIVY_JAVA_DB_REPOSITORY \
+                  "$TRIVY_IMAGE" "$@"
+              fi
+            }
+
+            EXIT_CODE=0
+            [ "$STRICT_IMAGE_SCAN" = "true" ] && EXIT_CODE=1
+            set +e
+            run_trivy image \
+              --image-src docker \
+              --severity CRITICAL \
+              --ignore-unfixed \
+              --exit-code "$EXIT_CODE" \
+              --format json -o trivy-image.json "$IMAGE"
+            RC=$?
+            set -e
+            echo "镜像扫描退出码：$RC"
+
+            if command -v trivy >/dev/null 2>&1; then
+              trivy convert --format table trivy-image.json | tail -30 || true
+            else
+              docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                -v "$WORKSPACE:/work" -w /work \
+                -v "$TRIVY_CACHE_DIR:/cache" -e TRIVY_CACHE_DIR=/cache \
+                "$TRIVY_IMAGE" convert --format table trivy-image.json | tail -30 || true
+            fi
+            echo "报告文件：$(ls -lh trivy-image.json | awk '{print $5, $9}')"
+
+            if [ "$STRICT_IMAGE_SCAN" = "true" ] && [ "$RC" -ne 0 ]; then
+              echo "镜像存在 CRITICAL 漏洞，阻断推送"
+              exit "$RC"
+            fi
+            [ "$STRICT_IMAGE_SCAN" = "true" ] || echo "镜像扫描基线阶段：CRITICAL 漏洞暂不阻断推送"
+          '''
+        }
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'trivy-image.json', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('5. 推送到 Harbor') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'harbor-robot',
+                                         usernameVariable: 'HUSER', passwordVariable: 'HPASS')]) {
+          sh '''
+            set -e
+            set +x
+            # 阶段 3 已登录，这里再登录一次是幂等的，保证本阶段单独重跑时也有凭据
             printf '%s' "$HPASS" | docker login "$REGISTRY" -u "$HUSER" --password-stdin
             docker push "$IMAGE"
           '''
         }
       }
     }
-    stage('4. 修改 Argo CD 仓库中 kustomization.yaml 的 images.newTag') {
+
+    stage('6. 修改 Argo CD 仓库中 kustomization.yaml 的 images.newTag') {
       steps {
         dir('gitops') {
           deleteDir()
@@ -126,7 +297,6 @@ EOF
               git clone -b "$GITOPS_BRANCH" "$GITOPS_REPO" .
               git config user.name  "jenkins-ci"
               git config user.email "jenkins@sunwin.com"
-
               FILE="$GITOPS_FILE"
               [ -f "$FILE" ] || { echo "找不到 $FILE，请核对 Argo CD 的 source.path"; exit 1; }
               echo "本次只改本分支对应的清单：$FILE"
@@ -176,6 +346,7 @@ EOF
   }
   post {
     always {
+      archiveArtifacts artifacts: 'trivy-fs.json,trivy-image.json', allowEmptyArchive: true
       // 不要把凭据留在构建机上；成功推送后立即登出
       sh 'docker logout "$REGISTRY" >/dev/null 2>&1 || true'
       deleteDir()
