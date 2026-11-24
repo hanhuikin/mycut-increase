@@ -115,9 +115,18 @@ function processingReducer(
 /* eslint-enable opencut/prefer-object-params */
 
 export function Captions() {
-	const { t } = useLocale();
+	const { t, locale } = useLocale();
 	const [selectedLanguage, setSelectedLanguage] =
-		useState<TranscriptionLanguage>("auto");
+		useState<TranscriptionLanguage>(() =>
+			locale === "zh" ? "zh" : locale === "en" ? "en" : "auto",
+		);
+	// 默认转写语言跟随站点语言（中文站→中文、英文站→英文）；用户手动选过
+	// 之后不再跟随站点语言切换。
+	const userPickedLanguageRef = useRef(false);
+	useEffect(() => {
+		if (userPickedLanguageRef.current) return;
+		setSelectedLanguage(locale === "zh" ? "zh" : locale === "en" ? "en" : "auto");
+	}, [locale]);
 	const [selectedModel, setSelectedModel] =
 		useState<TranscriptionModelId>("whisper-small");
 	const [processing, dispatch] = useReducer(processingReducer, IDLE_STATE);
@@ -346,6 +355,7 @@ export function Captions() {
 	};
 
 	const handleLanguageChange = ({ value }: { value: string }) => {
+		userPickedLanguageRef.current = true;
 		if (value === "auto") {
 			setSelectedLanguage("auto");
 			return;
@@ -468,12 +478,13 @@ export function Captions() {
 											</span>
 											<Input
 												value={batchStyle.fontFamily}
-												onChange={(event) =>
+												onChange={(event) => {
+													const value = event.currentTarget.value;
 													setBatchStyle((prev) => ({
 														...prev,
-														fontFamily: event.currentTarget.value,
-													}))
-												}
+														fontFamily: value,
+													}));
+												}}
 											/>
 										</label>
 										<label className="flex flex-col gap-1">
@@ -485,12 +496,13 @@ export function Captions() {
 												min={1}
 												step={1}
 												value={batchStyle.fontSize}
-												onChange={(event) =>
+												onChange={(event) => {
+													const value = Number(event.currentTarget.value);
 													setBatchStyle((prev) => ({
 														...prev,
-														fontSize: Number(event.currentTarget.value),
-													}))
-												}
+														fontSize: value,
+													}));
+												}}
 											/>
 										</label>
 										<div className="flex flex-col gap-1">
@@ -542,12 +554,13 @@ export function Captions() {
 												min={0.5}
 												step={0.1}
 												value={batchStyle.lineHeight}
-												onChange={(event) =>
+												onChange={(event) => {
+													const value = Number(event.currentTarget.value);
 													setBatchStyle((prev) => ({
 														...prev,
-														lineHeight: Number(event.currentTarget.value),
-													}))
-												}
+														lineHeight: value,
+													}));
+												}}
 											/>
 										</label>
 										<Button
@@ -647,30 +660,47 @@ export function Captions() {
 						</SectionField>
 					</SectionFields>
 
-					<div className="flex gap-2">
-						<Button
-							type="button"
-							className="flex-1"
-							onClick={handleGenerateTranscript}
-							disabled={
-								isProcessing ||
-								anyRunning ||
-								activeDiagnostics.length > 0
-							}
-						>
-							{(isProcessing || anyRunning) && <Spinner className="mr-1" />}
-							{activeTask
-								? stepLabel
-								: isProcessing
-									? processing.step
-									: anyRunning
-										? t["captions.transcribing"]
-										: t["captions.generate"]}
-						</Button>
-						{activeTask && (
-							<Button type="button" variant="outline" onClick={handleCancel}>
-								{t["captions.cancel"]}
+					<div className="flex flex-col gap-2">
+						<div className="flex gap-2">
+							<Button
+								type="button"
+								className="flex-1"
+								onClick={handleGenerateTranscript}
+								disabled={
+									isProcessing ||
+									anyRunning ||
+									activeDiagnostics.length > 0
+								}
+							>
+								{(isProcessing || anyRunning) && <Spinner className="mr-1" />}
+								{activeTask
+									? stepLabel
+									: isProcessing
+										? processing.step
+										: anyRunning
+											? t["captions.transcribing"]
+											: t["captions.generate"]}
 							</Button>
+							{activeTask && (
+								<Button
+									type="button"
+									variant="outline"
+									onClick={handleCancel}
+								>
+									{t["captions.cancel"]}
+								</Button>
+							)}
+						</div>
+						{/* 转写进度条：与任务抽屉同源（task.progress） */}
+						{activeTask && activeTask.progress != null && (
+							<div className="bg-border h-1 overflow-hidden rounded-full">
+								<div
+									className="bg-primary/80 h-full transition-[width]"
+									style={{
+										width: `${Math.min(100, Math.max(2, activeTask.progress))}%`,
+									}}
+								/>
+							</div>
 						)}
 					</div>
 
