@@ -1,6 +1,6 @@
 import type { ShortcutKey } from "@/actions/keybinding";
 import type { LocaleKey } from "@/locale";
-import type { TActionWithOptionalArgs } from "./types";
+import type { TActionArgsMap, TActionWithOptionalArgs } from "./types";
 
 export type TActionCategory =
 	| "playback"
@@ -156,6 +156,28 @@ export const ACTIONS = {
 } as const satisfies Record<string, TActionBaseDefinition>;
 
 export type TAction = keyof typeof ACTIONS;
+
+/** Actions whose args are mandatory (no `| undefined` in TActionArgsMap). */
+type TActionWithRequiredArgs = {
+	[K in keyof TActionArgsMap]: undefined extends TActionArgsMap[K] ? never : K;
+}[keyof TActionArgsMap];
+
+// `satisfies` keeps this list honest: adding a required-args action to
+// TActionArgsMap without listing it here fails the build.
+const REQUIRED_ARGS_ACTION_SET: ReadonlySet<string> = new Set<string>(
+	[
+		"remove-media-asset",
+		"remove-media-assets",
+		"select-track-elements",
+	] satisfies readonly TActionWithRequiredArgs[],
+);
+
+/** Type guard for persisted/imported action names that can run without args. */
+export function isActionWithOptionalArgs(
+	value: string,
+): value is TActionWithOptionalArgs {
+	return value in ACTIONS && !REQUIRED_ARGS_ACTION_SET.has(value);
+}
 
 const ACTION_DEFAULT_SHORTCUTS = [
 	["toggle-play", ["space", "k"]],

@@ -3,16 +3,8 @@ import { withBotId } from "botid/next/config";
 import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
-	/**
-	 * The repo carries pre-existing type errors outside the app's critical path
-	 * (`next` is declared in both the root and app package.json, so two copies
-	 * of its types collide in next.config.ts; the legacy storage migrations and
-	 * a couple of tests also drift from current APIs). `next build` runs tsc
-	 * over the whole project, so it stops on those before compiling anything.
-	 * The container build needs to get through; run `tsc --noEmit` in CI to
-	 * keep seeing them, and remove this once the debt is paid.
-	 */
-	typescript: { ignoreBuildErrors: true },
+	// The repo's historical type debt is paid off: `tsc --noEmit` is clean, so
+	// `next build` no longer needs to skip type checking.
 	// 曾经为字幕转写开启跨域隔离（COOP + COEP）以解锁 SharedArrayBuffer 让
 	// ONNX Runtime wasm 走多线程，但实测多线程会挂起会话创建（详见
 	// services/transcription/worker.ts 的 numThreads 注释），worker 现在固定

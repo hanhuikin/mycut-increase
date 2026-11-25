@@ -62,7 +62,12 @@ export function LogBootstrap() {
 /** Fallback wrap (the snippet normally owns this): header + log lines. */
 function installFetchWrap(traceId: string): () => void {
 	const originalFetch = window.fetch.bind(window);
-	window.fetch = async (input, init) => {
+	// `window.fetch` carries an overloaded intersection type (DOM lib ×
+	// @types/bun augmentation); no single arrow can structurally match it, so
+	// the wrap is built with plain types and asserted to the property's type.
+	const wrappedFetch =
+		// eslint-disable-next-line opencut/prefer-object-params -- fetch 的调用约定就是位置参数，无法改成对象参数
+		(async (input: URL | RequestInfo, init?: RequestInit) => {
 		const url =
 			typeof input === "string"
 				? input
@@ -114,7 +119,8 @@ function installFetchWrap(traceId: string): () => void {
 			});
 			throw error;
 		}
-	};
+	});
+	window.fetch = wrappedFetch as typeof window.fetch;
 	return () => {
 		window.fetch = originalFetch;
 	};
