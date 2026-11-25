@@ -6,6 +6,7 @@ import type {
 	TextTrack,
 	TrackType,
 	TimelineTrack,
+	TransitionTrack,
 	VideoTrack,
 } from "@/timeline";
 
@@ -54,6 +55,15 @@ export function buildEmptyTrack({
 	type: "effect";
 	name?: string;
 }): EffectTrack;
+export function buildEmptyTrack({
+	id,
+	type,
+	name,
+}: {
+	id: string;
+	type: "transition";
+	name?: string;
+}): TransitionTrack;
 
 export function buildEmptyTrack({
 	id,
@@ -114,6 +124,14 @@ export function buildEmptyTrack({
 				id,
 				name: trackName,
 				type: "effect",
+				elements: [],
+				hidden: false,
+			};
+		case "transition":
+			return {
+				id,
+				name: trackName,
+				type: "transition",
 				elements: [],
 				hidden: false,
 			};

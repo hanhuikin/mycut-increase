@@ -117,7 +117,14 @@ function getElementBounds({
 	mediaAsset?: MediaAsset | null;
 	localTime: number;
 }): ElementBounds | null {
-	if (element.type === "audio" || element.type === "effect") return null;
+	if (
+		element.type === "audio" ||
+		element.type === "effect" ||
+		element.type === "transition"
+	) {
+		// 没有可拖拽的变换包围盒：转场作用于整个画面
+		return null;
+	}
 	if ("hidden" in element && element.hidden) return null;
 
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;

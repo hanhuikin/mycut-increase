@@ -26,7 +26,13 @@ export interface TScene {
 	updatedAt: Date;
 }
 
-export type TrackType = "video" | "text" | "audio" | "graphic" | "effect";
+export type TrackType =
+	| "video"
+	| "text"
+	| "audio"
+	| "graphic"
+	| "effect"
+	| "transition";
 
 interface BaseTrack {
 	id: string;
@@ -64,14 +70,31 @@ export interface EffectTrack extends BaseTrack {
 	hidden: boolean;
 }
 
+/**
+ * 转场轨道：只有一条细行，转场块骑在两个相邻主轨片段的切点上。
+ * 片段本身不移动、不重叠（见 timeline/placement/overlap.ts 的约束），
+ * 过渡是同一条时间线上两段素材同时出画，由渲染层按进度合成。
+ */
+export interface TransitionTrack extends BaseTrack {
+	type: "transition";
+	elements: TransitionElement[];
+	hidden: boolean;
+}
+
 export type TimelineTrack =
 	| VideoTrack
 	| TextTrack
 	| AudioTrack
 	| GraphicTrack
-	| EffectTrack;
+	| EffectTrack
+	| TransitionTrack;
 
-export type OverlayTrack = VideoTrack | TextTrack | GraphicTrack | EffectTrack;
+export type OverlayTrack =
+	| VideoTrack
+	| TextTrack
+	| GraphicTrack
+	| EffectTrack
+	| TransitionTrack;
 
 export interface SceneTracks {
 	overlay: OverlayTrack[];
@@ -161,6 +184,17 @@ export interface EffectElement extends BaseTimelineElement {
 	effectType: string;
 }
 
+/**
+ * 转场元素。startTime/duration 决定过渡窗口：块以切点为中心，
+ * 两侧各占 duration/2。params 由转场定义（transitions/definitions）驱动。
+ */
+export interface TransitionElement extends BaseTimelineElement {
+	type: "transition";
+	transitionType: string;
+	/** 插入时锚定的切点，用于面板回显与文档；渲染时按几何重新解析两侧片段。 */
+	cutTime?: MediaTime;
+}
+
 export type ElementUpdatePatch = { params?: Partial<ParamValues> };
 
 export type TimelineElement =
@@ -170,7 +204,8 @@ export type TimelineElement =
 	| TextElement
 	| StickerElement
 	| GraphicElement
-	| EffectElement;
+	| EffectElement
+	| TransitionElement;
 
 export type ElementType = TimelineElement["type"];
 
@@ -216,6 +251,7 @@ export type CreateTextElement = Omit<TextElement, "id">;
 export type CreateStickerElement = Omit<StickerElement, "id">;
 export type CreateGraphicElement = Omit<GraphicElement, "id">;
 export type CreateEffectElement = Omit<EffectElement, "id">;
+export type CreateTransitionElement = Omit<TransitionElement, "id">;
 export type CreateTimelineElement =
 	| CreateAudioElement
 	| CreateVideoElement
@@ -223,7 +259,8 @@ export type CreateTimelineElement =
 	| CreateTextElement
 	| CreateStickerElement
 	| CreateGraphicElement
-	| CreateEffectElement;
+	| CreateEffectElement
+	| CreateTransitionElement;
 
 export interface ElementDragState {
 	isDragging: boolean;

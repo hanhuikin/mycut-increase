@@ -20,8 +20,15 @@ import {
 import { resolveColorAtTime, resolveOpacityAtTime } from "@/animation/values";
 import { resolveTransformAtTime } from "@/rendering/animation-values";
 import { videoCache } from "@/services/video-cache/service";
+import { buildTransitionMask } from "@/transitions/build-mask";
+import {
+	resolveTransitionModifiers,
+	resolveTransitionProgress,
+	type TransitionModifiers,
+} from "@/transitions/resolve";
 import type { CanvasRenderer } from "./canvas-renderer";
 import type { AnyBaseNode } from "./nodes/base-node";
+import { ColorNode } from "./nodes/color-node";
 import {
 	BlurBackgroundNode,
 	type BackdropSource,
@@ -75,7 +82,9 @@ async function resolveNode({
 	node: AnyBaseNode;
 	context: ResolveContext;
 }): Promise<void> {
-	if (node instanceof VideoNode) {
+	if (node instanceof ColorNode) {
+		node.resolved = resolveColorNode({ node, context });
+	} else if (node instanceof VideoNode) {
 		node.resolved = await resolveVideoNode({ node, context });
 	} else if (node instanceof ImageNode) {
 		node.resolved = await resolveImageNode({ node, context });
@@ -140,7 +149,16 @@ function resolveVisualState({
 	sourceHeight: number;
 }): ResolvedVisualNodeState | null {
 	const clipTime = context.time - params.timeOffset;
-	if (clipTime < 0 || clipTime >= params.duration) {
+	const activeTransitions = resolveActiveTransitions({
+		transitions: params.transitions,
+		time: context.time,
+	});
+	const withinTransitionWindow = activeTransitions.length > 0;
+	// 参与转场的片段要在窗口内出画，哪怕时间已经越出自身区间（借素材手柄）
+	if (
+		(clipTime < 0 || clipTime >= params.duration) &&
+		!withinTransitionWindow
+	) {
 		return null;
 	}
 
@@ -170,18 +188,169 @@ function resolveVisualState({
 		Math.abs(sourceHeight * containScale * transform.scaleY),
 	);
 
+	const baseEffectPasses = resolveEffectPassGroups({
+		effects: params.effects,
+		animations: params.animations,
+		localTime,
+		width: effectWidth,
+		height: effectHeight,
+	});
+
+	if (!withinTransitionWindow) {
+		return {
+			localTime,
+			transform,
+			opacity,
+			effectPasses: baseEffectPasses,
+		};
+	}
+
+	// 转场窗口内：按进度改写透明度 / 位移 / 缩放 / 旋转，并叠加擦除蒙版与模糊
+	const modifiers = activeTransitions.reduce<TransitionModifiers>(
+		(accumulated, transition) => {
+			const progress = resolveTransitionProgress({
+				time: context.time,
+				windowStart: transition.windowStart,
+				windowEnd: transition.windowEnd,
+			});
+			const next = resolveTransitionModifiers({
+				kind: transition.kind,
+				direction: transition.direction,
+				feather: transition.feather,
+				intensity: transition.intensity,
+				role: transition.role,
+				progress,
+			});
+			return {
+				opacity: accumulated.opacity * next.opacity,
+				translateX: accumulated.translateX + next.translateX,
+				translateY: accumulated.translateY + next.translateY,
+				scale: accumulated.scale * next.scale,
+				rotateDegrees: accumulated.rotateDegrees + next.rotateDegrees,
+				mask: next.mask ?? accumulated.mask,
+				blur: Math.max(accumulated.blur, next.blur),
+			};
+		},
+		{
+			opacity: 1,
+			translateX: 0,
+			translateY: 0,
+			scale: 1,
+			rotateDegrees: 0,
+			mask: null,
+			blur: 0,
+		},
+	);
+
+	// 命中的窗口可能不止一个：取进度最大的那个算蒙版铺开程度
+	const maskProgress = activeTransitions.reduce((best, transition) => {
+		const progress = resolveTransitionProgress({
+			time: context.time,
+			windowStart: transition.windowStart,
+			windowEnd: transition.windowEnd,
+		});
+		return Math.max(best, progress);
+	}, 0);
+
+	const translateX = modifiers.translateX * context.renderer.width;
+	const translateY = modifiers.translateY * context.renderer.height;
+	const transitionedTransform = {
+		...transform,
+		position: {
+			x: transform.position.x + translateX,
+			y: transform.position.y + translateY,
+		},
+		scaleX: transform.scaleX * modifiers.scale,
+		scaleY: transform.scaleY * modifiers.scale,
+		rotate: transform.rotate + modifiers.rotateDegrees,
+	};
+
+	const maskOverride = modifiers.mask
+		? buildTransitionMask({
+				mask: modifiers.mask,
+				progress: maskProgress,
+				feather: modifiers.mask.feather,
+			})
+		: undefined;
+
+	const transitionedEffectPasses =
+		modifiers.blur > 0
+			? [
+					...baseEffectPasses,
+					...buildTransitionBlurPasses({
+						intensity: modifiers.blur,
+						width: effectWidth,
+						height: effectHeight,
+					}),
+				]
+			: baseEffectPasses;
+
 	return {
 		localTime,
-		transform,
-		opacity,
-		effectPasses: resolveEffectPassGroups({
-			effects: params.effects,
-			animations: params.animations,
-			localTime,
-			width: effectWidth,
-			height: effectHeight,
-		}),
+		transform: transitionedTransform,
+		opacity: opacity * modifiers.opacity,
+		effectPasses: transitionedEffectPasses,
+		maskOverride,
 	};
+}
+
+/** 转场用的高斯模糊：复用 blur 效果定义，参数按强度缩放。 */
+function buildTransitionBlurPasses({
+	intensity,
+	width,
+	height,
+}: {
+	intensity: number;
+	width: number;
+	height: number;
+}): EffectPass[][] {
+	const blurEffect = effectsRegistry.get("blur");
+	return [
+		resolveEffectPasses({
+			definition: blurEffect,
+			effectParams: { intensity: Math.max(1, Math.round(intensity * 100)) },
+			width,
+			height,
+		}),
+	];
+}
+
+function resolveActiveTransitions({
+	transitions,
+	time,
+}: {
+	transitions: VisualNodeParams["transitions"];
+	time: number;
+}): NonNullable<VisualNodeParams["transitions"]> {
+	if (!transitions) return [];
+	return transitions.filter(
+		(transition) =>
+			time >= transition.windowStart && time < transition.windowEnd,
+	);
+}
+
+function resolveColorNode({
+	node,
+	context,
+}: {
+	node: ColorNode;
+	context: ResolveContext;
+}): { opacity: number } | null {
+	const flash = node.params.transitionFlash;
+	if (!flash) {
+		return { opacity: 1 };
+	}
+	if (context.time < flash.windowStart || context.time >= flash.windowEnd) {
+		return null;
+	}
+	// 闪白/闪黑：亮度在切点达到峰值，两端为 0
+	const progress = resolveTransitionProgress({
+		time: context.time,
+		windowStart: flash.windowStart,
+		windowEnd: flash.windowEnd,
+	});
+	const peak = 1 - Math.abs(progress * 2 - 1);
+	return { opacity: Math.min(1, Math.max(0, peak)) };
 }
 
 async function resolveVideoNode({
@@ -192,7 +361,17 @@ async function resolveVideoNode({
 	context: ResolveContext;
 }): Promise<ResolvedVisualSourceNodeState | null> {
 	const clipTime = context.time - node.params.timeOffset;
-	if (clipTime < 0 || clipTime >= node.params.duration) {
+	const withinTransitionWindow =
+		resolveActiveTransitions({
+			transitions: node.params.transitions,
+			time: context.time,
+		}).length > 0;
+	// 转场窗口内允许越出自身区间：越界部分按素材手柄取帧（素材没余量时
+	// videoCache 会钳到首/尾帧，等价于冻结帧，这也是主流软件的行为）。
+	if (
+		(clipTime < 0 || clipTime >= node.params.duration) &&
+		!withinTransitionWindow
+	) {
 		return null;
 	}
 
@@ -205,7 +384,9 @@ async function resolveVideoNode({
 	const frame = await videoCache.getFrameAt({
 		mediaId: node.params.mediaId,
 		file: node.params.file,
-		time: mediaTimeToSeconds({ time: roundMediaTime({ time: sourceTimeTicks }) }),
+		time: mediaTimeToSeconds({
+			time: roundMediaTime({ time: sourceTimeTicks }),
+		}),
 	});
 	if (!frame) {
 		return null;
@@ -426,7 +607,9 @@ async function resolveBackdropSource({
 		const frame = await videoCache.getFrameAt({
 			mediaId: node.params.mediaId,
 			file: node.params.file,
-			time: mediaTimeToSeconds({ time: roundMediaTime({ time: sourceTimeTicks }) }),
+			time: mediaTimeToSeconds({
+				time: roundMediaTime({ time: sourceTimeTicks }),
+			}),
 		});
 		if (!frame) {
 			return null;

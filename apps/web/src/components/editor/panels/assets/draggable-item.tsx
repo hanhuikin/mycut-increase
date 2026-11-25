@@ -18,7 +18,7 @@ import type { MediaTime } from "@/wasm";
 export interface DraggableItemProps {
 	name: string;
 	preview: ReactNode;
-	dragData: TimelineDragData;
+	dragData?: TimelineDragData;
 	onDragStart?: ({ e }: { e: React.DragEvent }) => void;
 	onAddToTimeline?: ({ currentTime }: { currentTime: MediaTime }) => void;
 	aspectRatio?: number;
@@ -86,6 +86,7 @@ export function DraggableItem({
 	}, [isDragging]);
 
 	const handleDragStart = (event: React.DragEvent) => {
+		if (!dragData) return;
 		event.dataTransfer.setDragImage(emptyImg, 0, 0);
 
 		editor.timeline.dragSource.begin({

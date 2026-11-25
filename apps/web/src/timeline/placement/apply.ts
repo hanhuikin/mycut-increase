@@ -6,7 +6,7 @@ import type {
 	SceneTracks,
 	TextTrack,
 	TimelineElement,
-	TimelineTrack,
+	TransitionTrack,
 	VideoTrack,
 } from "@/timeline";
 import { generateUUID } from "@/utils/id";
@@ -153,6 +153,11 @@ function buildPlacedOverlayTrack({
 			return {
 				...buildEmptyTrack({ id, type: "effect" }),
 				elements: elements as EffectTrack["elements"],
+			};
+		case "transition":
+			return {
+				...buildEmptyTrack({ id, type: "transition" }),
+				elements: elements as TransitionTrack["elements"],
 			};
 	}
 }

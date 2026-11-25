@@ -10,6 +10,7 @@ import { SettingsView } from "./views/settings";
 import { StickersView } from "@/stickers/components/assets-view";
 import { TextView } from "@/text/components/assets-view";
 import { EffectsView } from "@/effects/components/assets-view";
+import { TransitionsView } from "@/transitions/components/assets-view";
 import { AIVideoView } from "./views/ai-video";
 import { TaskQueueView } from "@/components/editor/task-queue/task-queue-view";
 import { AIToolsView } from "./views/ai-tools";
@@ -23,11 +24,7 @@ export function AssetsPanel() {
 		text: <TextView />,
 		stickers: <StickersView />,
 		effects: <EffectsView />,
-		transitions: (
-			<div className="text-muted-foreground p-4">
-				{zh["common.coming_soon"]}
-			</div>
-		),
+		transitions: <TransitionsView />,
 		captions: <Captions />,
 		adjustment: (
 			<div className="text-muted-foreground p-4">

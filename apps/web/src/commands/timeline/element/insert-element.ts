@@ -199,6 +199,11 @@ export class InsertElementCommand extends Command {
 			return false;
 		}
 
+		if (element.type === "transition" && !element.transitionType) {
+			console.error("Transition element must have transitionType");
+			return false;
+		}
+
 		return true;
 	}
 

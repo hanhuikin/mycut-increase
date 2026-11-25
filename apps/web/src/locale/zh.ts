@@ -621,6 +621,30 @@ export const zh = {
 
 	// ===== 特效（补充） =====
 	"effects.blur": "模糊",
+
+	// ===== 转场 =====
+	"transitions.dissolve": "叠化",
+	"transitions.fade_black": "黑场",
+	"transitions.fade_white": "白场",
+	"transitions.push": "推移",
+	"transitions.wipe": "擦除",
+	"transitions.circle": "圆形扩展",
+	"transitions.zoom": "缩放",
+	"transitions.rotate": "旋转",
+	"transitions.blur": "模糊",
+	"transitions.empty_title": "把播放头放到两段视频的交界处",
+	"transitions.empty_description":
+		"转场只能加在两个相邻片段的接缝上：先切一刀，或让两段首尾相接。",
+	"transitions.no_cut_near": "附近没有片段交界：把播放头移到两段的接缝再试",
+	"transitions.inserted": "已添加转场",
+	"transitions.default_name": "转场",
+	"prop.direction": "方向",
+	"prop.direction.left": "向左",
+	"prop.direction.right": "向右",
+	"prop.direction.up": "向上",
+	"prop.direction.down": "向下",
+	"prop.duration_seconds": "时长（秒）",
+	"properties.transition": "转场",
 	"effects.tab_title": "特效",
 	"effects.empty_title": "暂无特效",
 	"effects.empty_description": "从资源面板为该图层添加特效。",

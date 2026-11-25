@@ -2,6 +2,7 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+	ArrowRightDoubleIcon,
 	Delete02Icon,
 	ListViewIcon,
 	MagicWand05Icon,
@@ -111,6 +112,12 @@ const TRACK_ICONS: Record<TimelineTrack["type"], ReactNode> = {
 	effect: (
 		<HugeiconsIcon
 			icon={MagicWand05Icon}
+			className="text-muted-foreground size-4 shrink-0"
+		/>
+	),
+	transition: (
+		<HugeiconsIcon
+			icon={ArrowRightDoubleIcon}
 			className="text-muted-foreground size-4 shrink-0"
 		/>
 	),

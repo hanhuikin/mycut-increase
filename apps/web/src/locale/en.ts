@@ -647,6 +647,31 @@ export const en = {
 
 	// ===== Effects (additional) =====
 	"effects.blur": "Blur",
+
+	// ===== Transitions =====
+	"transitions.dissolve": "Dissolve",
+	"transitions.fade_black": "Fade to Black",
+	"transitions.fade_white": "Fade to White",
+	"transitions.push": "Push",
+	"transitions.wipe": "Wipe",
+	"transitions.circle": "Circle",
+	"transitions.zoom": "Zoom",
+	"transitions.rotate": "Rotate",
+	"transitions.blur": "Blur",
+	"transitions.empty_title": "Put the playhead where two clips meet",
+	"transitions.empty_description":
+		"Transitions only go on a cut between adjacent clips: split a clip first, or butt two clips together.",
+	"transitions.no_cut_near":
+		"No cut nearby — move the playhead to the seam between two clips and try again",
+	"transitions.inserted": "Transition added",
+	"transitions.default_name": "Transition",
+	"prop.direction": "Direction",
+	"prop.direction.left": "Left",
+	"prop.direction.right": "Right",
+	"prop.direction.up": "Up",
+	"prop.direction.down": "Down",
+	"prop.duration_seconds": "Duration (s)",
+	"properties.transition": "Transition",
 	"effects.tab_title": "Effects",
 	"effects.empty_title": "No effects",
 	"effects.empty_description":

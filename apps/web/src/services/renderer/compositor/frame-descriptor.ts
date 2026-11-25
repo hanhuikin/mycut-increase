@@ -112,7 +112,8 @@ async function collectNode({
 			type: "layer",
 			textureId,
 			transform: fullCanvasTransform(renderer),
-			opacity: 1,
+			// 闪白/闪黑：窗口内按进度叠一层纯色
+			opacity: node.resolved?.opacity ?? 1,
 			blendMode: "normal",
 			effectPassGroups: [],
 			mask: null,
@@ -385,7 +386,8 @@ function buildMaskArtifacts({
 	mask: LayerMaskDescriptor | null;
 	strokeLayer: FrameItemDescriptor | null;
 } {
-	const mask = node.params.masks?.[0];
+	// 转场窗口内逐帧合成的蒙版优先于元素自带的静态蒙版
+	const mask = node.resolved?.maskOverride ?? node.params.masks?.[0];
 	if (!mask) {
 		return { mask: null, strokeLayer: null };
 	}

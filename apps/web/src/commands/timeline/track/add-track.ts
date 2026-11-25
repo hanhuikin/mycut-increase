@@ -1,5 +1,5 @@
 import { Command, type CommandResult } from "@/commands/base-command";
-import type { SceneTracks, TrackType } from "@/timeline";
+import type { OverlayTrack, SceneTracks, TrackType } from "@/timeline";
 import { generateUUID } from "@/utils/id";
 import { EditorCore } from "@/core";
 import {
@@ -104,14 +104,23 @@ function buildOverlayTrackState({
 	trackType: Exclude<TrackType, "audio">;
 }): SceneTracks {
 	const overlayInsertIndex = Math.min(insertIndex, tracks.overlay.length);
-	const newTrack =
-		trackType === "video"
-			? buildEmptyTrack({ id: trackId, type: "video" })
-			: trackType === "text"
-				? buildEmptyTrack({ id: trackId, type: "text" })
-				: trackType === "graphic"
-					? buildEmptyTrack({ id: trackId, type: "graphic" })
-					: buildEmptyTrack({ id: trackId, type: "effect" });
+	// 显式 switch 而不是三元链：新增轨道类型时漏写分支会直接编译报错，
+	// 三元链的兜底分支会把新类型静默建成 effect 轨道。
+	const buildTrack = (): OverlayTrack => {
+		switch (trackType) {
+			case "video":
+				return buildEmptyTrack({ id: trackId, type: "video" });
+			case "text":
+				return buildEmptyTrack({ id: trackId, type: "text" });
+			case "graphic":
+				return buildEmptyTrack({ id: trackId, type: "graphic" });
+			case "effect":
+				return buildEmptyTrack({ id: trackId, type: "effect" });
+			case "transition":
+				return buildEmptyTrack({ id: trackId, type: "transition" });
+		}
+	};
+	const newTrack = buildTrack();
 	return {
 		...tracks,
 		overlay: [

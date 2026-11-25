@@ -24,6 +24,7 @@ import type {
 	VideoElement,
 	AudioElement,
 	TimelineElement,
+	TransitionElement,
 } from "@/timeline";
 import type { MediaAsset } from "@/media/types";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -34,6 +35,7 @@ import {
 	MusicNote03Icon,
 	MagicWand05Icon,
 	DashboardSpeed02Icon,
+	ArrowRightDoubleIcon,
 } from "@hugeicons/core-free-icons";
 import { ElementParamsTab } from "./components/element-params-tab";
 import type { BatchParamTarget } from "./hooks/use-batch-param-property";
@@ -41,6 +43,7 @@ import { ClipEffectsTab, StandaloneEffectTab } from "@/effects/components/effect
 import { MasksTab } from "@/masks/components/masks-tab";
 import { SpeedTab } from "@/speed/components/speed-tab";
 import { GraphicTab } from "@/graphics/components/graphic-tab";
+import { TransitionTab } from "@/transitions/components/transition-tab";
 import { OcShapesIcon } from "@/components/icons";
 
 const TRANSFORM_PARAM_KEYS = [
@@ -341,6 +344,33 @@ function getAudioConfig({
 	};
 }
 
+function buildTransitionTab({
+	element,
+}: {
+	element: TransitionElement;
+}): PropertiesTabDef {
+	const t = getTranslations();
+	return {
+		id: "transition",
+		label: t["properties.transition"],
+		icon: <HugeiconsIcon icon={ArrowRightDoubleIcon} size={16} />,
+		content: ({ trackId }) => (
+			<TransitionTab element={element} trackId={trackId} />
+		),
+	};
+}
+
+function getTransitionConfig({
+	element,
+}: {
+	element: TransitionElement;
+}): ElementPropertiesConfig {
+	return {
+		defaultTab: "transition",
+		tabs: [buildTransitionTab({ element })],
+	};
+}
+
 function getEffectConfig({
 	element,
 }: {
@@ -376,5 +406,7 @@ export function getPropertiesConfig({
 			return getAudioConfig({ element });
 		case "effect":
 			return getEffectConfig({ element });
+		case "transition":
+			return getTransitionConfig({ element });
 	}
 }

@@ -5,6 +5,7 @@ import {
 	VISUAL_ELEMENT_TYPES,
 	type CreateEffectElement,
 	type CreateGraphicElement,
+	type CreateTransitionElement,
 	type CreateTimelineElement,
 	type CreateVideoElement,
 	type CreateImageElement,
@@ -140,6 +141,34 @@ export function buildEffectElement({
 		startTime,
 		trimStart: ZERO_MEDIA_TIME,
 		trimEnd: ZERO_MEDIA_TIME,
+	};
+}
+
+export function buildTransitionElement({
+	transitionType,
+	name,
+	startTime,
+	duration,
+	cutTime,
+	params,
+}: {
+	transitionType: string;
+	name: string;
+	startTime: MediaTime;
+	duration: MediaTime;
+	cutTime?: MediaTime;
+	params: ParamValues;
+}): CreateTransitionElement {
+	return {
+		type: "transition",
+		name,
+		transitionType,
+		startTime,
+		duration,
+		trimStart: ZERO_MEDIA_TIME,
+		trimEnd: ZERO_MEDIA_TIME,
+		params,
+		...(cutTime !== undefined ? { cutTime } : {}),
 	};
 }
 

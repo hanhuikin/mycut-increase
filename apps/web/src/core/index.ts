@@ -11,6 +11,7 @@ import { SelectionManager } from "./managers/selection-manager";
 import { ClipboardManager } from "./managers/clipboard-manager";
 import { DiagnosticsManager } from "./managers/diagnostics-manager";
 import { registerDefaultEffects } from "@/effects";
+import { registerDefaultTransitions } from "@/transitions";
 import { registerDefaultMasks } from "@/masks";
 import { registerTranscriptionDiagnostics } from "@/transcription/diagnostics";
 
@@ -32,6 +33,7 @@ export class EditorCore {
 	private constructor() {
 		registerDefaultEffects();
 		registerDefaultMasks();
+		registerDefaultTransitions();
 		this.command = new CommandManager(this);
 		this.timeline = new TimelineManager(this);
 		this.playback = new PlaybackManager(this);

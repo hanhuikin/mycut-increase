@@ -75,6 +75,7 @@ import {
 	Exchange01Icon,
 	KeyframeIcon,
 	MagicWand05Icon,
+	ArrowRightDoubleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { uppercase } from "@/utils/string";
@@ -934,6 +935,22 @@ function EffectElementContent({
 	);
 }
 
+function TransitionElementContent({
+	element,
+}: {
+	element: Extract<TimelineElementType, { type: "transition" }>;
+}) {
+	return (
+		<div className="flex size-full items-center justify-start gap-1 pl-2">
+			<HugeiconsIcon
+				icon={ArrowRightDoubleIcon}
+				className="size-4 shrink-0 text-white"
+			/>
+			<span className="truncate text-xs text-white">{element.name}</span>
+		</div>
+	);
+}
+
 function StickerElementContent({
 	element,
 }: {
@@ -1212,6 +1229,8 @@ function ElementContent({ element, track }: ElementContentProps) {
 			return <TextElementContent element={element} />;
 		case "effect":
 			return <EffectElementContent element={element} />;
+		case "transition":
+			return <TransitionElementContent element={element} />;
 		case "sticker":
 			return <StickerElementContent element={element} />;
 		case "graphic":
