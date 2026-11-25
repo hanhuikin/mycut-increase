@@ -59,7 +59,9 @@ RUN BUILD_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomB
 	&& DATABASE_URL="postgresql://build:${BUILD_SECRET}@localhost:5432/build" \
 		BETTER_AUTH_SECRET="${BUILD_SECRET}" \
 		REDIS_URL="redis://:${BUILD_SECRET}@localhost:6379" \
-		node ./node_modules/next/dist/bin/next build
+		BIN=./node_modules/next/dist/bin/next \
+		&& [ -f "$BIN" ] || BIN=../../node_modules/next/dist/bin/next; \
+		node "$BIN" build
 
 # Production image
 FROM base AS runner
