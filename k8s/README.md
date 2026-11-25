@@ -99,8 +99,10 @@ docker push harbor.sunwin-sh.com/uat/mycut:<tag>
 `docker logs` / `kubectl logs` / Loki 采集，无需解析器。字段对齐运维样例：
 
 ```json
-{"timestamp":"2026-11-05T12:34:56.789Z","level":"INFO","service":"mycut-web","env":"test","trace_id":"a1b2c3d4e5f6","remote_addr":"192.168.1.100","user_id":"u_x","request_method":"GET","request_uri":"/api/ai/tasks","status":200,"body_bytes_sent":12456,"http_referer":"…","http_user_agent":"Mozilla/5.0 …","latency_ms":235,"upstream_response_time":235,"host":"test-mycut.sunwin-sh.com","msg":"api request"}
+{"timestamp":"2026-11-05T20:34:56.789+08:00","level":"INFO","service":"mycut-web","env":"test","trace_id":"a1b2c3d4e5f6","remote_addr":"192.168.1.100","user_id":"u_x","request_method":"GET","request_uri":"/api/ai/tasks","status":200,"body_bytes_sent":12456,"http_referer":"…","http_user_agent":"Mozilla/5.0 …","latency_ms":235,"upstream_response_time":235,"host":"test-mycut.sunwin-sh.com","msg":"api request"}
 ```
+
+- **timestamp**：本机系统时间 + 明确时区偏移（ISO-8601，如 `+08:00`），不再是 `toISOString()` 的 UTC `Z`。容器里的「系统时区」由 `TZ` 决定，因此 Dockerfile（`--build-arg TZ`，默认 `Asia/Shanghai`）和 `k8s/base/deployment.yaml` 都显式设了时区；不设的话容器默认 UTC，日志会比北京时间早 8 小时。
 
 - **trace_id**：客户端会话生成（12 位 hex），每个 `/api/*` 请求经 `x-trace-id` 头带到服务端；服务端日志、响应头 `x-trace-id`、页面展示（登录报错下方 / `window.__TRACE_ID__` / `<html data-trace-id>`）三处一致，报障时让用户提供该 id 即可精确定位。
 - **级别**：`LOG_LEVEL`（服务端，默认 prod/test=INFO、dev=DEBUG）。DEBUG 含 /api/health 探活；4xx=WARN，5xx/未捕获异常=ERROR。

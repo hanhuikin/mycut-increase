@@ -42,6 +42,10 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+            # 日志时间戳取进程时区（services/logging/logger.ts 的 formatTimestamp）。
+            # 容器默认 UTC，显式设成业务时区，日志里的时间才和东八区一致。
+            - name: TZ
+              value: Asia/Shanghai
           resources:
             requests:
               cpu: 250m

@@ -73,6 +73,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# 日志时间戳取容器自身的系统时区（见 src/services/logging/logger.ts 的
+# formatTimestamp）。基础镜像默认 UTC，不设这里线上日志就会是 +00:00，和东八区
+# 差 8 小时；设成业务所在时区，日志里的时间才和服务器、用户看到的一致。
+# 需要别的时区时用 --build-arg TZ=... 覆盖。
+ARG TZ=Asia/Shanghai
+ENV TZ=${TZ}
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

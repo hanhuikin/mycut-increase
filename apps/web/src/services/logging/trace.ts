@@ -63,6 +63,16 @@ try {
     id = Array.prototype.map.call(bytes, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
     try { window.sessionStorage.setItem("${CLIENT_TRACE_STORAGE_KEY}", id); } catch (e) {}
   }
+  function stamp() {
+    var d = new Date();
+    var p = function (n, w) { return String(Math.abs(Math.trunc(n))).padStart(w || 2, "0"); };
+    var off = -d.getTimezoneOffset();
+    var sign = off >= 0 ? "+" : "-";
+    var abs = Math.abs(off);
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+      "T" + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) +
+      "." + p(d.getMilliseconds(), 3) + sign + p(Math.floor(abs / 60)) + ":" + p(abs % 60);
+  }
   window.__TRACE_ID__ = id;
   document.documentElement.dataset.traceId = id;
   if (window.__traceFetchPatched) return;
@@ -85,7 +95,7 @@ try {
     return original(send, init && init.headers ? { ...init, headers: headers } : init)
       .then(function (response) {
         var fields = {
-          timestamp: new Date().toISOString(), service: "mycut-web",
+          timestamp: stamp(), service: "mycut-web",
           trace_id: id, request_method: method, request_uri: uri,
           status: response.status,
           latency_ms: Math.round(performance.now() - started),
@@ -97,7 +107,7 @@ try {
       })
       .catch(function (error) {
         console.error(JSON.stringify({
-          timestamp: new Date().toISOString(), service: "mycut-web", level: "ERROR",
+          timestamp: stamp(), service: "mycut-web", level: "ERROR",
           trace_id: id, request_uri: uri, host: location.host, msg: "api network error",
           error: String(error && error.message || error)
         }));

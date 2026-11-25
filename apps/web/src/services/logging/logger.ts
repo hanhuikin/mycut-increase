@@ -118,6 +118,38 @@ const channel: Record<LogLevel, (...args: unknown[]) => void> = {
  * `msg`, then the event's own fields. `undefined`/empty fields are omitted so
  * non-request events carry no request clutter.
  */
+/** 两位补零；毫秒补三位。 */
+function padNumber({
+	value,
+	width = 2,
+}: {
+	value: number;
+	width?: number;
+}): string {
+	return String(Math.trunc(Math.abs(value))).padStart(width, "0");
+}
+
+/**
+ * 日志时间戳：本机系统时间 + 明确的时区偏移，例如
+ * 2026-11-25T15:22:33.324+08:00。
+ *
+ * 不用 toISOString()：它按定义永远输出 UTC（带 Z），东八区读日志要自己 +8。
+ * 带偏移的写法既直接是本机时间，也仍然是合法 ISO-8601 —— 任何解析器都能还原
+ * 到同一个绝对时刻，不会因为机器时区不同而产生歧义。
+ */
+export function formatTimestamp({ date }: { date: Date }): string {
+	// getTimezoneOffset() 返回「本地比 UTC 慢多少分钟」，东八区是 -480
+	const offsetMinutes = -date.getTimezoneOffset();
+	const sign = offsetMinutes >= 0 ? "+" : "-";
+	const absoluteOffset = Math.abs(offsetMinutes);
+	return (
+		`${date.getFullYear()}-${padNumber({ value: date.getMonth() + 1 })}-${padNumber({ value: date.getDate() })}` +
+		`T${padNumber({ value: date.getHours() })}:${padNumber({ value: date.getMinutes() })}:${padNumber({ value: date.getSeconds() })}` +
+		`.${padNumber({ value: date.getMilliseconds(), width: 3 })}` +
+		`${sign}${padNumber({ value: Math.floor(absoluteOffset / 60) })}:${padNumber({ value: absoluteOffset % 60 })}`
+	);
+}
+
 function emit({
 	level,
 	msg,
@@ -136,7 +168,7 @@ function emit({
 		try {
 			channel[level](
 				JSON.stringify({
-					timestamp: new Date().toISOString(),
+					timestamp: formatTimestamp({ date: new Date() }),
 					level,
 					service: SERVICE,
 					env: appEnv(),
@@ -160,7 +192,7 @@ function emitRecord({
 }): void {
 	const context = readContextFields();
 	const record: Record<string, unknown> = {
-		timestamp: new Date().toISOString(),
+		timestamp: formatTimestamp({ date: new Date() }),
 		level,
 		service: SERVICE,
 		env: appEnv(),
