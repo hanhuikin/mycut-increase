@@ -5,7 +5,7 @@
   "packageManager": "bun@1.2.18",
   "scripts": {
     "dev": "node scripts/sync-ort-wasm.mjs && next dev",
-    "build": "node scripts/sync-ort-wasm.mjs && next build",
+    "build": "node scripts/sync-ort-wasm.mjs && node scripts/with-build-env.mjs",
     "start": "next start",
     "preview": "node scripts/sync-ort-wasm.mjs && opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "node scripts/sync-ort-wasm.mjs && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
