@@ -28,7 +28,13 @@ const LEVEL_WEIGHT: Record<LogLevel, number> = {
 
 const SERVICE = "mycut-web";
 
-const IS_BROWSER = typeof window !== "undefined";
+/**
+ * 浏览器判定不能用 `typeof window`：打包器会在 client chunk 里把它静态折叠
+ * 成真值，而 Web Worker 的 chunk 同样算 client chunk —— 折叠后 worker 里访问
+ * window.__TRACE_ID__ 会抛 "window is not defined"，把真正要记录的错误掩盖掉
+ * （字幕转写 worker 的初始化失败就这么丢了原因）。Reflect 读取不会被折叠。
+ */
+const IS_BROWSER = typeof Reflect.get(globalThis, "window") === "object";
 
 function minLevel(): LogLevel {
 	// The frame-picker performance instrumentation (NEXT_PUBLIC_DEBUG_FRAMES)
@@ -56,13 +62,27 @@ function appEnv(): string {
 type ContextSource = () => Record<string, unknown> | undefined;
 const globalBridge = globalThis as { __mycutLogContext?: ContextSource };
 
+/**
+ * 非浏览器线程（Web Worker）用这个注册自己的上下文：worker 拿不到
+ * window.__TRACE_ID__，由主线程在 init 消息里把 trace id 传进来，日志才能
+ * 和同一次会话对上。
+ */
+export function registerLogContext(source: ContextSource): void {
+	globalBridge.__mycutLogContext = source;
+}
+
 function readContextFields(): Record<string, unknown> {
 	return globalBridge.__mycutLogContext?.() ?? {};
 }
 
-function clientTraceId(): string | undefined {
-	if (!IS_BROWSER) return undefined;
-	return window.__TRACE_ID__;
+/** 当前会话的 trace id；worker / 服务端没有 window，返回 undefined。 */
+export function currentClientTraceId(): string | undefined {
+	const browserWindow: unknown = Reflect.get(globalThis, "window");
+	if (typeof browserWindow !== "object" || browserWindow === null) {
+		return undefined;
+	}
+	const traceId: unknown = Reflect.get(browserWindow, "__TRACE_ID__");
+	return typeof traceId === "string" ? traceId : undefined;
 }
 
 const REDACT_KEY_RE = /passw|secret|token|authorization|cookie|credential/i;
@@ -98,19 +118,54 @@ const channel: Record<LogLevel, (...args: unknown[]) => void> = {
  * `msg`, then the event's own fields. `undefined`/empty fields are omitted so
  * non-request events carry no request clutter.
  */
-function emit(
-	level: LogLevel,
-	msg: string,
-	fields?: Record<string, unknown>,
-): void {
+function emit({
+	level,
+	msg,
+	fields,
+}: {
+	level: LogLevel;
+	msg: string;
+	fields?: Record<string, unknown>;
+}): void {
 	if (LEVEL_WEIGHT[level] < LEVEL_WEIGHT[minLevel()]) return;
+	// 记日志永远不能让调用方失败：worker 里曾因为上下文读取抛错，把正在
+	// 上报的初始化失败整个吞掉，界面只剩一个没有原因的失败。
+	try {
+		emitRecord({ level, msg, fields });
+	} catch {
+		try {
+			channel[level](
+				JSON.stringify({
+					timestamp: new Date().toISOString(),
+					level,
+					service: SERVICE,
+					env: appEnv(),
+					msg,
+				}),
+			);
+		} catch {
+			// 连降级输出都失败就只能放弃：日志不是业务路径
+		}
+	}
+}
+
+function emitRecord({
+	level,
+	msg,
+	fields,
+}: {
+	level: LogLevel;
+	msg: string;
+	fields?: Record<string, unknown>;
+}): void {
 	const context = readContextFields();
 	const record: Record<string, unknown> = {
 		timestamp: new Date().toISOString(),
 		level,
 		service: SERVICE,
 		env: appEnv(),
-		trace_id: (context.trace_id as string | undefined) ?? clientTraceId(),
+		trace_id:
+			(context.trace_id as string | undefined) ?? currentClientTraceId(),
 	};
 	const requestKeys = [
 		"remote_addr",
@@ -139,29 +194,16 @@ function emit(
 			if (sanitized !== undefined) record[key] = sanitized;
 		}
 	}
-	try {
-		channel[level](JSON.stringify(record));
-	} catch {
-		// Cyclic field or Hostile toJSON: still emit the essential line.
-		channel[level](
-			JSON.stringify({
-				timestamp: new Date().toISOString(),
-				level,
-				service: SERVICE,
-				env: appEnv(),
-				msg,
-			}),
-		);
-	}
+	channel[level](JSON.stringify(record));
 }
 
 export const logger = {
 	debug: (msg: string, fields?: Record<string, unknown>) =>
-		emit("DEBUG", msg, fields),
+		emit({ level: "DEBUG", msg, fields }),
 	info: (msg: string, fields?: Record<string, unknown>) =>
-		emit("INFO", msg, fields),
+		emit({ level: "INFO", msg, fields }),
 	warn: (msg: string, fields?: Record<string, unknown>) =>
-		emit("WARN", msg, fields),
+		emit({ level: "WARN", msg, fields }),
 	error: (msg: string, fields?: Record<string, unknown>) =>
-		emit("ERROR", msg, fields),
+		emit({ level: "ERROR", msg, fields }),
 };

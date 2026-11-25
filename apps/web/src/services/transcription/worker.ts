@@ -9,7 +9,7 @@ import {
 	DEFAULT_CHUNK_LENGTH_SECONDS,
 	DEFAULT_STRIDE_SECONDS,
 } from "@/transcription/audio";
-import { logger } from "@/services/logging/logger";
+import { logger, registerLogContext } from "@/services/logging/logger";
 import type { TranscriptionDevice } from "./strategy";
 
 // 模型权重默认走魔搭（ModelScope）。原方案 hf-mirror.com 已失效：它现在对
@@ -62,7 +62,13 @@ export const transcriptionTimeouts = {
 };
 
 export type WorkerMessage =
-	| { type: "init"; modelId: string; device: TranscriptionDevice }
+	| {
+			type: "init";
+			modelId: string;
+			device: TranscriptionDevice;
+			/** 主线程的会话 trace id：worker 拿不到 window，日志靠它对齐。 */
+			traceId?: string;
+	  }
 	| {
 			type: "transcribe";
 			audio: Float32Array;
@@ -603,6 +609,10 @@ export function createTranscriptionWorker(
 		if (abandoned) return;
 		switch (data.type) {
 			case "init":
+				if (data.traceId) {
+					const traceId = data.traceId;
+					registerLogContext(() => ({ trace_id: traceId }));
+				}
 				await handleInit({ modelId: data.modelId, device: data.device });
 				break;
 			case "transcribe":

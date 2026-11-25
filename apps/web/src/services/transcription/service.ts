@@ -11,7 +11,7 @@ import {
 	TRANSCRIPTION_MODELS,
 } from "@/transcription/models";
 import { DEFAULT_TRANSCRIPTION_SAMPLE_RATE } from "@/transcription/audio";
-import { logger } from "@/services/logging/logger";
+import { currentClientTraceId, logger } from "@/services/logging/logger";
 import {
 	announceDeviceDecision,
 	refreshDeviceDecision,
@@ -338,6 +338,7 @@ class TranscriptionService {
 				type: "init",
 				modelId: model.huggingFaceId,
 				device: this.device,
+				traceId: currentClientTraceId(),
 			} satisfies WorkerMessage);
 		});
 	}
