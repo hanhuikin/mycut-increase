@@ -17,6 +17,16 @@ spec:
         app.kubernetes.io/name: mycut-migrate
     spec:
       restartPolicy: Never
+      # 迁移不需要访问 K8s API，不挂载 ServiceAccount token
+      automountServiceAccountToken: false
+      # Pod 级安全上下文：与 Deployment 一致，镜像内非 root 用户 nextjs（uid/gid 1001）
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: migrate
           image: registry.example.com/mycut/web:IMAGE_TAG
@@ -25,3 +35,27 @@ spec:
           envFrom:
             - secretRef:
                 name: mycut-secrets
+          # 迁移是短任务，资源按保守值给；ephemeral-storage 覆盖 drizzle 临时产物
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+              ephemeral-storage: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+              ephemeral-storage: 1Gi
+          # 只读根文件系统下保留 /tmp 可写
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -11,7 +11,11 @@ ARG BASE_IMAGE=harbor.sunwin-sh.com/uat/bun:1.2.18-alpine
 FROM ${BASE_IMAGE} AS base
 
 # Alpine 官方源切到阿里云镜像（apk 换源后才能装 nodejs）
+# apk upgrade：底座镜像自带的 libssl3/libcrypto3 3.3.3-r0 命中 CVE-2026-31789
+# （CRITICAL 9.8，X.509 大 OCTET STRING 堆溢出），升级到当前分支最新补丁版；
+# 顺带把底座里其他过期包一起升级，减少镜像层 CVE。
 RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|g' /etc/apk/repositories \
+	&& apk upgrade --no-cache \
 	&& apk add --no-cache nodejs
 
 FROM base AS builder
@@ -49,12 +53,13 @@ RUN node scripts/sync-ort-wasm.mjs
 # schema (ioredis direct — the old UPSTASH_REST_* pair predates that switch
 # and fails env parsing now). Values are placeholders: nothing connects during
 # `next build`, and the runner takes everything from its own env.
-# Inline on the command rather than `ENV` so the values are not persisted in
-# image metadata and BuildKit's SecretsUsedInArgOrEnv lint stays quiet.
-RUN DATABASE_URL="postgresql://opencut:opencut@localhost:5432/opencut" \
-	BETTER_AUTH_SECRET="build-time-secret" \
-	REDIS_URL="redis://:build-time@localhost:6379" \
-	node ./node_modules/next/dist/bin/next build
+# 凭据字面量一律不写死：现场用 node:crypto 生成一次性随机串。之前这里是
+# postgresql://opencut:opencut@...，被 Sonar secrets:S6698 判为 BLOCKER。
+RUN BUILD_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(24).toString('hex'))")" \
+	&& DATABASE_URL="postgresql://build:${BUILD_SECRET}@localhost:5432/build" \
+		BETTER_AUTH_SECRET="${BUILD_SECRET}" \
+		REDIS_URL="redis://:${BUILD_SECRET}@localhost:6379" \
+		node ./node_modules/next/dist/bin/next build
 
 # Production image
 FROM base AS runner

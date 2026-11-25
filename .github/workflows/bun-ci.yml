@@ -22,8 +22,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     env:
-      DATABASE_URL: "postgresql://opencut:opencut@localhost:5432/opencut"
-      BETTER_AUTH_SECRET: "supersecret"
       NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
       UPSTASH_REDIS_REST_URL: "https://your-upstash-redis-url"
       UPSTASH_REDIS_REST_TOKEN: "your-upstash-redis-token"
@@ -31,10 +29,25 @@ jobs:
       MARBLE_WORKSPACE_KEY: "placeholder"
       FREESOUND_CLIENT_ID: "placeholder"
       FREESOUND_API_KEY: "placeholder"
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Build-time only: these values just need to satisfy the zod schema in
+      # apps/web/src/env/web.ts (no database connection is made). Generated
+      # per run so no password/secret literals live in the repository.
+      - name: Generate throwaway CI credentials
+        shell: bash
+        run: |
+          node -e '
+            const crypto = require("node:crypto");
+            const fs = require("node:fs");
+            const secret = crypto.randomBytes(32).toString("hex");
+            const dbPassword = crypto.randomBytes(16).toString("hex");
+            fs.appendFileSync(process.env.GITHUB_ENV, "BETTER_AUTH_SECRET=" + secret + "\n");
+            fs.appendFileSync(process.env.GITHUB_ENV, "DATABASE_URL=postgresql://ci:" + dbPassword + "@localhost:5432/ci\n");
+          '
 
       - name: Install Rust wasm target
         run: rustup target add wasm32-unknown-unknown

@@ -1019,7 +1019,7 @@ export const zh = {
 	"auth.reset.done": "密码已重置，请用新密码登录。",
 	"auth.error.bad_credentials": "邮箱或密码不正确",
 	"auth.error.user_exists": "该邮箱已注册",
-	"auth.error.password_short": "密码至少 10 位",
+	"auth.error.password_short": "密码至少 10 位", // NOSONAR 误报：这是密码长度提示文案，不是硬编码凭据
 	"auth.error.password_mismatch": "两次输入的密码不一致",
 	"auth.error.email_invalid": "邮箱格式不正确",
 	"auth.error.agree_required": "请先同意服务条款与隐私政策",

@@ -1,4 +1,4 @@
-import { betterAuth, type RateLimit } from "better-auth";
+import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, twoFactor, haveIBeenPwned } from "better-auth/plugins";
 import { db } from "@/db";
@@ -66,19 +66,27 @@ export const auth = betterAuth({
 			"/sign-in/email": { window: 60, max: 10 },
 		},
 		customStorage: {
-			get: async (key) => {
-				const raw = await getRedis().get(`ba-rate-limit:${key}`);
-				return raw ? (JSON.parse(raw) as RateLimit) : undefined;
-			},
-			// Expire the counters: without a TTL every IP/path pair ever seen
-			// stays in Redis forever.
-			set: async (key, value) => {
-				await getRedis().set(
+			// better-auth 1.7 起只接受原子的 consume()：旧的 get/set 两步式在并发
+			// 请求下会先读到同一个旧值再各自写回，限流失效（官方已移除该形状）。
+			// INCR + EXPIRE + TTL 放进一个 Lua 脚本，Redis 单线程执行即原子。
+			consume: async (key, rule) => {
+				const result: unknown = await getRedis().eval(
+					`local current = redis.call("INCR", KEYS[1])
+					 if current == 1 then redis.call("EXPIRE", KEYS[1], ARGV[1]) end
+					 return { current, redis.call("TTL", KEYS[1]) }`,
+					1,
 					`ba-rate-limit:${key}`,
-					JSON.stringify(value),
-					"EX",
-					600,
+					rule.window,
 				);
+				const [count, ttl] = Array.isArray(result) ? result : [];
+				if (Number(count) > rule.max) {
+					const retryAfter = Number(ttl);
+					return {
+						allowed: false,
+						retryAfter: retryAfter > 0 ? retryAfter : rule.window,
+					};
+				}
+				return { allowed: true, retryAfter: null };
 			},
 		},
 	},

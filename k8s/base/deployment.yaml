@@ -23,6 +23,14 @@ spec:
       # 私有镜像仓库凭证；由部署脚本按 namespace 创建（见 script/deploy-test.sh）
       imagePullSecrets:
         - name: mycut-registry
+      # Pod 级安全上下文：镜像内非 root 用户 nextjs（uid/gid 1001）
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: web
           image: registry.example.com/mycut/web:IMAGE_TAG
@@ -41,6 +49,12 @@ spec:
             limits:
               cpu: "1"
               memory: 1Gi
+          # 只读根文件系统下 Next 仍需可写目录（见下方 volumes）
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/apps/web/.next/cache
           startupProbe:
             # Next 冷启动 + standalone 产物加载
             httpGet:
@@ -65,3 +79,14 @@ spec:
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      # 只读根文件系统需要的可写目录：/tmp（Node 临时文件）与
+      # /app/apps/web/.next/cache（Next 图片优化/构建缓存，standalone 产物在同级）
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}

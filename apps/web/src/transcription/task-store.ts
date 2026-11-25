@@ -86,10 +86,14 @@ interface TranscriptionQueueState {
 
 const nowIso = (): string => new Date().toISOString();
 
+// 任务 id 不是安全凭据，但仍不能用 Math.random：那会触发不安全随机数的
+// 安全规则（S2245），且回退路径本身也只需要「同一会话内不重复」。
+let taskIdCounter = 0;
+
 const newTaskId = (): string =>
 	typeof crypto !== "undefined" && "randomUUID" in crypto
 		? crypto.randomUUID()
-		: `tr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		: `tr-${Date.now()}-${++taskIdCounter}`;
 
 export const useTranscriptionQueue = create<TranscriptionQueueState>(
 	(set, get) => ({
