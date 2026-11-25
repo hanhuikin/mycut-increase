@@ -14,8 +14,16 @@ export function TextView() {
 		const activeScene = editor.scenes.getActiveScene();
 		if (!activeScene) return;
 
+		// 用面板上显示的那段文案作为初始内容：卡片写「默认文字」，插进去却是
+		// 英文 "Default text" 会让人以为写入没生效。
 		const element = buildTextElement({
-			raw: DEFAULTS.text.element,
+			raw: {
+				...DEFAULTS.text.element,
+				params: {
+					...DEFAULTS.text.element.params,
+					content: t["text.default_text"],
+				},
+			},
 			startTime: currentTime,
 		});
 

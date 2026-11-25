@@ -78,6 +78,7 @@ import { Input } from "@/components/ui/input";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
 import { toast } from "sonner";
+import { isCaptionElement } from "@/subtitles/caption-element";
 
 const DIAGNOSTIC_BUTTON_VARIANT: Record<
 	DiagnosticSeverity,
@@ -247,7 +248,8 @@ export function Captions() {
 		e.diagnostics.getActive({ scope: TRANSCRIPTION_DIAGNOSTICS_SCOPE }),
 	);
 
-	// 整条字幕批量样式：作用域 = 时间轴上全部 text track 的元素。
+	// 整条字幕批量样式：只圈转写生成的字幕元素。文字元素（文字面板插入的）
+	// 和字幕是同样的数据，若不按来源过滤，这里的样式会连带改掉用户的文字。
 	const activeScene = useEditor((e) => e.scenes.getActiveSceneOrNull());
 	const captionTargets = useMemo(() => {
 		const tracks = activeScene?.tracks.overlay.filter(
@@ -255,7 +257,9 @@ export function Captions() {
 		);
 		return (
 			tracks?.flatMap((track) =>
-				track.elements.map((element) => ({ trackId: track.id, element })),
+				track.elements
+					.filter((element) => isCaptionElement({ element }))
+					.map((element) => ({ trackId: track.id, element })),
 			) ?? []
 		);
 	}, [activeScene]);

@@ -150,26 +150,77 @@ function ParamInput({
 
 	if (param.type === "text") {
 		return (
-			<Textarea
+			<FreeTextParamField
 				value={String(value)}
-				onChange={(event) => onPreview(event.currentTarget.value)}
-				onBlur={onCommit}
+				onPreview={onPreview}
+				onCommit={onCommit}
+				multiline={true}
 			/>
 		);
 	}
 
 	if (param.type === "font") {
 		return (
-			<input
-				className="border-input bg-accent h-9 w-full rounded-md border px-3 text-sm outline-none"
+			<FreeTextParamField
 				value={String(value)}
-				onChange={(event) => onPreview(event.currentTarget.value)}
-				onBlur={onCommit}
+				onPreview={onPreview}
+				onCommit={onCommit}
+				multiline={false}
 			/>
 		);
 	}
 
 	return null;
+}
+
+/**
+ * 文本 / 字体这类自由输入。
+ *
+ * 不能直接把受控输入框绑到已提交的值上：每次按键都会走 onPreview →
+ * previewElements → 通知订阅者重渲染，而属性面板读的是已提交的场景轨道
+ * （preview 只存在于 overlay 里），于是 React 把 DOM 值回滚成旧值——表现就是
+ * 一个字都敲不进去。这里和数字输入一样用本地 draft：编辑期间显示用户输入，
+ * 失焦时才 commit。
+ */
+function FreeTextParamField({
+	value,
+	onPreview,
+	onCommit,
+	multiline,
+}: {
+	value: string;
+	onPreview: (value: ParamValue) => void;
+	onCommit: () => void;
+	multiline: boolean;
+}) {
+	const draft = usePropertyDraft<string>({
+		displayValue: value,
+		parse: (input) => input,
+		onPreview,
+		onCommit,
+		supportsExpressions: false,
+	});
+
+	if (multiline) {
+		return (
+			<Textarea
+				value={draft.displayValue}
+				onFocus={draft.onFocus}
+				onChange={draft.onChange}
+				onBlur={draft.onBlur}
+			/>
+		);
+	}
+
+	return (
+		<input
+			className="border-input bg-accent h-9 w-full rounded-md border px-3 text-sm outline-none"
+			value={draft.displayValue}
+			onFocus={draft.onFocus}
+			onChange={draft.onChange}
+			onBlur={draft.onBlur}
+		/>
+	);
 }
 
 function NumberParamField({

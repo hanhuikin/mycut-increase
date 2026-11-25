@@ -15,6 +15,7 @@ import type {
 	TextFontWeight,
 } from "@/text/primitives";
 import type { SubtitleCue, SubtitleStyleOverrides } from "./types";
+import { CAPTION_ELEMENT_PARAM } from "./caption-element";
 
 const SUBTITLE_MAX_WIDTH_RATIO = 0.8;
 const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.05;
@@ -319,6 +320,8 @@ export function buildSubtitleTextElement({
 		startTime: mediaTimeFromSeconds({ seconds: caption.startTime }),
 		params: {
 			...DEFAULTS.text.element.params,
+			// 标记来源：字幕批量样式只作用于这些元素（见 caption-element.ts）
+			[CAPTION_ELEMENT_PARAM]: true,
 			content,
 			fontSize: style.fontSize,
 			fontFamily: style.fontFamily,
