@@ -34,7 +34,8 @@ export class IndexedDBFileAdapter implements StorageAdapter<File> {
 		return new Promise((resolve, reject) => {
 			const request = indexedDB.open(this.dbName, this.version);
 
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result);
 
 			request.onupgradeneeded = (event) => {
@@ -53,7 +54,8 @@ export class IndexedDBFileAdapter implements StorageAdapter<File> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.get(key);
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result?.file ?? null);
 		});
 	}
@@ -71,7 +73,8 @@ export class IndexedDBFileAdapter implements StorageAdapter<File> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.put({ id: key, file });
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve();
 		});
 	}
@@ -83,7 +86,8 @@ export class IndexedDBFileAdapter implements StorageAdapter<File> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.delete(key);
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve();
 		});
 	}
@@ -95,7 +99,8 @@ export class IndexedDBFileAdapter implements StorageAdapter<File> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.getAllKeys();
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result as string[]);
 		});
 	}
@@ -107,7 +112,8 @@ export class IndexedDBFileAdapter implements StorageAdapter<File> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.clear();
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve();
 		});
 	}

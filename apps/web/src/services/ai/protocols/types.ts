@@ -168,7 +168,8 @@ export interface Protocol {
 
 /** Strip trailing slashes so paths concatenate cleanly. */
 export function trimBase(baseUrl: string): string {
-	return baseUrl.trim().replace(/\/+$/, "");
+	// (?<!\/) pins the run start so backtracking can't rescan it (Sonar S8786).
+	return baseUrl.trim().replace(/(?<!\/)\/+$/, "");
 }
 
 export async function readJson(response: Response): Promise<unknown> {

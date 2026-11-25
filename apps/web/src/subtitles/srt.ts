@@ -1,6 +1,8 @@
 import type { ParseSubtitleResult, SubtitleCue } from "./types";
 
-const TIMESTAMP_SEPARATOR = /\s*-->\s*/;
+// Leading run is pinned to whitespace-run starts via (?<!\s) so a whitespace
+// run can't be rescanned at every offset (quadratic worst case, Sonar S8786).
+const TIMESTAMP_SEPARATOR = /(?:(?<!\s)\s+)?-->\s*/;
 const TIMESTAMP_PATTERN =
 	/^(\d{2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{1,3})/;
 

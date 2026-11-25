@@ -315,7 +315,12 @@ export class VideoFrameExtractor {
 			const reader = new FileReader();
 			reader.onload = () =>
 				resolve(typeof reader.result === "string" ? reader.result : null);
-			reader.onerror = () => reject(reader.error);
+			reader.onerror = () =>
+				reject(
+					new Error(
+						`Failed to read frame data (code: ${reader.error?.code ?? "unknown"})`,
+					),
+				);
 			reader.readAsDataURL(blob);
 		});
 	}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useLocale } from "@/locale/locale-context";
 import type { LocaleKey } from "@/locale";
 
 export function AuthField({
 	label,
+	id: externalId,
 	type = "text",
 	value,
 	onChange,
@@ -15,6 +16,8 @@ export function AuthField({
 	onKeyDown,
 }: {
 	label: string;
+	/** Overrides the generated id so an outer <label htmlFor> can reach the input. */
+	id?: string;
 	type?: "text" | "email" | "password";
 	value: string;
 	onChange: (value: string) => void;
@@ -23,6 +26,8 @@ export function AuthField({
 	autoComplete?: string;
 	onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
+	const generatedId = useId();
+	const inputId = externalId ?? generatedId;
 	const [showPassword, setShowPassword] = useState(false);
 	const { t } = useLocale();
 	const isPassword = type === "password";
@@ -30,13 +35,21 @@ export function AuthField({
 
 	return (
 		<div className="mb-3.5">
-			<label className="text-foreground/80 mb-1.5 block text-xs">{label}</label>
+			{label ? (
+				<label
+					htmlFor={inputId}
+					className="text-foreground/80 mb-1.5 block text-xs"
+				>
+					{label}
+				</label>
+			) : null}
 			<div
 				className={`border-border bg-background focus-within:border-primary flex h-10 items-center gap-2 rounded-lg border px-3 transition-colors ${
 					error ? "border-destructive" : ""
 				}`}
 			>
 				<input
+					id={inputId}
 					type={inputType}
 					value={value}
 					onChange={(event) => onChange(event.target.value)}
@@ -78,16 +91,20 @@ export function CapsLockPasswordField({
 }) {
 	const { t } = useLocale();
 	const [capsOn, setCapsOn] = useState(false);
+	const passwordId = useId();
 
 	return (
 		<div>
 			<div className="mb-1.5 flex items-center justify-between">
-				<label className="text-foreground/80 block text-xs">{label}</label>
+				<label htmlFor={passwordId} className="text-foreground/80 block text-xs">
+					{label}
+				</label>
 				{capsOn && (
 					<span className="text-xs text-amber-500">{t["auth.capslock"]}</span>
 				)}
 			</div>
 			<AuthField
+				id={passwordId}
 				label=""
 				type="password"
 				value={value}

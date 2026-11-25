@@ -460,7 +460,9 @@ export function useEditorActions() {
 	useActionHandler(
 		"toggle-bookmark",
 		() => {
-			editor.scenes.toggleBookmark({ time: editor.playback.getCurrentTime() });
+			void editor.scenes.toggleBookmark({
+				time: editor.playback.getCurrentTime(),
+			});
 		},
 		undefined,
 	);

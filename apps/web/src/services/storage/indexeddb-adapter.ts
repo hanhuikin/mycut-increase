@@ -23,7 +23,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 		return new Promise((resolve, reject) => {
 			const request = indexedDB.open(this.dbName, this.version);
 
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result);
 
 			request.onupgradeneeded = (event) => {
@@ -42,7 +43,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.get(key);
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result || null);
 		});
 	}
@@ -60,7 +62,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.put({ id: key, ...value });
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve();
 		});
 	}
@@ -72,7 +75,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.delete(key);
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve();
 		});
 	}
@@ -84,7 +88,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.getAllKeys();
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result as string[]);
 		});
 	}
@@ -96,7 +101,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.getAll();
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve(request.result || []);
 		});
 	}
@@ -108,7 +114,8 @@ export class IndexedDBAdapter<T> implements StorageAdapter<T> {
 
 		return new Promise((resolve, reject) => {
 			const request = store.clear();
-			request.onerror = () => reject(request.error);
+			request.onerror = () =>
+				reject(request.error ?? new Error("IndexedDB request failed"));
 			request.onsuccess = () => resolve();
 		});
 	}
@@ -122,6 +129,7 @@ export async function deleteDatabase({
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.deleteDatabase(dbName);
 		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+		request.onerror = () =>
+			reject(request.error ?? new Error("IndexedDB request failed"));
 	});
 }

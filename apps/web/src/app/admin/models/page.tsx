@@ -103,7 +103,7 @@ export default function AdminModelsPage() {
 	}, []);
 
 	useEffect(() => {
-		load();
+		void load();
 	}, [load]);
 
 	const summary = useMemo(() => {

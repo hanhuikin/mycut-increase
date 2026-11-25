@@ -66,7 +66,7 @@ export function useBilling(): BillingState {
 
 	useEffect(() => {
 		if (isPending) return;
-		(async () => {
+		void (async () => {
 			setLoading(true);
 			try {
 				const res = await fetch("/api/billing/models");

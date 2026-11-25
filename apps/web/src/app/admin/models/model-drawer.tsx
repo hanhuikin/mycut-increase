@@ -201,7 +201,7 @@ export function ModelDrawer({
 			setForm(null);
 			return;
 		}
-		load(modelId);
+		void load(modelId);
 	}, [modelId, load]);
 
 	const initial = useMemo(() => (model ? toForm(model) : null), [model]);

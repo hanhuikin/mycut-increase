@@ -195,7 +195,7 @@ export function MultiImg2ImgDialog({
 			importAsset,
 			onFinished: (imported) => {
 				if (imported > 0) {
-					billing.refreshBalance();
+					void billing.refreshBalance();
 				}
 			},
 		});

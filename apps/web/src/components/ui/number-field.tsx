@@ -172,7 +172,7 @@ function NumberField({
 		startValueRef.current = Number.isNaN(parsed) ? 0 : parsed;
 		cumulativeDeltaRef.current = 0;
 		let hasReceivedFirstMove = false;
-		iconRef.current?.requestPointerLock();
+		void iconRef.current?.requestPointerLock();
 
 		const handlePointerMove = (moveEvent: PointerEvent) => {
 			// first movementX after pointer lock often contains a bogus warp delta

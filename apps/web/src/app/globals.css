@@ -258,44 +258,52 @@
   }
 }
 
-@utility scrollbar-hidden {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
+/*
+  Plain classes instead of @utility: none of them are used with Tailwind
+  variants (hover:, dark:, …), and the CSS analyzer (css:S8776) does not
+  recognize @utility blocks as a scoping root for the nested
+  &::-webkit-scrollbar rules inside them.
+*/
+@layer utilities {
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
-}
 
-@utility scrollbar-x-hidden {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar:horizontal {
-    display: none;
+  .scrollbar-x-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar:horizontal {
+      display: none;
+    }
   }
-}
 
-@utility scrollbar-y-hidden {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar:vertical {
-    display: none;
+  .scrollbar-y-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar:vertical {
+      display: none;
+    }
   }
-}
 
-@utility scrollbar-thin {
-  &::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
+  .scrollbar-thin {
+    &::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: var(--muted-foreground);
+    }
   }
 }
 

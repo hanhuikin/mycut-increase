@@ -54,9 +54,11 @@ export function appendAlpha({
 
 function stripCssNoise({ text }: { text: string }): string {
 	let cleaned = text.trim();
+	// Both patterns pin quantified runs to their starts ((?<!\s) / (?<!;)) so
+	// backtracking can't rescan a run at every offset (Sonar S8786).
 	cleaned = cleaned
-		.replace(/\s*!important\s*/gi, "")
-		.replace(/;+\s*$/, "")
+		.replace(/(?:(?<!\s)\s+)?!important\s*/gi, "")
+		.replace(/(?<!;);+\s*$/, "")
 		.trim();
 
 	const colonIndex = cleaned.indexOf(":");

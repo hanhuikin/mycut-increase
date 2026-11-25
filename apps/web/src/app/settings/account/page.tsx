@@ -61,7 +61,7 @@ export default function AccountSettingsPage() {
 
 	useEffect(() => {
 		if (isPending || !session) return;
-		(async () => {
+		void (async () => {
 			const res = await fetch("/api/billing/me");
 			if (res.ok) setMe((await res.json()) as Me);
 			await loadSessions();
@@ -262,7 +262,7 @@ export default function AccountSettingsPage() {
 						size="sm"
 						className="h-8 text-xs"
 						onClick={() => {
-							if (twoFaUri) navigator.clipboard.writeText(twoFaUri);
+							if (twoFaUri) void navigator.clipboard.writeText(twoFaUri);
 						}}
 					>
 						{t["common.copy"]}
@@ -301,14 +301,22 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
 				onDone();
 			}}
 		>
+			<label htmlFor="settings-password-current" className="sr-only">
+				{t["settings.password_current"]}
+			</label>
 			<input
+				id="settings-password-current"
 				type="password"
 				value={current}
 				onChange={(event) => setCurrent(event.target.value)}
 				placeholder={t["settings.password_current"]}
 				className="border-border focus-within:border-primary h-9 rounded-lg border bg-transparent px-3 text-sm outline-none"
 			/>
+			<label htmlFor="settings-password-new" className="sr-only">
+				{t["settings.password_new"]}
+			</label>
 			<input
+				id="settings-password-new"
 				type="password"
 				value={next}
 				onChange={(event) => setNext(event.target.value)}

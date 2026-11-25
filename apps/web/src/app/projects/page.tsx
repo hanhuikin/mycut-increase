@@ -109,7 +109,7 @@ export default function ProjectsPage() {
 
 	useEffect(() => {
 		if (!editor.project.getIsInitialized()) {
-			editor.project.loadAllProjects();
+			void editor.project.loadAllProjects();
 		}
 	}, [editor.project]);
 

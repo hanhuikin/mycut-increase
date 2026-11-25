@@ -371,7 +371,7 @@ export function useElementFilmstrip({
 
 		const generation = ++generationRef.current;
 
-		enqueueFilmstripTask({
+		void enqueueFilmstripTask({
 			task: async () => {
 				if (generationRef.current !== generation) {
 					return;

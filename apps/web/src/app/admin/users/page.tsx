@@ -103,7 +103,7 @@ export default function AdminUsersPage() {
 	}, []);
 
 	useEffect(() => {
-		load("");
+		void load("");
 	}, [load]);
 
 	const runAction = async (
@@ -133,7 +133,7 @@ export default function AdminUsersPage() {
 
 	const request = (row: AdminUserRow, kind: ActionKind) => {
 		if (kind === "unban") {
-			runAction(row, "unban");
+			void runAction(row, "unban");
 			return;
 		}
 		if (kind === "ban") {
@@ -199,7 +199,7 @@ export default function AdminUsersPage() {
 				value={search}
 				onChange={(event) => {
 					setSearch(event.target.value);
-					load(event.target.value);
+					void load(event.target.value);
 				}}
 				placeholder={t["admin.users.search"]}
 				size="sm"

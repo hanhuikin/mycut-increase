@@ -44,7 +44,9 @@ Alert.displayName = "Alert";
 const AlertTitle = React.forwardRef<
 	HTMLParagraphElement,
 	React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
+	// Children are spelled out (instead of self-closing with {...props}) so the
+	// heading visibly carries its content for the a11y linters.
 	<h5
 		ref={ref}
 		className={cn(
@@ -52,7 +54,9 @@ const AlertTitle = React.forwardRef<
 			className,
 		)}
 		{...props}
-	/>
+	>
+		{children}
+	</h5>
 ));
 AlertTitle.displayName = "AlertTitle";
 

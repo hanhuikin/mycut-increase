@@ -17,11 +17,14 @@ export function getEarliestMainTrackElement({
 		return null;
 	}
 
-	return elements.reduce((earliestElement, element) => {
-		return element.startTime < earliestElement.startTime
-			? element
-			: earliestElement;
-	});
+	return elements.reduce(
+		(earliestElement, element) => {
+			return element.startTime < earliestElement.startTime
+				? element
+				: earliestElement;
+		},
+		elements[0],
+	);
 }
 
 export function enforceMainTrackStart({

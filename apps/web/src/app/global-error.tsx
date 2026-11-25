@@ -20,8 +20,9 @@ export default function GlobalError({
 		setTraceId(window.__TRACE_ID__ ?? null);
 		console.error("app crashed", { error, digest: error.digest });
 	}, [error]);
+	// The root error boundary cannot read the app locale, so fall back to en.
 	return (
-		<html>
+		<html lang="en">
 			<body className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6 text-center">
 				<h2 className="text-lg font-semibold">Something went wrong!</h2>
 				{traceId ? (

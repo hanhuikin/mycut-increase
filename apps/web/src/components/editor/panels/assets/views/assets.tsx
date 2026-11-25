@@ -161,33 +161,28 @@ export function MediaView() {
 		const filtered = mediaFiles.filter((item) => !item.ephemeral);
 
 		filtered.sort((a, b) => {
-			let valueA: string | number;
-			let valueB: string | number;
+			let comparison: number;
 
 			switch (mediaSortBy) {
 				case "name":
-					valueA = (a.name || "").toLowerCase();
-					valueB = (b.name || "").toLowerCase();
+					comparison = (a.name || "")
+						.toLowerCase()
+						.localeCompare((b.name || "").toLowerCase());
 					break;
 				case "type":
-					valueA = a.type;
-					valueB = b.type;
+					comparison = a.type.localeCompare(b.type);
 					break;
 				case "duration":
-					valueA = a.duration || 0;
-					valueB = b.duration || 0;
+					comparison = (a.duration || 0) - (b.duration || 0);
 					break;
 				case "size":
-					valueA = a.file.size;
-					valueB = b.file.size;
+					comparison = a.file.size - b.file.size;
 					break;
 				default:
 					return 0;
 			}
 
-			if (valueA < valueB) return mediaSortOrder === "asc" ? -1 : 1;
-			if (valueA > valueB) return mediaSortOrder === "asc" ? 1 : -1;
-			return 0;
+			return mediaSortOrder === "asc" ? comparison : -comparison;
 		});
 
 		return filtered;
@@ -363,7 +358,10 @@ function Img2ImgBatchBar({
 			: null;
 
 	return (
+		// Purely an event-isolation wrapper so bar interactions do not reach the
+		// selection surface behind it; presentation keeps it out of the a11y tree.
 		<div
+			role="presentation"
 			className="sticky bottom-1 z-10 mt-2"
 			onMouseDown={(event) => event.stopPropagation()}
 			onClick={(event) => event.stopPropagation()}

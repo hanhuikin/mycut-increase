@@ -28,7 +28,7 @@ export function useStoragePersistence() {
 			}
 		};
 
-		run();
+		void run();
 	}, []);
 
 	const onConfirm = async () => {

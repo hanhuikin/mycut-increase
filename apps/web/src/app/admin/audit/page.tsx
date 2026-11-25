@@ -93,7 +93,7 @@ export default function AdminAuditPage() {
 	}, []);
 
 	useEffect(() => {
-		load(action, offset);
+		void load(action, offset);
 	}, [load, action, offset]);
 
 	if (gateError) {

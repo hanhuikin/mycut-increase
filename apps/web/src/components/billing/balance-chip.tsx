@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useLocale } from "@/locale/locale-context";
 import { toast } from "sonner";
 import { redeemCredits } from "@/services/billing/client";
@@ -10,6 +10,7 @@ export function RedeemForm({ onDone }: { onDone: () => void }) {
 	const { t } = useLocale();
 	const [code, setCode] = useState("");
 	const [busy, setBusy] = useState(false);
+	const codeId = useId();
 
 	return (
 		<form
@@ -35,8 +36,11 @@ export function RedeemForm({ onDone }: { onDone: () => void }) {
 				}
 			}}
 		>
+			<label htmlFor={codeId} className="sr-only">
+				{t["billing.redeem_placeholder"]}
+			</label>
 			<input
-				autoFocus
+				id={codeId}
 				value={code}
 				onChange={(event) => setCode(event.target.value)}
 				placeholder={t["billing.redeem_placeholder"]}
@@ -89,12 +93,17 @@ export function BalanceChip({
 			{open && (
 				<span
 					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-					onClick={() => setOpen(false)}
+					onClick={(event) => {
+						// Close only for clicks on the backdrop itself, not the panel.
+						if (event.target === event.currentTarget) setOpen(false);
+					}}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" || event.key === " ") setOpen(false);
+					}}
+					role="button"
+					tabIndex={0}
 				>
-					<span
-						className="bg-card border-border mx-4 block w-full max-w-xs rounded-xl border p-4"
-						onClick={(event) => event.stopPropagation()}
-					>
+					<span className="bg-card border-border mx-4 block w-full max-w-xs rounded-xl border p-4">
 						<h3 className="mb-2 text-sm font-semibold">
 							{t["billing.redeem_title"]}
 						</h3>

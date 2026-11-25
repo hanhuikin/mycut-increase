@@ -50,7 +50,7 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 				if (cancelled) return;
 
 				setIsLoading(false);
-				loadFontAtlas();
+				void loadFontAtlas();
 			} catch (err) {
 				if (cancelled) return;
 
@@ -87,7 +87,7 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 			}
 		};
 
-		loadProject();
+		void loadProject();
 
 		return () => {
 			cancelled = true;

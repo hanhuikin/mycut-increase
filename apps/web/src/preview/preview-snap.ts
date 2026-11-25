@@ -43,27 +43,30 @@ function pickClosestScaleCandidate<T extends { distance: number; edge: ScaleEdge
 		return null;
 	}
 
-	return candidates.reduce((bestCandidate, candidate) => {
-		if (candidate.distance < bestCandidate.distance) {
-			return candidate;
-		}
-		if (candidate.distance > bestCandidate.distance) {
-			return bestCandidate;
-		}
+	return candidates.reduce(
+		(bestCandidate, candidate) => {
+			if (candidate.distance < bestCandidate.distance) {
+				return candidate;
+			}
+			if (candidate.distance > bestCandidate.distance) {
+				return bestCandidate;
+			}
 
-		const shouldPreferCandidate = hasPreferredEdge({
-			preferredEdges,
-			edge: candidate.edge,
-		});
-		const shouldPreferBestCandidate = hasPreferredEdge({
-			preferredEdges,
-			edge: bestCandidate.edge,
-		});
+			const shouldPreferCandidate = hasPreferredEdge({
+				preferredEdges,
+				edge: candidate.edge,
+			});
+			const shouldPreferBestCandidate = hasPreferredEdge({
+				preferredEdges,
+				edge: bestCandidate.edge,
+			});
 
-		return shouldPreferCandidate && !shouldPreferBestCandidate
-			? candidate
-			: bestCandidate;
-	});
+			return shouldPreferCandidate && !shouldPreferBestCandidate
+				? candidate
+				: bestCandidate;
+		},
+		candidates[0],
+	);
 }
 
 export function snapPosition({
@@ -112,8 +115,10 @@ export function snapPosition({
 		if (snapCandidatesWithinThreshold.length === 0) {
 			return null;
 		}
-		return snapCandidatesWithinThreshold.reduce((closest, current) =>
-			current.distance < closest.distance ? current : closest,
+		return snapCandidatesWithinThreshold.reduce(
+			(closest, current) =>
+				current.distance < closest.distance ? current : closest,
+			snapCandidatesWithinThreshold[0],
 		);
 	}
 

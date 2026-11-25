@@ -754,7 +754,7 @@ export function AIVideoView() {
 						accept={ACCEPTED_IMAGE_TYPES.join(",")}
 						className="hidden"
 						onChange={(e) => {
-							handleShotImagePick(e.target.files?.[0]);
+							void handleShotImagePick(e.target.files?.[0]);
 							// Reset so re-picking the same file still fires onChange.
 							e.target.value = "";
 						}}
@@ -1050,7 +1050,7 @@ export function AIVideoView() {
 										accept={ACCEPTED_IMAGE_TYPES.join(",")}
 										className="hidden"
 										onChange={(e) => {
-											handleImagePick(e.target.files?.[0]);
+											void handleImagePick(e.target.files?.[0]);
 											// Reset so re-picking the same file still fires onChange.
 											e.target.value = "";
 										}}
@@ -1259,12 +1259,18 @@ export function AIVideoView() {
 			{insufficient && (
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-					onClick={() => setInsufficient(null)}
+					onClick={(event) => {
+						// Close only for clicks on the backdrop itself, not the panel.
+						if (event.target === event.currentTarget) setInsufficient(null);
+					}}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" || event.key === " ")
+							setInsufficient(null);
+					}}
+					role="button"
+					tabIndex={0}
 				>
-					<div
-						className="bg-card border-border mx-4 w-full max-w-xs rounded-xl border p-4"
-						onClick={(event) => event.stopPropagation()}
-					>
+					<div className="bg-card border-border mx-4 w-full max-w-xs rounded-xl border p-4">
 						<h3 className="mb-1 text-sm font-semibold">
 							{t["billing.insufficient"]}
 						</h3>
@@ -1276,7 +1282,7 @@ export function AIVideoView() {
 						<RedeemForm
 							onDone={() => {
 								setInsufficient(null);
-								billing.refreshBalance();
+								void billing.refreshBalance();
 							}}
 						/>
 						<button

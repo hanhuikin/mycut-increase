@@ -21,7 +21,7 @@ export const GATE_STORAGE_KEY = "mc_admin_gate_until";
 
 function readGateUntil(): number | null {
 	const raw = sessionStorage.getItem(GATE_STORAGE_KEY);
-	const value = raw ? Number(raw) : NaN;
+	const value = raw ? Number(raw) : Number.NaN;
 	return Number.isFinite(value) ? value : null;
 }
 

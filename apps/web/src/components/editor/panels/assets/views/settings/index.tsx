@@ -152,7 +152,7 @@ export function SettingsView() {
 			return;
 		}
 
-		editor.project.updateSettings({
+		void editor.project.updateSettings({
 			settings: {
 				...(shouldUpdateCanvasSize ? { canvasSize } : {}),
 				...(shouldUpdateCanvasSizeMode
@@ -176,7 +176,7 @@ export function SettingsView() {
 
 		if (!shouldUpdateCanvasSize && !shouldUpdateCanvasSizeMode) return;
 
-		editor.project.updateSettings({
+		void editor.project.updateSettings({
 			settings: {
 				...(shouldUpdateCanvasSize ? { canvasSize } : {}),
 				...(shouldUpdateCanvasSizeMode
@@ -255,7 +255,7 @@ export function SettingsView() {
 							value={String(Math.round(frameRateToFloat(activeProject.settings.fps)))}
 							onValueChange={(value) => {
 								const fps = floatToFrameRate(parseFloat(value));
-								editor.project.updateSettings({ settings: { fps } });
+								void editor.project.updateSettings({ settings: { fps } });
 							}}
 							>
 								<SelectTrigger className="bg-transparent border-none p-1 h-auto">

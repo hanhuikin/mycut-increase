@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
 	}, []);
 
 	useEffect(() => {
-		load(range);
+		void load(range);
 	}, [load, range]);
 
 	/**

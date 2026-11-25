@@ -182,7 +182,7 @@ export default function AdminChannelsPage() {
 	}, []);
 
 	useEffect(() => {
-		load();
+		void load();
 	}, [load]);
 
 	const protocolDefaults = useMemo(() => {

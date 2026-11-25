@@ -456,11 +456,11 @@ export function TaskQueueView() {
 					))}
 				</div>
 				<div className="text-muted-foreground mt-1 text-[11px]">
-					{formatDateTime(
-						shots
-							.map((shot) => shot.createdAt)
-							.reduce((a, b) => (a < b ? a : b)),
-					)}
+						{formatDateTime(
+							shots
+								.map((shot) => shot.createdAt)
+								.reduce((a, b) => (a < b ? a : b), shots[0].createdAt),
+						)}
 				</div>
 			</div>
 		);

@@ -226,7 +226,7 @@ function CodesGenerator({ onError }: { onError: (status: GateStatus | number) =>
 								variant="link"
 								className="h-auto p-0 text-[12.5px]"
 								onClick={() => {
-									navigator.clipboard.writeText(codes.join("\n"));
+									void navigator.clipboard.writeText(codes.join("\n"));
 									toast.success(t["admin.billing.copied"]);
 								}}
 							>

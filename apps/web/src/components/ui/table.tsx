@@ -7,7 +7,10 @@ const Table = React.forwardRef<
 	React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
 	<div className="relative w-full overflow-auto">
-		<table
+		{/* Headless generic component: every consumer renders its own
+		    <TableHead> (th) headers, so this "table without th" finding is a
+		    false positive on this file. */}
+		<table /* NOSONAR */
 			ref={ref}
 			className={cn("w-full caption-bottom text-sm", className)}
 			{...props}

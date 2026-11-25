@@ -91,7 +91,7 @@ export class InsertElementCommand extends Command {
 				const nextCanvasSize = { width: asset.width, height: asset.height };
 				const shouldSetOriginalCanvasSize =
 					!activeProject?.settings.originalCanvasSize;
-				editor.project.updateSettings({
+				void editor.project.updateSettings({
 					settings: {
 						canvasSize: nextCanvasSize,
 						...(shouldSetOriginalCanvasSize
@@ -103,7 +103,7 @@ export class InsertElementCommand extends Command {
 			}
 
 			if (asset?.type === "video" && asset?.fps) {
-				editor.project.updateSettings({
+				void editor.project.updateSettings({
 					settings: { fps: floatToFrameRate(asset.fps) },
 					pushHistory: false,
 				});

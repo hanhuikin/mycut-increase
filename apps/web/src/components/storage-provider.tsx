@@ -72,7 +72,7 @@ export function StorageProvider({ children }: StorageProviderProps) {
 			}
 		};
 
-		initializeStorage();
+		void initializeStorage();
 	}, [editor.project.loadAllProjects]);
 
 	return (

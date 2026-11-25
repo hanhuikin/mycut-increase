@@ -392,7 +392,9 @@ export class ProjectManager {
 
 		try {
 			const getDuplicateBaseName = ({ name }: { name: string }) => {
-				const match = name.match(/^\((\d+)\)\s+(.+)$/);
+				// \S-anchored remainder: identical captures to (.+)$ but removes the
+				// \s+/(.+) split ambiguity (quadratic backtracking, Sonar S8786).
+				const match = name.match(/^\((\d+)\)\s+(\S[^\n]*|\s)$/);
 				const number = match ? Number.parseInt(match[1], 10) : null;
 				const baseName = match ? match[2] : name;
 				return { baseName, number };
@@ -602,14 +604,17 @@ export class ProjectManager {
 			const aValue = a[key];
 			const bValue = b[key];
 
-			if (order === "asc") {
-				if (aValue < bValue) return -1;
-				if (aValue > bValue) return 1;
-				return 0;
+			let comparison: number;
+			if (typeof aValue === "string" && typeof bValue === "string") {
+				comparison = aValue.localeCompare(bValue);
+			} else if (aValue instanceof Date && bValue instanceof Date) {
+				comparison = aValue.getTime() - bValue.getTime();
+			} else {
+				// Remaining case is the numeric one (duration); Number() accepts the
+				// union type without narrowing games.
+				comparison = Number(aValue) - Number(bValue);
 			}
-			if (aValue > bValue) return -1;
-			if (aValue < bValue) return 1;
-			return 0;
+			return order === "asc" ? comparison : -comparison;
 		});
 
 		return sortedProjects;
@@ -829,7 +834,10 @@ function firstVisualTimeSeconds({ tracks }: { tracks: SceneTracks }): number | n
 		(element) => element.startTime,
 	);
 	if (startTimes.length === 0) return null;
-	const earliest = startTimes.reduce((min, time) => (time < min ? time : min));
+	const earliest = startTimes.reduce(
+		(min, time) => (time < min ? time : min),
+		startTimes[0],
+	);
 	return mediaTimeToSeconds({ time: earliest });
 }
 

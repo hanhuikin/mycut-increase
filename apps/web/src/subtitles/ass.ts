@@ -342,9 +342,11 @@ function stripAssText({ input }: { input: string }): {
 	text: string;
 	hadInlineTags: boolean;
 } {
-	const hadInlineTags = /\{[^}]*\}/.test(input);
+	// (?<!\{) pins each match to the start of a "{..." run so backtracking
+	// can't rescan the run (quadratic worst case, Sonar S8786).
+	const hadInlineTags = /(?<!\{)\{[^}]*\}/.test(input);
 	const text = input
-		.replace(/\{[^}]*\}/g, "")
+		.replace(/(?<!\{)\{[^}]*\}/g, "")
 		.replace(/\\N/gi, "\n")
 		.replace(/\\h/g, " ")
 		.replace(/\\n/g, "\n")
