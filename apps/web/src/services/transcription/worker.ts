@@ -395,6 +395,24 @@ async function handleTranscribe({
 	/** 全部时间戳已换算为相对整段音频的绝对秒。 */
 	const segments: TranscriptionSegment[] = [];
 
+	// webgpu 不可用时（会话超时、推理挂起、推理崩溃）统一降级：dispose 后
+	// 以 wasm 重建，再由调用方重跑当前切片。崩溃后 wasm 模块状态不可信
+	//（核显驱动上可见 "table index is out of bounds" 一类 jsep 错误），
+	// 朴素重试大概率复现，必须换设备。
+	const fallbackToWasm = async (): Promise<void> => {
+		await disposeTranscriber();
+		currentDevice = "wasm";
+		self.postMessage({
+			type: "device-fallback",
+			device: "wasm",
+		} satisfies WorkerResponse);
+		await createTranscriber({
+			modelId: currentModelId ?? "",
+			device: "wasm",
+			timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
+		});
+	};
+
 	try {
 		let sliceStart = 0;
 		while (sliceStart < totalSamples) {
@@ -459,17 +477,7 @@ async function handleTranscribe({
 					// webgpu 推理挂起 → 降级 wasm 重建并重跑本切片（只降级一次）。
 					// wasm 已是固定单线程（见文件头部 numThreads 注释）。
 					if (currentDevice === "auto") {
-						await disposeTranscriber();
-						currentDevice = "wasm";
-						self.postMessage({
-							type: "device-fallback",
-							device: "wasm",
-						} satisfies WorkerResponse);
-						await createTranscriber({
-							modelId: currentModelId ?? "",
-							device: "wasm",
-							timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
-						});
+						await fallbackToWasm();
 						rawResult = await withHeartbeat({
 							promise: transcriber(slice, transcribeOptions),
 							start: offsetSeconds,
@@ -479,8 +487,18 @@ async function handleTranscribe({
 						// 已经是 wasm 还超时：交给主线程看门狗兜底
 						throw error;
 					}
+				} else if (currentDevice === "auto") {
+					// webgpu 推理直接抛异常（核显驱动上的 "table index is out of
+					// bounds" 等 jsep 崩溃）：同挂起一样降级 wasm 重建重跑，不
+					// 做同设备重试。
+					await fallbackToWasm();
+					rawResult = await withHeartbeat({
+						promise: transcriber(slice, transcribeOptions),
+						start: offsetSeconds,
+						end: sliceEnd / sampleRate,
+					});
 				} else {
-					// 非超时错误重试一次：内存紧张/瞬时解码错误多见于段边界
+					// wasm 上的非超时错误重试一次：内存紧张/瞬时解码错误多见于段边界
 					rawResult = await transcriber(slice, transcribeOptions);
 				}
 			}
