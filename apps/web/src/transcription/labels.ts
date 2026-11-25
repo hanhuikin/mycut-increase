@@ -1,4 +1,5 @@
-import type { LocaleStrings } from "@/locale";
+import type { LocaleKey, LocaleStrings } from "@/locale";
+import type { DeviceDecision } from "@/services/transcription/strategy";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
 import { TRANSCRIPTION_LANGUAGES } from "@/transcription/supported-languages";
 import type { TranscriptionTask } from "@/transcription/task-store";
@@ -69,4 +70,30 @@ export function transcriptionLanguageLabel({
 		(entry) => entry.code === language,
 	);
 	return matched ? t[matched.labelKey] : language;
+}
+
+/** 判定原因 → 字幕面板上那行「本机为什么用 GPU / CPU」的说明文案。 */
+export function transcriptionDeviceHintKey({
+	decision,
+}: {
+	decision: DeviceDecision;
+}): LocaleKey {
+	if (decision.reason === "override") {
+		return decision.device === "webgpu"
+			? "captions.device_hint_override_gpu"
+			: "captions.device_hint_override_cpu";
+	}
+	const keys: Record<
+		Exclude<DeviceDecision["reason"], "override">,
+		LocaleKey
+	> = {
+		"no-webgpu": "captions.device_hint_no_webgpu",
+		"remembered-failure": "captions.device_hint_remembered_failure",
+		"software-renderer": "captions.device_hint_software_renderer",
+		"integrated-gpu": "captions.device_hint_integrated_gpu",
+		"discrete-gpu": "captions.device_hint_discrete_gpu",
+		"unknown-gpu": "captions.device_hint_unknown_gpu",
+		"gpu-failed": "captions.device_hint_gpu_failed",
+	};
+	return keys[decision.reason];
 }

@@ -36,13 +36,7 @@ function formatDateTime(iso: string): string {
 	);
 }
 
-function StatusPill({
-	status,
-	label,
-}: {
-	status: string;
-	label: string;
-}) {
+function StatusPill({ status, label }: { status: string; label: string }) {
 	const isActive = ACTIVE.has(status) || status === "running";
 	return (
 		<span
@@ -104,18 +98,24 @@ export function TaskQueueView() {
 	);
 	const transcriptionTasks = useTranscriptionQueue((state) => state.tasks);
 	const cancelTranscription = useTranscriptionQueue((state) => state.cancel);
-	const removeTranscription = useTranscriptionQueue((state) => state.removeTask);
+	const removeTranscription = useTranscriptionQueue(
+		(state) => state.removeTask,
+	);
 	const clearTranscriptionFinished = useTranscriptionQueue(
 		(state) => state.clearFinished,
 	);
-	const insertTranscription = useTranscriptionQueue((state) => state.insertTask);
+	const insertTranscription = useTranscriptionQueue(
+		(state) => state.insertTask,
+	);
 	const [detailId, setDetailId] = useState<string | null>(null);
 
 	// 本地转写任务按当前项目过滤：字幕只属于发起它的那个项目。
 	const localTasks = activeProjectId
 		? transcriptionTasks.filter((task) => task.projectId === activeProjectId)
 		: [];
-	const activeLocalTasks = localTasks.filter((task) => task.status === "running");
+	const activeLocalTasks = localTasks.filter(
+		(task) => task.status === "running",
+	);
 	const finishedLocalTasks = localTasks.filter(
 		(task) => task.status !== "running",
 	);
@@ -257,6 +257,7 @@ export function TaskQueueView() {
 				<div className="text-muted-foreground mt-1 truncate text-xs">
 					{transcriptionModelLabel({ modelId: task.modelId, t })} ·{" "}
 					{transcriptionLanguageLabel({ language: task.language, t })}
+					{task.usedCpuFallback && <> · {t["captions.device_cpu"]}</>}
 				</div>
 				{running && (
 					<>
@@ -308,9 +309,7 @@ export function TaskQueueView() {
 								type="button"
 								className="hover:text-foreground"
 								onClick={() => {
-									if (
-										!insertTranscription({ id: task.id, editor })
-									) {
+									if (!insertTranscription({ id: task.id, editor })) {
 										toast.error(t["task_queue.insert_captions_failed"]);
 									}
 								}}
@@ -456,11 +455,11 @@ export function TaskQueueView() {
 					))}
 				</div>
 				<div className="text-muted-foreground mt-1 text-[11px]">
-						{formatDateTime(
-							shots
-								.map((shot) => shot.createdAt)
-								.reduce((a, b) => (a < b ? a : b), shots[0].createdAt),
-						)}
+					{formatDateTime(
+						shots
+							.map((shot) => shot.createdAt)
+							.reduce((a, b) => (a < b ? a : b), shots[0].createdAt),
+					)}
 				</div>
 			</div>
 		);

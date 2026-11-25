@@ -26,10 +26,7 @@ import type {
  */
 
 export type TranscriptionTaskStatus =
-	| "running"
-	| "succeeded"
-	| "failed"
-	| "canceled";
+	"running" | "succeeded" | "failed" | "canceled";
 
 export type TranscriptionStage =
 	| "extracting_audio"
@@ -56,6 +53,8 @@ export interface TranscriptionTask {
 	/** 失败原因；"no_captions" 走本地化文案。 */
 	error: string | null;
 	errorCode: "no_captions" | null;
+	/** 这次转写是否因 GPU 运行期失败改用了 CPU（速度明显变慢，界面据此提示）。 */
+	usedCpuFallback: boolean;
 	createdAt: string;
 	finishedAt: string | null;
 }
@@ -121,6 +120,7 @@ export const useTranscriptionQueue = create<TranscriptionQueueState>(
 						detectedLanguage: null,
 						error: null,
 						errorCode: null,
+						usedCpuFallback: false,
 						createdAt: nowIso(),
 						finishedAt: null,
 					},
@@ -172,6 +172,10 @@ export const useTranscriptionQueue = create<TranscriptionQueueState>(
 							update({ stage: "transcribing", progress: progress.progress });
 						}
 					},
+					// 转写没有中断，只是换了设备继续；任务还在跑，由任务队列统一提示
+					onDeviceFallback: () => {
+						update({ usedCpuFallback: true });
+					},
 				});
 				if (run.aborted) return null;
 
@@ -218,7 +222,8 @@ export const useTranscriptionQueue = create<TranscriptionQueueState>(
 				update({
 					status: "failed",
 					stage: null,
-					error: error instanceof Error ? error.message : "transcription_failed",
+					error:
+						error instanceof Error ? error.message : "transcription_failed",
 					finishedAt: nowIso(),
 				});
 			} finally {
@@ -255,8 +260,7 @@ export const useTranscriptionQueue = create<TranscriptionQueueState>(
 		clearFinished: (projectId) =>
 			set((state) => ({
 				tasks: state.tasks.filter(
-					(task) =>
-						task.projectId !== projectId || task.status === "running",
+					(task) => task.projectId !== projectId || task.status === "running",
 				),
 			})),
 

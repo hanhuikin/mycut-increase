@@ -232,6 +232,31 @@ export const en = {
 	"captions.importing": "Importing captions...",
 	"captions.import_result": "Imported {count} captions, skipped {skipped}",
 	"captions.no_captions_generated": "No captions generated",
+	// Transcription acceleration: decided per machine (discrete GPU → GPU,
+	// integrated / no GPU → CPU); can also be forced manually.
+	"captions.device": "Acceleration",
+	"captions.device_auto": "Auto",
+	"captions.device_gpu": "GPU",
+	"captions.device_cpu": "CPU",
+	"captions.device_auto_effective": "Auto ({device})",
+	"captions.device_hint_override_gpu": "GPU acceleration is forced on.",
+	"captions.device_hint_override_cpu": "CPU transcription is forced on.",
+	"captions.device_hint_discrete_gpu":
+		"Discrete GPU detected — GPU acceleration is on.",
+	"captions.device_hint_unknown_gpu":
+		"Unrecognized GPU — trying GPU acceleration; falls back to CPU if it fails.",
+	"captions.device_hint_integrated_gpu":
+		"Integrated GPU detected. GPU inference is unreliable on these, so transcription runs on the CPU. It is slower — the Base model is recommended.",
+	"captions.device_hint_software_renderer":
+		"No hardware GPU acceleration is available, so transcription runs on the CPU. It is slower — the Base model is recommended.",
+	"captions.device_hint_no_webgpu":
+		"This browser has no GPU acceleration support, so transcription runs on the CPU. It is slower — the Base model is recommended.",
+	"captions.device_hint_remembered_failure":
+		"This GPU failed during transcription before, so the CPU is used. It is slower — the Base model is recommended.",
+	"captions.device_hint_gpu_failed":
+		"The GPU failed during transcription; switched to the CPU. It is slower — the Base model is recommended.",
+	"captions.device_fallback_toast":
+		"This GPU can't handle transcription, so it switched to the CPU (slower)",
 
 	// ===== AI Video generation =====
 	"ai_video.title": "AI Video",
@@ -893,7 +918,8 @@ export const en = {
 	"task_queue.insert_captions": "Insert captions",
 	"task_queue.inserted": "Inserted into timeline",
 	"task_queue.insert_captions_failed": "Failed to insert captions",
-	"task_queue.toast_transcription_done": "Captions ready and inserted into the timeline",
+	"task_queue.toast_transcription_done":
+		"Captions ready and inserted into the timeline",
 	"task_queue.toast_transcription_failed": "Caption generation failed",
 	"task_queue.group_active": "In progress",
 	"task_queue.group_today": "Today",
@@ -1092,7 +1118,8 @@ export const en = {
 	"admin.session.left": "Admin session {time}",
 	"admin.gate.revalidate": "Re-verify",
 	"admin.gate.guide_title": "Verification required",
-	"admin.gate.guide_body": "Every admin API requires a step-up verification within the last 30 minutes. Use the button below to verify again.",
+	"admin.gate.guide_body":
+		"Every admin API requires a step-up verification within the last 30 minutes. Use the button below to verify again.",
 	"admin.gate.guide_action": "Verify now",
 	"admin.audit.filter_all": "All actions",
 	"admin.audit.page_range": "{from}–{to} of {total}",
@@ -1140,7 +1167,8 @@ export const en = {
 	"admin.dashboard.table_consumed": "Spent",
 	"admin.dashboard.table_seconds": "Seconds",
 	"admin.dashboard.no_data": "No calls in this range",
-	"admin.dashboard.no_data_hint": "Not a fault — nothing was called in this window. Try 7d / 30d.",
+	"admin.dashboard.no_data_hint":
+		"Not a fault — nothing was called in this window. Try 7d / 30d.",
 	"admin.dashboard.rate_none": "No data",
 	"admin.dashboard.bucket_hour": "Hourly",
 	"admin.dashboard.bucket_day": "Daily",

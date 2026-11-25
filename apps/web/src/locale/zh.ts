@@ -227,6 +227,29 @@ export const zh = {
 	"captions.importing": "导入字幕中...",
 	"captions.import_result": "导入 {count} 条字幕，跳过 {skipped} 条",
 	"captions.no_captions_generated": "未生成任何字幕",
+	// 转写加速方式：按机器自动判定（独显 → GPU，核显 / 无 GPU → CPU），也可手动指定
+	"captions.device": "加速方式",
+	"captions.device_auto": "自动",
+	"captions.device_gpu": "GPU",
+	"captions.device_cpu": "CPU",
+	"captions.device_auto_effective": "自动（{device}）",
+	"captions.device_hint_override_gpu": "已手动指定使用 GPU 加速。",
+	"captions.device_hint_override_cpu": "已手动指定使用 CPU 转写。",
+	"captions.device_hint_discrete_gpu": "检测到独立显卡，已启用 GPU 加速。",
+	"captions.device_hint_unknown_gpu":
+		"无法识别显卡型号，先尝试 GPU 加速；如果失败会自动改用 CPU。",
+	"captions.device_hint_integrated_gpu":
+		"检测到集成显卡（核显）。GPU 推理在这类显卡上不稳定，已使用 CPU 转写：速度较慢，建议选择 Base 模型。",
+	"captions.device_hint_software_renderer":
+		"当前环境没有硬件 GPU 加速，使用 CPU 转写。速度较慢，建议选择 Base 模型。",
+	"captions.device_hint_no_webgpu":
+		"当前浏览器不支持 GPU 加速，使用 CPU 转写。速度较慢，建议选择 Base 模型。",
+	"captions.device_hint_remembered_failure":
+		"本机显卡此前转写失败，已改用 CPU 转写。速度较慢，建议选择 Base 模型。",
+	"captions.device_hint_gpu_failed":
+		"本机显卡转写失败，已自动改用 CPU 继续转写。速度较慢，建议选择 Base 模型。",
+	"captions.device_fallback_toast":
+		"本机显卡不兼容 GPU 转写，已切换为 CPU，速度会慢一些",
 
 	// ===== AI 视频生成 =====
 	"ai_video.title": "AI 视频",
@@ -1043,7 +1066,8 @@ export const zh = {
 	"admin.session.left": "管理员会话 {time}",
 	"admin.gate.revalidate": "重新验证",
 	"admin.gate.guide_title": "需要二次验证",
-	"admin.gate.guide_body": "后台所有数据接口都要求 30 分钟内完成二次验证。点击下方按钮重新进入验证页。",
+	"admin.gate.guide_body":
+		"后台所有数据接口都要求 30 分钟内完成二次验证。点击下方按钮重新进入验证页。",
 	"admin.gate.guide_action": "去验证",
 	"admin.audit.filter_all": "全部动作",
 	"admin.audit.page_range": "第 {from}–{to} 条 · 共 {total} 条",
@@ -1091,7 +1115,8 @@ export const zh = {
 	"admin.dashboard.table_consumed": "消耗",
 	"admin.dashboard.table_seconds": "秒数",
 	"admin.dashboard.no_data": "该范围内没有调用记录",
-	"admin.dashboard.no_data_hint": "不是页面故障——该时间范围内没有任何调用，可切换 7 天 / 30 天查看。",
+	"admin.dashboard.no_data_hint":
+		"不是页面故障——该时间范围内没有任何调用，可切换 7 天 / 30 天查看。",
 	"admin.dashboard.rate_none": "无数据",
 	"admin.dashboard.bucket_hour": "按小时",
 	"admin.dashboard.bucket_day": "按天",

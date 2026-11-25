@@ -8,7 +8,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { useEditor } from "@/editor/use-editor";
 import { TRANSCRIPTION_DIAGNOSTICS_SCOPE } from "@/transcription/diagnostics";
 import { TRANSCRIPTION_LANGUAGES } from "@/transcription/supported-languages";
@@ -23,7 +30,19 @@ import { exportSrt, exportVtt } from "@/subtitles/export";
 import { mediaTimeFromSeconds } from "@/wasm";
 import { Spinner } from "@/components/ui/spinner";
 import { useTranscriptionQueue } from "@/transcription/task-store";
-import { transcriptionStepLabel } from "@/transcription/labels";
+import {
+	getDeviceDecision,
+	readDevicePreference,
+	refreshDeviceDecision,
+	subscribeDeviceDecision,
+	writeDevicePreference,
+	type TranscriptionDevicePreference,
+} from "@/services/transcription/strategy";
+import { transcriptionService } from "@/services/transcription/service";
+import {
+	transcriptionDeviceHintKey,
+	transcriptionStepLabel,
+} from "@/transcription/labels";
 import {
 	Section,
 	SectionContent,
@@ -125,10 +144,27 @@ export function Captions() {
 	const userPickedLanguageRef = useRef(false);
 	useEffect(() => {
 		if (userPickedLanguageRef.current) return;
-		setSelectedLanguage(locale === "zh" ? "zh" : locale === "en" ? "en" : "auto");
+		setSelectedLanguage(
+			locale === "zh" ? "zh" : locale === "en" ? "en" : "auto",
+		);
 	}, [locale]);
 	const [selectedModel, setSelectedModel] =
 		useState<TranscriptionModelId>("whisper-small");
+	// 转写走 GPU 还是 CPU 由 strategy.ts 按机器判定；这里只负责展示判定结果，
+	// 并允许用户手动指定。
+	const [devicePreference, setDevicePreference] =
+		useState<TranscriptionDevicePreference>(() => readDevicePreference());
+	const deviceDecision = useSyncExternalStore(
+		subscribeDeviceDecision,
+		getDeviceDecision,
+	);
+	// 面板一挂载就判定一次：还没转写也先告诉用户这台机器会用 GPU 还是 CPU
+	useEffect(() => {
+		void refreshDeviceDecision();
+	}, []);
+	const deviceHint = deviceDecision
+		? t[transcriptionDeviceHintKey({ decision: deviceDecision })]
+		: null;
 	const [processing, dispatch] = useReducer(processingReducer, IDLE_STATE);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,7 +188,9 @@ export function Captions() {
 	);
 	const activeTask =
 		projectTasks.find((task) => task.status === "running") ?? null;
-	const anyRunning = transcriptionTasks.some((task) => task.status === "running");
+	const anyRunning = transcriptionTasks.some(
+		(task) => task.status === "running",
+	);
 	const latestSucceeded =
 		projectTasks.find(
 			(task) => task.status === "succeeded" && task.captions.length > 0,
@@ -162,7 +200,8 @@ export function Captions() {
 	const [captions, setCaptions] = useState<CaptionChunk[]>([]);
 	const syncedTaskRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!latestSucceeded || latestSucceeded.id === syncedTaskRef.current) return;
+		if (!latestSucceeded || latestSucceeded.id === syncedTaskRef.current)
+			return;
 		syncedTaskRef.current = latestSucceeded.id;
 		setCaptions(latestSucceeded.captions);
 	}, [latestSucceeded]);
@@ -179,7 +218,9 @@ export function Captions() {
 			) {
 				continue;
 			}
-			const finishedAt = task.finishedAt ? new Date(task.finishedAt).getTime() : 0;
+			const finishedAt = task.finishedAt
+				? new Date(task.finishedAt).getTime()
+				: 0;
 			if (Date.now() - finishedAt > 60_000) {
 				toastedLanguagesRef.current.add(task.id);
 				continue;
@@ -198,7 +239,9 @@ export function Captions() {
 	}, [projectTasks, t]);
 
 	const isProcessing = processing.status === "processing";
-	const stepLabel = activeTask ? transcriptionStepLabel({ task: activeTask, t }) : null;
+	const stepLabel = activeTask
+		? transcriptionStepLabel({ task: activeTask, t })
+		: null;
 
 	const activeDiagnostics = useEditor((e) =>
 		e.diagnostics.getActive({ scope: TRANSCRIPTION_DIAGNOSTICS_SCOPE }),
@@ -375,15 +418,23 @@ export function Captions() {
 		}
 	};
 
+	const handleDeviceChange = ({ value }: { value: string }) => {
+		const preference: TranscriptionDevicePreference =
+			value === "gpu" || value === "cpu" ? value : "auto";
+		writeDevicePreference(preference);
+		setDevicePreference(preference);
+		// 已加载的模型是按旧的选择建的：丢掉，下次转写按新选择重建
+		transcriptionService.terminate();
+		void refreshDeviceDecision();
+	};
+
 	const handleExport = async (format: "srt" | "vtt") => {
 		if (captions.length === 0) {
 			toast.error(t["captions.no_captions"]);
 			return;
 		}
 		const content =
-			format === "srt"
-				? exportSrt({ captions })
-				: exportVtt({ captions });
+			format === "srt" ? exportSrt({ captions }) : exportVtt({ captions });
 		const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
@@ -658,7 +709,44 @@ export function Captions() {
 								</SelectContent>
 							</Select>
 						</SectionField>
+
+						<SectionField label={t["captions.device"]}>
+							<Select
+								value={devicePreference}
+								onValueChange={(value) => handleDeviceChange({ value })}
+								disabled={isProcessing || anyRunning}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder={t["captions.device"]} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="auto">
+										{deviceDecision
+											? t["captions.device_auto_effective"].replace(
+													"{device}",
+													deviceDecision.device === "webgpu"
+														? t["captions.device_gpu"]
+														: t["captions.device_cpu"],
+												)
+											: t["captions.device_auto"]}
+									</SelectItem>
+									<SelectItem value="gpu">
+										{t["captions.device_gpu"]}
+									</SelectItem>
+									<SelectItem value="cpu">
+										{t["captions.device_cpu"]}
+									</SelectItem>
+								</SelectContent>
+							</Select>
+						</SectionField>
 					</SectionFields>
+
+					{/* 本机为什么用 GPU / CPU：核显机器转写慢，不说明的话像是卡住了 */}
+					{deviceHint && (
+						<p className="text-muted-foreground text-xs leading-relaxed">
+							{deviceHint}
+						</p>
+					)}
 
 					<div className="flex flex-col gap-2">
 						<div className="flex gap-2">
@@ -667,9 +755,7 @@ export function Captions() {
 								className="flex-1"
 								onClick={handleGenerateTranscript}
 								disabled={
-									isProcessing ||
-									anyRunning ||
-									activeDiagnostics.length > 0
+									isProcessing || anyRunning || activeDiagnostics.length > 0
 								}
 							>
 								{(isProcessing || anyRunning) && <Spinner className="mr-1" />}
@@ -682,11 +768,7 @@ export function Captions() {
 											: t["captions.generate"]}
 							</Button>
 							{activeTask && (
-								<Button
-									type="button"
-									variant="outline"
-									onClick={handleCancel}
-								>
+								<Button type="button" variant="outline" onClick={handleCancel}>
 									{t["captions.cancel"]}
 								</Button>
 							)}
@@ -735,9 +817,7 @@ export function Captions() {
 										<span className="text-muted-foreground w-12 shrink-0 tabular-nums">
 											{formatTime(caption.startTime)}
 										</span>
-										<span className="truncate">
-											{caption.text}
-										</span>
+										<span className="truncate">{caption.text}</span>
 									</button>
 								))}
 							</div>
@@ -763,4 +843,3 @@ export function Captions() {
 		</PanelView>
 	);
 }
-

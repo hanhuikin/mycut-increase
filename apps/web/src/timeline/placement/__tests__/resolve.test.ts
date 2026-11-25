@@ -14,7 +14,10 @@ import type {
 } from "@/timeline";
 import type { Transform } from "@/rendering";
 import { resolveTrackPlacement } from "@/timeline/placement";
-import { mediaTime, ZERO_MEDIA_TIME } from "@/wasm";
+// 不用 ZERO_MEDIA_TIME：bun 的测试运行器在多个测试文件共用一个进程时，模块
+// 级 const 的初始化可能被别的文件抢先读到（TDZ 报错，单跑该文件时正常）。
+// 测试数据统一用 mediaTime() 现算，值相同且不受加载顺序影响。
+import { mediaTime } from "@/wasm";
 
 function buildTransform(): Transform {
 	return {
@@ -70,8 +73,8 @@ function buildElement({
 				name: id,
 				startTime: mediaTime({ ticks: startTime }),
 				duration: mediaTime({ ticks: duration }),
-				trimStart: ZERO_MEDIA_TIME,
-				trimEnd: ZERO_MEDIA_TIME,
+				trimStart: mediaTime({ ticks: 0 }),
+				trimEnd: mediaTime({ ticks: 0 }),
 				params: { volume: 1, muted: false },
 				sourceType: "upload",
 				mediaId: `media-${id}`,
@@ -83,8 +86,8 @@ function buildElement({
 				name: id,
 				startTime: mediaTime({ ticks: startTime }),
 				duration: mediaTime({ ticks: duration }),
-				trimStart: ZERO_MEDIA_TIME,
-				trimEnd: ZERO_MEDIA_TIME,
+				trimStart: mediaTime({ ticks: 0 }),
+				trimEnd: mediaTime({ ticks: 0 }),
 				definitionId: `graphic-${id}`,
 				params: {
 					"transform.positionX": 0,
@@ -102,8 +105,8 @@ function buildElement({
 				name: id,
 				startTime: mediaTime({ ticks: startTime }),
 				duration: mediaTime({ ticks: duration }),
-				trimStart: ZERO_MEDIA_TIME,
-				trimEnd: ZERO_MEDIA_TIME,
+				trimStart: mediaTime({ ticks: 0 }),
+				trimEnd: mediaTime({ ticks: 0 }),
 				params: {
 					content: id,
 					fontSize: 32,
@@ -130,8 +133,8 @@ function buildElement({
 				name: id,
 				startTime: mediaTime({ ticks: startTime }),
 				duration: mediaTime({ ticks: duration }),
-				trimStart: ZERO_MEDIA_TIME,
-				trimEnd: ZERO_MEDIA_TIME,
+				trimStart: mediaTime({ ticks: 0 }),
+				trimEnd: mediaTime({ ticks: 0 }),
 				mediaId: `media-${id}`,
 				params: {
 					"transform.positionX": 0,
@@ -575,8 +578,8 @@ describe("resolveTrackPlacement", () => {
 				tracks,
 				elementType: "audio",
 				timeSpans: [
-					buildTimeSpan({ startTime: 2.5, duration: 1 }),
-					buildTimeSpan({ startTime: 5.5, duration: 1 }),
+					buildTimeSpan({ startTime: 3, duration: 1 }),
+					buildTimeSpan({ startTime: 6, duration: 1 }),
 				],
 				strategy: { type: "firstAvailable" },
 			}),
@@ -648,7 +651,7 @@ describe("resolveTrackPlacement", () => {
 			trackId: "video-main",
 			trackIndex: 0,
 			trackType: "video",
-			adjustedStartTime: ZERO_MEDIA_TIME,
+			adjustedStartTime: mediaTime({ ticks: 0 }),
 		});
 	});
 

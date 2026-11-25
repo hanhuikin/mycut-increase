@@ -9,6 +9,8 @@ import {
 	DEFAULT_CHUNK_LENGTH_SECONDS,
 	DEFAULT_STRIDE_SECONDS,
 } from "@/transcription/audio";
+import { logger } from "@/services/logging/logger";
+import type { TranscriptionDevice } from "./strategy";
 
 // 模型权重默认走魔搭（ModelScope）。原方案 hf-mirror.com 已失效：它现在对
 // 所有文件 308 裸跳 huggingface.co，国内连不上官方站，转写初始化直接
@@ -46,21 +48,45 @@ if (onnxWasmConfig) {
 	// 实测 RTF≈0.58（whisper-small q4，16 线程桌面 CPU，30s 音频 17.5s）。
 	onnxWasmConfig.numThreads = 1;
 }
+
+/**
+ * 只约束 GPU 路径的超时。导出成可变对象是为了测试能调小，业务代码不要改。
+ * CPU 路径不设 worker 侧超时：弱 CPU 上一个切片跑几分钟是正常的，真挂死
+ * 由主线程看门狗兜底（见 service.ts）。
+ */
+export const transcriptionTimeouts = {
+	/** GPU 建会话：多久没有下载进度就视为挂起（下载慢不算，回调会续期）。 */
+	webgpuInitStallMs: 120_000,
+	/** GPU 推理：单个切片超过多久就视为挂起。 */
+	webgpuSliceMs: 90_000,
+};
+
 export type WorkerMessage =
-	| { type: "init"; modelId: string }
+	| { type: "init"; modelId: string; device: TranscriptionDevice }
 	| {
 			type: "transcribe";
 			audio: Float32Array;
 			language: string;
 			sampleRate: number;
+			/** 从第几个采样点开始转写：GPU 失败后由 CPU worker 从出事的切片续跑。 */
+			startFromSample?: number;
 	  }
 	| { type: "cancel" };
 
 export type WorkerResponse =
 	| { type: "init-progress"; progress: number }
-	| { type: "init-complete"; device: "auto" | "wasm" }
+	| { type: "init-complete"; device: TranscriptionDevice }
 	| { type: "init-error"; error: string }
-	| { type: "transcribe-progress"; progress: number }
+	/**
+	 * 一个切片转完了。字幕随进度逐片上报而不是攒到最后：GPU 中途失败时
+	 * 旧 worker 会被销毁，已经转完的部分必须已经在主线程手里。
+	 */
+	| {
+			type: "transcribe-progress";
+			progress: number;
+			/** 刚转完的这个切片落进其辖区的字幕（时间戳为相对整段音频的绝对秒）。 */
+			segments: TranscriptionSegment[];
+	  }
 	| {
 			type: "transcribe-complete";
 			text: string;
@@ -69,9 +95,18 @@ export type WorkerResponse =
 	  }
 	| { type: "transcribe-error"; error: string }
 	| { type: "cancelled" }
-	| { type: "device-fallback"; device: "wasm" }
+	/**
+	 * GPU 不可用（建会话失败或挂住、推理报错或挂住）。worker 自己不换设备：
+	 * 崩过一次的 ORT / GPU 状态不可信，由主线程销毁本 worker、用全新的 CPU
+	 * worker 重建。推理阶段带上出事切片的起点供续跑。
+	 */
+	| {
+			type: "device-fallback";
+			phase: "init" | "slice";
+			reason: string;
+			fromSample?: number;
+	  }
 	| { type: "slice-heartbeat"; start: number; end: number }
-	| { type: "transcribe-start"; totalSeconds: number; language: string }
 	| { type: "transcribe-start"; totalSeconds: number; language: string }
 	| {
 			type: "slice-debug";
@@ -79,16 +114,21 @@ export type WorkerResponse =
 			end: number;
 			rms: number;
 			chunks: number;
+			startSample: number;
 	  };
 
-let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
-let currentModelId: string | null = null;
-// "auto" 表示尚未降级过；超时降级后固定为 "wasm"，不再重复降级。
-let currentDevice: "auto" | "wasm" = "auto";
-let cancelled = false;
-let lastReportedProgress = -1;
-const fileBytes = new Map<string, { loaded: number; total: number }>();
+/** worker 全局作用域里转写逻辑用到的最小接口：真实环境传 self，测试传替身。 */
+export interface TranscriptionWorkerScope {
+	readonly location: { origin: string };
+	postMessage: (response: WorkerResponse) => void;
+}
 
+export interface TranscriptionWorkerHandlers {
+	onmessage: (event: { data: WorkerMessage }) => void;
+	onerror: (event: unknown) => void;
+}
+
+class InitStallError extends Error {}
 class SliceTimeoutError extends Error {}
 
 /** race 输掉后清掉 timer，避免悬挂的 reject 定时器。 */
@@ -104,7 +144,10 @@ function withTimeout<T>({
 		promise,
 		new Promise<never>((_, reject) => {
 			timer = setTimeout(
-				() => reject(new SliceTimeoutError(`inference timeout after ${timeoutMs}ms`)),
+				() =>
+					reject(
+						new SliceTimeoutError(`inference timeout after ${timeoutMs}ms`),
+					),
 				timeoutMs,
 			);
 		}),
@@ -114,456 +157,483 @@ function withTimeout<T>({
 }
 
 /**
- * 长推理（wasm 慢 CPU）期间定期心跳：主线程看门狗对所有消息都会续期，
- * 有心跳就永远不会把「慢但活着」的推理误判成「挂起」。
+ * 静默超时：每调一次 rearm() 重新计时。用于 GPU 建会话——权重下载慢不是
+ * 挂起（进度回调持续到来），只有进度停了超过 stallMs 才判定卡死。
  */
-async function withHeartbeat<T>({
+function withStallTimeout<T>({
 	promise,
-	start,
-	end,
-	intervalMs = 20_000,
+	stallMs,
 }: {
 	promise: Promise<T>;
-	start: number;
-	end: number;
-	intervalMs?: number;
-}): Promise<T> {
-	const timer = setInterval(() => {
-		self.postMessage({
-			type: "slice-heartbeat",
-			start,
-			end,
-		} satisfies WorkerResponse);
-	}, intervalMs);
-	try {
-		return await promise;
-	} finally {
-		clearInterval(timer);
-	}
+	stallMs: number;
+}): { result: Promise<T>; rearm: () => void } {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let rejectStall: (error: InitStallError) => void = () => {};
+	const stall = new Promise<never>((_, reject) => {
+		rejectStall = reject;
+	});
+	const rearm = (): void => {
+		if (timer !== undefined) clearTimeout(timer);
+		timer = setTimeout(
+			() =>
+				rejectStall(
+					new InitStallError(
+						`Model load stalled (no progress for ${Math.round(stallMs / 1000)}s)`,
+					),
+				),
+			stallMs,
+		);
+	};
+	rearm();
+	const result = Promise.race([promise, stall]).finally(() => {
+		if (timer !== undefined) clearTimeout(timer);
+	});
+	return { result, rearm };
 }
 
 /**
- * WebGPU 推理在部分驱动/GPU 上会整体挂起（promise 永不 resolve，事件循环
- * 仍存活）。切片超时 → 丢弃 webgpu 会话、用 wasm（CPU，稳定但慢）重建后
- * 重跑当前切片——异步等待期间事件循环空闲，降级可以自愈。
+ * 把转写逻辑装到一个 worker 全局作用域上。写成工厂而不是模块级状态：
+ * 状态随作用域走，每个 worker 一份，测试里给每个假 worker 各建一份即可。
  */
-const WEBGPU_PIPELINE_TIMEOUT_MS = 120_000;
-const WASM_PIPELINE_TIMEOUT_MS = 240_000;
-const WEBGPU_SLICE_TIMEOUT_MS = 90_000;
+export function createTranscriptionWorker(
+	scope: TranscriptionWorkerScope,
+): TranscriptionWorkerHandlers {
+	const post = (response: WorkerResponse): void => {
+		scope.postMessage(response);
+	};
 
-async function disposeTranscriber(): Promise<void> {
-	const current = transcriber;
-	transcriber = null;
-	// 尽力释放：dispose 方法本身也要防（可选链只保护 current，不保护
-	// dispose 不是函数的运行时变体），失败一律忽略——降级优先于清理
-	try {
-		if (current && typeof current.dispose === "function") {
-			await current.dispose();
+	let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
+	/** 本 worker 固定使用的设备，由主线程按机器策略指定（见 strategy.ts）。 */
+	let device: TranscriptionDevice = "wasm";
+	let cancelled = false;
+	/** 已上报 GPU 不可用：主线程销毁本 worker 之前不再处理任何消息。 */
+	let abandoned = false;
+
+	/**
+	 * 长推理（wasm 慢 CPU）期间定期心跳：主线程看门狗对所有消息都会续期，
+	 * 有心跳就永远不会把「慢但活着」的推理误判成「挂起」。注意同步 wasm 推理
+	 * 期间事件循环被占住，心跳发不出来，所以主线程对 CPU 切片另行放宽了阈值。
+	 */
+	async function withHeartbeat<T>({
+		promise,
+		start,
+		end,
+		intervalMs = 20_000,
+	}: {
+		promise: Promise<T>;
+		start: number;
+		end: number;
+		intervalMs?: number;
+	}): Promise<T> {
+		const timer = setInterval(() => {
+			post({ type: "slice-heartbeat", start, end });
+		}, intervalMs);
+		try {
+			return await promise;
+		} finally {
+			clearInterval(timer);
 		}
-	} catch {
-		// 已释放/不支持的实现忽略
 	}
-}
 
-async function createTranscriber({
-	modelId,
-	device,
-	timeoutMs,
-	onProgress,
-}: {
-	modelId: string;
-	device: "auto" | "wasm";
-	timeoutMs: number;
-	onProgress?: (progressInfo: {
+	const fileBytes = new Map<string, { loaded: number; total: number }>();
+	let lastReportedProgress = -1;
+	let lastProgressPostedAt = 0;
+	let rearmInitStall: (() => void) | null = null;
+
+	/** 权重是否还没下完。失败时用来区分「网络问题」和「会话建不起来」。 */
+	function hasIncompleteDownload(): boolean {
+		for (const { loaded, total } of fileBytes.values()) {
+			if (loaded < total) return true;
+		}
+		return false;
+	}
+
+	function handleInitProgress(progressInfo: {
 		status?: string;
 		file?: string;
 		loaded?: number;
 		total?: number;
-	}) => void;
-}): Promise<AutomaticSpeechRecognitionPipeline> {
-	// device 用字面量分支调用：union 变量传入会让 TS 推导爆炸（TS2590），
-	// 又得靠断言收口（会触发 no-unsafe-type-assertion）。
-	const created =
-		device === "wasm"
-			? await withTimeout({
-					promise: pipeline(
-						"automatic-speech-recognition",
-						modelId,
-						{
-							dtype: "q4",
-							device: "wasm",
-							progress_callback: onProgress,
-						},
-					),
-					timeoutMs,
-				})
-			: await withTimeout({
-					promise: pipeline(
-						"automatic-speech-recognition",
-						modelId,
-						{
-							dtype: "q4",
-							device: "auto",
-							progress_callback: onProgress,
-						},
-					),
-					timeoutMs,
-				});
-	return created;
-}
+	}): void {
+		rearmInitStall?.();
 
-	self.onmessage = async ({ data }: MessageEvent<WorkerMessage>) => {
+		const file = progressInfo.file;
+		if (!file) return;
+
+		const loaded = progressInfo.loaded ?? 0;
+		const total = progressInfo.total ?? 0;
+
+		if (progressInfo.status === "progress" && total > 0) {
+			fileBytes.set(file, { loaded, total });
+		} else if (progressInfo.status === "done") {
+			const existing = fileBytes.get(file);
+			if (existing) {
+				fileBytes.set(file, {
+					loaded: existing.total,
+					total: existing.total,
+				});
+			}
+		}
+
+		// sum all bytes
+		let totalLoaded = 0;
+		let totalSize = 0;
+		for (const { loaded: fileLoaded, total: fileTotal } of fileBytes.values()) {
+			totalLoaded += fileLoaded;
+			totalSize += fileTotal;
+		}
+
+		if (totalSize === 0) return;
+
+		const overallProgress = (totalLoaded / totalSize) * 100;
+		const roundedProgress = Math.floor(overallProgress);
+
+		// 整数百分比变了才上报；百分比不变时最多每秒补发一条——主线程看门狗
+		// 靠消息续期，大模型在慢网络下 1% 可能要几分钟。
+		const now = Date.now();
+		if (
+			roundedProgress === lastReportedProgress &&
+			now - lastProgressPostedAt < 1_000
+		) {
+			return;
+		}
+		lastReportedProgress = roundedProgress;
+		lastProgressPostedAt = now;
+		post({ type: "init-progress", progress: roundedProgress });
+	}
+
+	async function createTranscriber({
+		modelId,
+		device: requestedDevice,
+	}: {
+		modelId: string;
+		device: TranscriptionDevice;
+	}): Promise<AutomaticSpeechRecognitionPipeline> {
+		// device 用字面量分支调用：union 变量传入会让 TS 推导爆炸（TS2590），
+		// 又得靠断言收口（会触发 no-unsafe-type-assertion）。
+		if (requestedDevice === "wasm") {
+			return pipeline("automatic-speech-recognition", modelId, {
+				dtype: "q4",
+				device: "wasm",
+				progress_callback: handleInitProgress,
+			});
+		}
+
+		// GPU 建会话可能整体挂住（promise 永不 resolve）：权重下载期间进度回调
+		// 持续到来，每次回调给静默计时续期；只有进度停了才算挂起。
+		const guarded = withStallTimeout({
+			promise: pipeline("automatic-speech-recognition", modelId, {
+				dtype: "q4",
+				device: "webgpu",
+				progress_callback: handleInitProgress,
+			}),
+			stallMs: transcriptionTimeouts.webgpuInitStallMs,
+		});
+		rearmInitStall = guarded.rearm;
+		try {
+			return await guarded.result;
+		} finally {
+			rearmInitStall = null;
+		}
+	}
+
+	async function handleInit({
+		modelId,
+		device: requestedDevice,
+	}: {
+		modelId: string;
+		device: TranscriptionDevice;
+	}) {
+		lastReportedProgress = -1;
+		lastProgressPostedAt = 0;
+		fileBytes.clear();
+		device = requestedDevice;
+
+		try {
+			transcriber = await createTranscriber({
+				modelId,
+				device: requestedDevice,
+			});
+			logger.info("transcription model ready", {
+				device: requestedDevice,
+				model: modelId,
+			});
+			post({ type: "init-complete", device: requestedDevice });
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Failed to load model";
+			logger.error("transcription model init failed", {
+				device: requestedDevice,
+				model: modelId,
+				download_incomplete: hasIncompleteDownload(),
+				error: message,
+			});
+
+			// GPU 会话建不起来 / 建到一半挂住：交给主线程换 CPU 重建。权重还没下完
+			// 就失败的多半是网络问题，换设备无济于事，直接报错。
+			if (requestedDevice === "webgpu" && !hasIncompleteDownload()) {
+				post({ type: "device-fallback", phase: "init", reason: message });
+				return;
+			}
+			post({ type: "init-error", error: message });
+		}
+	}
+
+	// 分段转写参数。transformers.js 的 _call_whisper 会把所有 30s 窗口的特征
+	// 张量一次性建好再逐个生成——长音频一次喂入是 GB 级内存，WASM 堆直接 OOM，
+	// worker 崩掉后 UI 永远停在"转写中"。切片取 28s + 2s 重叠 = 每次喂给
+	// whisper 的恰好是 30s **原生窗口**：若切成 30s+2s 重叠（32s 输入），
+	// whisper 内部会再切出一个 12s 尾巴窗口，非原生长度窗口容易幻觉/漏识别
+	// （实测整段字幕碎片化 + 大段空洞）。峰值内存 MB 级；段间上报真实进度；
+	// 单段失败可重试。
+	const SLICE_SECONDS = 28;
+	// 相邻切片的重叠秒数：避免在词中间硬切。重叠区两侧都会识别出边界词，
+	// 合并时按「中点属于哪个切片」去重（见 handleTranscribe）。
+	const OVERLAP_SECONDS = 2;
+
+	async function handleTranscribe({
+		audio,
+		language,
+		sampleRate,
+		startFromSample = 0,
+	}: {
+		audio: Float32Array;
+		language: string;
+		sampleRate: number;
+		startFromSample?: number;
+	}) {
+		if (!transcriber) {
+			post({ type: "transcribe-error", error: "Model not initialized" });
+			return;
+		}
+
+		cancelled = false;
+
+		const totalSamples = audio.length;
+
+		// 观测：实际进入推理的音频总长。若远小于时间轴时长，说明提取阶段截断。
+		post({
+			type: "transcribe-start",
+			totalSeconds: totalSamples / sampleRate,
+			language,
+		});
+		const sliceSamples = Math.max(1, Math.floor(SLICE_SECONDS * sampleRate));
+		const overlapSamples = Math.min(
+			sliceSamples - 1,
+			Math.floor(OVERLAP_SECONDS * sampleRate),
+		);
+
+		/** 全部时间戳已换算为相对整段音频的绝对秒。 */
+		const segments: TranscriptionSegment[] = [];
+
+		// 续跑起点：GPU 失败后 CPU worker 从出事的那个切片开始，前面已转写的
+		// 部分不重做。切片边界只取决于起点，所以续跑的切法和最初完全一致。
+		let sliceStart = Math.min(
+			Math.max(0, Math.floor(startFromSample)),
+			Math.max(0, totalSamples - 1),
+		);
+
+		try {
+			while (sliceStart < totalSamples) {
+				if (cancelled) return;
+
+				const isLastSlice = sliceStart + sliceSamples >= totalSamples;
+				// 非末段多喂 overlap 秒，边界词由两侧切片各识别一次
+				const sliceEnd = Math.min(
+					totalSamples,
+					sliceStart + sliceSamples + (isLastSlice ? 0 : overlapSamples),
+				);
+				const nextSliceStart = Math.min(
+					totalSamples,
+					sliceStart + sliceSamples - overlapSamples,
+				);
+				const offsetSeconds = sliceStart / sampleRate;
+				const boundarySeconds = nextSliceStart / sampleRate;
+				// subarray 是视图，零拷贝
+				const slice = audio.subarray(sliceStart, sliceEnd);
+
+				// 切片开始即上报：主线程据此记下续跑起点，并喂活看门狗
+				post({
+					type: "slice-debug",
+					start: offsetSeconds,
+					end: sliceEnd / sampleRate,
+					rms: -1,
+					chunks: -1,
+					startSample: sliceStart,
+				});
+
+				const transcribeOptions = {
+					chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
+					stride_length_s: DEFAULT_STRIDE_SECONDS,
+					language: language === "auto" ? undefined : language,
+					return_timestamps: true,
+				};
+
+				const inferPromise = transcriber(slice, transcribeOptions);
+				// 超时弃用后原推理 promise 可能仍在跑，吞掉迟到的 rejection
+				void inferPromise.catch(() => {});
+
+				let rawResult:
+					AutomaticSpeechRecognitionOutput | AutomaticSpeechRecognitionOutput[];
+				try {
+					rawResult =
+						device === "webgpu"
+							? await withTimeout({
+									promise: inferPromise,
+									timeoutMs: transcriptionTimeouts.webgpuSliceMs,
+								})
+							: await withHeartbeat({
+									promise: inferPromise,
+									start: offsetSeconds,
+									end: sliceEnd / sampleRate,
+								});
+				} catch (error) {
+					if (cancelled) return;
+
+					if (device === "webgpu") {
+						// GPU 推理报错或挂起（核显驱动上的 "table index is out of
+						// bounds"、GPUBuffer 回读失败等）。本 worker 的 ORT / GPU 状态
+						// 已经不可信，同设备重试只会复现：上报主线程，由它销毁本
+						// worker、用全新的 CPU worker 从本切片续跑。
+						const reason =
+							error instanceof Error ? error.message : String(error);
+						logger.warn("transcription webgpu inference failed", {
+							slice_start: offsetSeconds,
+							reason,
+						});
+						post({
+							type: "device-fallback",
+							phase: "slice",
+							reason,
+							fromSample: sliceStart,
+						});
+						abandoned = true;
+						return;
+					}
+
+					// wasm 上的错误重试一次：内存紧张 / 瞬时解码错误多见于段边界
+					logger.warn("transcription slice failed, retrying once", {
+						slice_start: offsetSeconds,
+						reason: error instanceof Error ? error.message : String(error),
+					});
+					const retryPromise = transcriber(slice, transcribeOptions);
+					void retryPromise.catch(() => {});
+					rawResult = await withHeartbeat({
+						promise: retryPromise,
+						start: offsetSeconds,
+						end: sliceEnd / sampleRate,
+					});
+				}
+
+				if (cancelled) return;
+
+				const result: AutomaticSpeechRecognitionOutput = Array.isArray(
+					rawResult,
+				)
+					? rawResult[0]
+					: rawResult;
+
+				// 重叠区去重：按 chunk 中点划归唯一辖区 [sliceStart, boundarySeconds)。
+				// 中点落在上一切片辖区的（理论上不存在，防御性跳过）与落在下一切片
+				// 辖区的（下片会重新识别）都不保留——旧实现把上界写成了保留条件
+				// （中点 < 本片终点即跳过），导致每个切片只留下尾部 2s 重叠区的
+				// 碎片，其余产出全部丢弃：字幕碎片化 + 大段空洞。
+				const sliceSegments: TranscriptionSegment[] = [];
+				if (result.chunks) {
+					for (const chunk of result.chunks) {
+						if (!chunk.timestamp || chunk.timestamp.length < 2) continue;
+						const start = offsetSeconds + (chunk.timestamp[0] ?? 0);
+						const end =
+							offsetSeconds + (chunk.timestamp[1] ?? chunk.timestamp[0] ?? 0);
+						const midpoint = (start + end) / 2;
+						if (midpoint < offsetSeconds) continue;
+						if (midpoint >= boundarySeconds) continue;
+						sliceSegments.push({ text: chunk.text, start, end });
+					}
+				}
+				segments.push(...sliceSegments);
+
+				const processedSamples = Math.min(
+					totalSamples,
+					sliceStart + sliceSamples,
+				);
+				post({
+					type: "transcribe-progress",
+					progress: Math.min(100, (processedSamples / totalSamples) * 100),
+					segments: sliceSegments,
+				});
+
+				// 诊断：切片 RMS 能量 + 本片产出条数。识别漏段 vs 音频本身静音，
+				// 一条日志即可区分（RMS≈0 是音频没内容，RMS 高但 chunks=0 才是识别问题）。
+				{
+					let sumSquares = 0;
+					for (let i = 0; i < slice.length; i++) {
+						sumSquares += slice[i] * slice[i];
+					}
+					logger.debug("transcription slice done", {
+						start: offsetSeconds,
+						end: sliceEnd / sampleRate,
+						rms: Math.sqrt(sumSquares / Math.max(1, slice.length)),
+						chunks: result.chunks?.length ?? 0,
+					});
+				}
+
+				sliceStart = nextSliceStart;
+			}
+
+			post({
+				type: "transcribe-complete",
+				text: segments
+					.map((segment) => segment.text)
+					.join(" ")
+					.trim(),
+				segments,
+			});
+		} catch (error) {
+			if (cancelled) return;
+			const message =
+				error instanceof Error ? error.message : "Transcription failed";
+			logger.error("transcription failed", { device, error: message });
+			post({ type: "transcribe-error", error: message });
+		}
+	}
+
+	const onmessage: TranscriptionWorkerHandlers["onmessage"] = async ({
+		data,
+	}) => {
+		if (abandoned) return;
 		switch (data.type) {
 			case "init":
-				await handleInit({ modelId: data.modelId });
+				await handleInit({ modelId: data.modelId, device: data.device });
 				break;
 			case "transcribe":
-				await handleTranscribe({
-					audio: data.audio,
-					language: data.language,
-					sampleRate: data.sampleRate,
-				});
+				await handleTranscribe(data);
 				break;
 			case "cancel":
 				cancelled = true;
-				self.postMessage({ type: "cancelled" } satisfies WorkerResponse);
+				post({ type: "cancelled" });
 				break;
 		}
 	};
 
-// 线程级兜底：未捕获异常（含部分 OOM 场景）走这里，保证主线程的 Promise
-// 能收到失败而不是永远 pending。
-	self.onerror = (event) => {
+	// 线程级兜底：未捕获异常（含部分 OOM 场景）走这里，保证主线程的 Promise
+	// 能收到失败而不是永远 pending。
+	const onerror: TranscriptionWorkerHandlers["onerror"] = (event) => {
 		const detail =
 			typeof event === "string"
 				? event
 				: event instanceof ErrorEvent
 					? event.message
 					: "Transcription worker crashed";
-		self.postMessage({
+		post({
 			type: "transcribe-error",
 			error: detail || "Transcription worker crashed",
-		} satisfies WorkerResponse);
-	};
-
-async function handleInit({ modelId }: { modelId: string }) {
-	lastReportedProgress = -1;
-	fileBytes.clear();
-	currentModelId = modelId;
-	currentDevice = "auto";
-
-	try {
-		transcriber = await createTranscriber({
-			modelId,
-			device: "auto",
-			timeoutMs: WEBGPU_PIPELINE_TIMEOUT_MS,
-			onProgress: (progressInfo) => {
-				const file = progressInfo.file;
-				if (!file) return;
-
-				const loaded = progressInfo.loaded ?? 0;
-				const total = progressInfo.total ?? 0;
-
-				if (progressInfo.status === "progress" && total > 0) {
-					fileBytes.set(file, { loaded, total });
-				} else if (progressInfo.status === "done") {
-					const existing = fileBytes.get(file);
-					if (existing) {
-						fileBytes.set(file, {
-							loaded: existing.total,
-							total: existing.total,
-						});
-					}
-				}
-
-				// sum all bytes
-				let totalLoaded = 0;
-				let totalSize = 0;
-				for (const { loaded, total } of fileBytes.values()) {
-					totalLoaded += loaded;
-					totalSize += total;
-				}
-
-				if (totalSize === 0) return;
-
-				const overallProgress = (totalLoaded / totalSize) * 100;
-				const roundedProgress = Math.floor(overallProgress);
-
-				if (roundedProgress !== lastReportedProgress) {
-					lastReportedProgress = roundedProgress;
-					self.postMessage({
-						type: "init-progress",
-						progress: roundedProgress,
-					} satisfies WorkerResponse);
-				}
-			},
-		});
-
-		self.postMessage({
-			type: "init-complete",
-			device: currentDevice,
-		} satisfies WorkerResponse);
-	} catch (error) {
-		// auto（webgpu）会话创建超时/失败 → 降级 wasm 重建。权重此时多半已
-		// 在 Cache Storage，重建只需重新编译会话。
-		const timedOut = error instanceof SliceTimeoutError;
-		if (!timedOut) {
-			self.postMessage({
-				type: "init-error",
-				error:
-					error instanceof Error ? error.message : "Failed to load model",
-			} satisfies WorkerResponse);
-			return;
-		}
-
-		await disposeTranscriber();
-		currentDevice = "wasm";
-		self.postMessage({
-			type: "device-fallback",
-			device: "wasm",
-		} satisfies WorkerResponse);
-		try {
-			transcriber = await createTranscriber({
-				modelId,
-				device: "wasm",
-				timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
-			});
-			self.postMessage({
-				type: "init-complete",
-				device: currentDevice,
-			} satisfies WorkerResponse);
-		} catch (fallbackError) {
-			self.postMessage({
-				type: "init-error",
-				error:
-					fallbackError instanceof Error
-						? fallbackError.message
-						: "Failed to load model",
-			} satisfies WorkerResponse);
-		}
-	}
-}
-
-// 分段转写参数。transformers.js 的 _call_whisper 会把所有 30s 窗口的特征
-// 张量一次性建好再逐个生成——长音频一次喂入是 GB 级内存，WASM 堆直接 OOM，
-// worker 崩掉后 UI 永远停在"转写中"。切片取 28s + 2s 重叠 = 每次喂给
-// whisper 的恰好是 30s **原生窗口**：若切成 30s+2s 重叠（32s 输入），
-// whisper 内部会再切出一个 12s 尾巴窗口，非原生长度窗口容易幻觉/漏识别
-// （实测整段字幕碎片化 + 大段空洞）。峰值内存 MB 级；段间上报真实进度；
-// 单段失败可重试。
-const SLICE_SECONDS = 28;
-// 相邻切片的重叠秒数：避免在词中间硬切。重叠区两侧都会识别出边界词，
-// 合并时按「中点属于哪个切片」去重（见 handleTranscribe）。
-const OVERLAP_SECONDS = 2;
-
-async function handleTranscribe({
-	audio,
-	language,
-	sampleRate,
-}: {
-	audio: Float32Array;
-	language: string;
-	sampleRate: number;
-}) {
-	if (!transcriber) {
-		self.postMessage({
-			type: "transcribe-error",
-			error: "Model not initialized",
-		} satisfies WorkerResponse);
-		return;
-	}
-
-	cancelled = false;
-
-	const totalSamples = audio.length;
-
-	// 观测：实际进入推理的音频总长。若远小于时间轴时长，说明提取阶段截断。
-	self.postMessage({
-		type: "transcribe-start",
-		totalSeconds: totalSamples / sampleRate,
-		language,
-	} satisfies WorkerResponse);
-	const sliceSamples = Math.max(
-		1,
-		Math.floor(SLICE_SECONDS * sampleRate),
-	);
-	const overlapSamples = Math.min(
-		sliceSamples - 1,
-		Math.floor(OVERLAP_SECONDS * sampleRate),
-	);
-
-	/** 全部时间戳已换算为相对整段音频的绝对秒。 */
-	const segments: TranscriptionSegment[] = [];
-
-	// webgpu 不可用时（会话超时、推理挂起、推理崩溃）统一降级：dispose 后
-	// 以 wasm 重建，再由调用方重跑当前切片。崩溃后 wasm 模块状态不可信
-	//（核显驱动上可见 "table index is out of bounds" 一类 jsep 错误），
-	// 朴素重试大概率复现，必须换设备。
-	const fallbackToWasm = async (): Promise<void> => {
-		await disposeTranscriber();
-		currentDevice = "wasm";
-		self.postMessage({
-			type: "device-fallback",
-			device: "wasm",
-		} satisfies WorkerResponse);
-		await createTranscriber({
-			modelId: currentModelId ?? "",
-			device: "wasm",
-			timeoutMs: WASM_PIPELINE_TIMEOUT_MS,
 		});
 	};
 
-	try {
-		let sliceStart = 0;
-		while (sliceStart < totalSamples) {
-			if (cancelled) return;
-
-			const isLastSlice = sliceStart + sliceSamples >= totalSamples;
-			// 非末段多喂 overlap 秒，边界词由两侧切片各识别一次
-			const sliceEnd = Math.min(
-				totalSamples,
-				sliceStart + sliceSamples + (isLastSlice ? 0 : overlapSamples),
-			);
-			const nextSliceStart = Math.min(
-				totalSamples,
-				sliceStart + sliceSamples - overlapSamples,
-			);
-			const offsetSeconds = sliceStart / sampleRate;
-			const boundarySeconds = nextSliceStart / sampleRate;
-			// subarray 是视图，零拷贝
-			const slice = audio.subarray(sliceStart, sliceEnd);
-
-			// 切片开始即上报：主线程看门狗被喂活，console 里也能看到切片在推进
-			self.postMessage({
-				type: "slice-debug",
-				start: offsetSeconds,
-				end: sliceEnd / sampleRate,
-				rms: -1,
-				chunks: -1,
-			} satisfies WorkerResponse);
-
-			const transcribeOptions = {
-				chunk_length_s: DEFAULT_CHUNK_LENGTH_SECONDS,
-				stride_length_s: DEFAULT_STRIDE_SECONDS,
-				language: language === "auto" ? undefined : language,
-				return_timestamps: true,
-			};
-
-			// webgpu 路径带超时（挂起检测→降级 wasm）；wasm 路径不限时——
-			// 弱 CPU 上一个切片可能要几分钟，靠心跳喂主线程看门狗而不是超时。
-			const inferPromise = transcriber(slice, transcribeOptions);
-			// 超时弃用后原推理 promise 可能仍在跑，吞掉迟到的 rejection
-			void inferPromise.catch(() => {});
-
-			let rawResult:
-				| AutomaticSpeechRecognitionOutput
-				| AutomaticSpeechRecognitionOutput[];
-			try {
-				rawResult =
-					currentDevice === "auto"
-						? await withTimeout({
-								promise: inferPromise,
-								timeoutMs: WEBGPU_SLICE_TIMEOUT_MS,
-							})
-						: await withHeartbeat({
-								promise: inferPromise,
-								start: offsetSeconds,
-								end: sliceEnd / sampleRate,
-							});
-			} catch (error) {
-				if (cancelled) return;
-
-				if (error instanceof SliceTimeoutError) {
-					// webgpu 推理挂起 → 降级 wasm 重建并重跑本切片（只降级一次）。
-					// wasm 已是固定单线程（见文件头部 numThreads 注释）。
-					if (currentDevice === "auto") {
-						await fallbackToWasm();
-						rawResult = await withHeartbeat({
-							promise: transcriber(slice, transcribeOptions),
-							start: offsetSeconds,
-							end: sliceEnd / sampleRate,
-						});
-					} else {
-						// 已经是 wasm 还超时：交给主线程看门狗兜底
-						throw error;
-					}
-				} else if (currentDevice === "auto") {
-					// webgpu 推理直接抛异常（核显驱动上的 "table index is out of
-					// bounds" 等 jsep 崩溃）：同挂起一样降级 wasm 重建重跑，不
-					// 做同设备重试。
-					await fallbackToWasm();
-					rawResult = await withHeartbeat({
-						promise: transcriber(slice, transcribeOptions),
-						start: offsetSeconds,
-						end: sliceEnd / sampleRate,
-					});
-				} else {
-					// wasm 上的非超时错误重试一次：内存紧张/瞬时解码错误多见于段边界
-					rawResult = await transcriber(slice, transcribeOptions);
-				}
-			}
-
-			if (cancelled) return;
-
-			const result: AutomaticSpeechRecognitionOutput = Array.isArray(rawResult)
-				? rawResult[0]
-				: rawResult;
-
-			// 重叠区去重：按 chunk 中点划归唯一辖区 [sliceStart, boundarySeconds)。
-			// 中点落在上一切片辖区的（理论上不存在，防御性跳过）与落在下一切片
-			// 辖区的（下片会重新识别）都不保留——旧实现把上界写成了保留条件
-			// （中点 < 本片终点即跳过），导致每个切片只留下尾部 2s 重叠区的
-			// 碎片，其余产出全部丢弃：字幕碎片化 + 大段空洞。
-			if (result.chunks) {
-				for (const chunk of result.chunks) {
-					if (!chunk.timestamp || chunk.timestamp.length < 2) continue;
-					const start = offsetSeconds + (chunk.timestamp[0] ?? 0);
-					const end = offsetSeconds + (chunk.timestamp[1] ?? chunk.timestamp[0] ?? 0);
-					const midpoint = (start + end) / 2;
-					if (midpoint < offsetSeconds) continue;
-					if (midpoint >= boundarySeconds) continue;
-					segments.push({ text: chunk.text, start, end });
-				}
-			}
-
-			const processedSamples = Math.min(
-				totalSamples,
-				sliceStart + sliceSamples,
-			);
-			self.postMessage({
-				type: "transcribe-progress",
-				progress: Math.min(100, (processedSamples / totalSamples) * 100),
-			} satisfies WorkerResponse);
-
-			// 诊断：切片 RMS 能量 + 本片产出条数。识别漏段 vs 音频本身静音，
-			// 一条日志即可区分（RMS≈0 是音频没内容，RMS 高但 chunks=0 才是识别问题）。
-			{
-				let sumSquares = 0;
-				for (let i = 0; i < slice.length; i++) {
-					sumSquares += slice[i] * slice[i];
-				}
-				self.postMessage({
-					type: "slice-debug",
-					start: offsetSeconds,
-					end: sliceEnd / sampleRate,
-					rms: Math.sqrt(sumSquares / Math.max(1, slice.length)),
-					chunks: result.chunks?.length ?? 0,
-				} satisfies WorkerResponse);
-			}
-
-			sliceStart = nextSliceStart;
-		}
-
-		self.postMessage({
-			type: "transcribe-complete",
-			text: segments.map((segment) => segment.text).join(" ").trim(),
-			segments,
-		} satisfies WorkerResponse);
-	} catch (error) {
-		if (cancelled) return;
-		self.postMessage({
-			type: "transcribe-error",
-			error: error instanceof Error ? error.message : "Transcription failed",
-		} satisfies WorkerResponse);
-	}
+	return { onmessage, onerror };
 }
+
+// 真实 worker 的入口：装到全局作用域上。
+const workerHandlers = createTranscriptionWorker(self);
+self.onmessage = workerHandlers.onmessage;
+self.onerror = workerHandlers.onerror;

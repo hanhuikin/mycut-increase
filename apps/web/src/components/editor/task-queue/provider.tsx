@@ -412,10 +412,17 @@ export function TaskQueueProvider({ children }: { children: ReactNode }) {
 	 */
 	const transcriptionTasks = useTranscriptionQueue((state) => state.tasks);
 	const seenTranscriptionStatus = useRef<Map<string, string>>(new Map());
+	const toastedCpuFallback = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		for (const task of transcriptionTasks) {
 			const previous = seenTranscriptionStatus.current.get(task.id);
 			seenTranscriptionStatus.current.set(task.id, task.status);
+			// GPU 运行期失败后改用 CPU：转写还在继续，但会明显变慢。不说一声，
+			// 用户只会觉得卡住了。
+			if (task.usedCpuFallback && !toastedCpuFallback.current.has(task.id)) {
+				toastedCpuFallback.current.add(task.id);
+				toast.info(t["captions.device_fallback_toast"]);
+			}
 			if (previous === undefined || previous !== "running") continue;
 			if (task.status === "succeeded") {
 				toast.success(t["task_queue.toast_transcription_done"]);

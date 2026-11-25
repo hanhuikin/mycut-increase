@@ -298,6 +298,11 @@ function splitAssFields({
 	return result;
 }
 
+/**
+ * ASS 的 [Format:] 行声明字段名、每个 Style/Event 行按同名顺序给值，key 只有
+ * 运行时才知道，所以这里按名字动态填充。调用方用具体记录类型收窄，键名与
+ * 取值都由 [Format:] 行和同一行的字段数（调用前已校验）保证。
+ */
 function mapFieldsToRecord<T extends object>({
 	fields,
 	values,
@@ -305,12 +310,13 @@ function mapFieldsToRecord<T extends object>({
 	fields: string[];
 	values: string[];
 }): T {
-	const record = {} as Record<string, string | undefined>;
+	const record: Record<string, string | undefined> = {};
 
 	for (let index = 0; index < fields.length; index++) {
 		record[fields[index]] = values[index];
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- 键由 ASS 文件头部的 Format 行决定，静态类型无从得知；字段数已在调用前校验。
 	return record as T;
 }
 
