@@ -48,6 +48,11 @@ export const twoFactors = appSchema.table("two_factors", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
+	// better-auth 1.7 的 twoFactor 插件新增：备份码是否已核对通过、连续校验
+	// 失败次数与锁定截止时间（限制 TOTP 暴力枚举）。
+	verified: boolean("verified").default(true),
+	failedVerificationCount: integer("failed_verification_count").default(0),
+	lockedUntil: timestamp("locked_until"),
 }).enableRLS();
 
 export const sessions = appSchema.table("sessions", {
@@ -58,6 +63,8 @@ export const sessions = appSchema.table("sessions", {
 	updatedAt: timestamp("updated_at").notNull(),
 	ipAddress: text("ip_address"),
 	userAgent: text("user_agent"),
+	// better-auth 1.7 admin 插件记录「谁在模拟登录这个会话」。
+	impersonatedBy: text("impersonated_by"),
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
