@@ -55,13 +55,17 @@ RUN node scripts/sync-ort-wasm.mjs
 # `next build`, and the runner takes everything from its own env.
 # 凭据字面量一律不写死：现场用 node:crypto 生成一次性随机串。之前这里是
 # postgresql://opencut:opencut@...，被 Sonar secrets:S6698 判为 BLOCKER。
-RUN BUILD_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(24).toString('hex'))")" \
-	&& DATABASE_URL="postgresql://build:${BUILD_SECRET}@localhost:5432/build" \
+# 全程用 export + 分号分隔：变量必须以 export 内建命令落到进程环境，不依赖
+# 「独立赋值行跨 && 持久化」这种不同 sh 实现行为不一的写法（Harbor 底座的
+# busybox ash 就不持久化，曾导致 next build 里 process.env 三个变量全为
+# undefined）。
+RUN export BUILD_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(24).toString('hex'))")"; \
+	BIN=./node_modules/next/dist/bin/next; \
+	if [ ! -f "$BIN" ]; then BIN=../../node_modules/next/dist/bin/next; fi; \
+	export DATABASE_URL="postgresql://build:${BUILD_SECRET}@localhost:5432/build" \
 		BETTER_AUTH_SECRET="${BUILD_SECRET}" \
-		REDIS_URL="redis://:${BUILD_SECRET}@localhost:6379" \
-		BIN=./node_modules/next/dist/bin/next \
-		&& [ -f "$BIN" ] || BIN=../../node_modules/next/dist/bin/next; \
-		node "$BIN" build
+		REDIS_URL="redis://:${BUILD_SECRET}@localhost:6379"; \
+	node "$BIN" build
 
 # Production image
 FROM base AS runner
