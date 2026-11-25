@@ -28,7 +28,8 @@
     "better-auth": "^1.7.28",
     "next": "^16.4.6",
     "opencut": ".",
-    "opencut-wasm": "^0.2.10"
+    "opencut-wasm": "^0.2.10",
+    "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
