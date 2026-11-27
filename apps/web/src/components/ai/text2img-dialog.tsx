@@ -31,15 +31,14 @@ import type { LocaleKey } from "@/locale";
 import { estimateCost, useBilling } from "@/services/billing/client";
 import {
 	getText2ImgStyleSuffix,
-	TEXT2IMG_MODEL_ID,
 	useText2ImgStore,
 	type Text2ImgHistoryItem,
 	type Text2ImgNumImages,
 	type Text2ImgStyleKey,
 } from "./text2img-store";
+import { resolveImageRequestSize } from "./image-size";
+import { TEXT2IMG_MODEL_OPTIONS } from "./image-model-options";
 import {
-	computeImageSize,
-	resolveImageSize,
 	validateCustomSize,
 	type Img2ImgAspectRatio,
 } from "./img2img-store";
@@ -47,7 +46,8 @@ import { ParamChip, SizeHint, SizeInput } from "./param-controls";
 import { cn } from "@/utils/ui";
 
 const ASPECTS: Img2ImgAspectRatio[] = ["1:1", "16:9", "3:4", "9:16"];
-const SIZE_PRESETS: Array<768 | 1024 | 1536> = [768, 1024, 1536];
+// 长边档：768 档放大后与 1024 档重合，故不提供
+const SIZE_PRESETS: Array<1024 | 1536> = [1024, 1536];
 const COUNTS: Text2ImgNumImages[] = [1, 2, 4];
 
 const STYLE_OPTIONS: Array<{
@@ -104,6 +104,7 @@ export function Text2ImgDialog({
 	const mediaAssets = useEditor((e) => e.media.getAssets());
 	const {
 		open,
+		modelId,
 		prompt,
 		style,
 		negative,
@@ -115,6 +116,7 @@ export function Text2ImgDialog({
 		results,
 		history,
 		close,
+		setModelId,
 		setPrompt,
 		setStyle,
 		setNegative,
@@ -135,7 +137,7 @@ export function Text2ImgDialog({
 	const handleCustomOpenChange = (next: boolean) => {
 		setCustomOpen(next);
 		if (!next) return;
-		const current = resolveImageSize(aspectRatio, sizePreset, customSize);
+		const current = resolveImageRequestSize({ aspectRatio, sizePreset, customSize });
 		setDraftW(String(current.w));
 		setDraftH(String(current.h));
 	};
@@ -143,7 +145,7 @@ export function Text2ImgDialog({
 	const assetUrlById = (assetId: string): string | null =>
 		mediaAssets.find((asset) => asset.id === assetId)?.url ?? null;
 
-	const model = billing.models.get(TEXT2IMG_MODEL_ID);
+	const model = billing.models.get(modelId);
 	const costPerCall = model
 		? estimateCost({ model, resolution: "720p", seconds: 1 })
 		: null;
@@ -157,6 +159,17 @@ export function Text2ImgDialog({
 		prompt.trim().length > 0 &&
 		model != null &&
 		!insufficient;
+
+	// 自定义档展示的也是放大后的生效尺寸（所见 = 实际提交）
+	const effectiveCustomSize =
+		sizePreset === "custom" && customSize
+			? resolveImageRequestSize({ aspectRatio, sizePreset, customSize })
+			: null;
+
+	// 模型选项只展示 billing 已收录的（渠道/价格已配置的才会出现）
+	const modelOptions = TEXT2IMG_MODEL_OPTIONS.filter(
+		(option) => billing.models.get(option.id) != null,
+	);
 
 	const importAsset = async ({
 		file,
@@ -236,6 +249,33 @@ export function Text2ImgDialog({
 							{t["ai_t2i.title"]}
 						</DialogTitle>
 					</DialogHeader>
+
+					{/* ⓪ 模型（billing 已收录的才会出现；单选项时固定展示） */}
+					{modelOptions.length > 0 && (
+						<section>
+							<div className="text-muted-foreground mx-0.5 mb-1 text-[10px]">
+								{t["ai_t2i.model_label"]}
+							</div>
+							<div className="flex flex-wrap gap-1.5">
+								{modelOptions.map((option) => (
+									<button
+										key={option.id}
+										type="button"
+										disabled={running}
+										className={cn(
+											"rounded-full border px-2 py-0.5 text-[10px] transition-colors disabled:opacity-50",
+											modelId === option.id
+												? "border-primary bg-primary text-white"
+												: "border-border text-muted-foreground hover:text-foreground",
+										)}
+										onClick={() => setModelId(option.id)}
+									>
+										{t[option.labelKey]}
+									</button>
+								))}
+							</div>
+						</section>
+					)}
 
 					{/* ① 提示词（灵感 chips · ⌘↵ 生成） */}
 					<section>
@@ -353,7 +393,11 @@ export function Text2ImgDialog({
 							</span>
 							<div className="bg-card flex overflow-hidden rounded-lg border">
 								{SIZE_PRESETS.map((preset) => {
-									const size = computeImageSize(aspectRatio, preset);
+									const size = resolveImageRequestSize({
+										aspectRatio,
+										sizePreset: preset,
+										customSize,
+									});
 									const label = `${size.w}×${size.h}`;
 									return (
 										<ParamChip
@@ -369,8 +413,8 @@ export function Text2ImgDialog({
 									<PopoverTrigger asChild disabled={running}>
 										<ParamChip
 											label={
-												sizePreset === "custom" && customSize
-													? `${customSize.w}×${customSize.h}`
+												effectiveCustomSize
+													? `${effectiveCustomSize.w}×${effectiveCustomSize.h}`
 													: t["ai_img2img.size_custom"]
 											}
 											selected={sizePreset === "custom"}
@@ -420,14 +464,17 @@ export function Text2ImgDialog({
 												{t["ai_img2img.size_apply"]}
 											</Button>
 										</div>
-									</PopoverContent>
-								</Popover>
+										</PopoverContent>
+									</Popover>
+								</div>
 							</div>
-						</div>
-						<div className="ml-1 flex items-center gap-2">
-							<span className="text-muted-foreground text-[10px]">
-								{t["ai_img2img.params_count"]}
-							</span>
+							<div className="text-muted-foreground/70 mx-0.5 mt-1 text-[9.5px]">
+								{t["ai_t2i.size_min_note"]}
+							</div>
+							<div className="ml-1 mt-1 flex items-center gap-2">
+								<span className="text-muted-foreground text-[10px]">
+									{t["ai_img2img.params_count"]}
+								</span>
 							<div className="bg-card flex overflow-hidden rounded-lg border">
 								{COUNTS.map((value) => (
 									<ParamChip

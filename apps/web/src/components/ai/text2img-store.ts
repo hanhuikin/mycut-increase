@@ -2,8 +2,8 @@
 
 import { create } from "zustand";
 import { textToImage } from "@/services/ai-tools";
+import { resolveImageRequestSize } from "./image-size";
 import {
-	resolveImageSize,
 	type Img2ImgAspectRatio,
 	type Img2ImgSizePreset,
 } from "./img2img-store";
@@ -14,6 +14,8 @@ import {
  */
 
 export const TEXT2IMG_MODEL_ID = "ai-tools-text2img";
+/** 文生图第二模型：海外 Gemini 3 Pro Image（七牛海外·生图渠道）。 */
+export const TEXT2IMG_GEMINI_MODEL_ID = "ai-tools-text2img-gemini";
 
 /** 会话级历史上限；素材库才是结果的持久层。 */
 export const TEXT2IMG_HISTORY_CAP = 40;
@@ -120,6 +122,8 @@ export interface Text2ImgGenerateDeps {
 
 export interface Text2ImgState {
 	open: boolean;
+	/** 当前选中的生图模型（ai_models id），决定渠道路由与单价。 */
+	modelId: string;
 	prompt: string;
 	style: Text2ImgStyleKey;
 	negative: string;
@@ -133,6 +137,7 @@ export interface Text2ImgState {
 	history: Text2ImgHistoryItem[];
 	setOpen: (open: boolean) => void;
 	close: () => void;
+	setModelId: (modelId: string) => void;
 	setPrompt: (prompt: string) => void;
 	setStyle: (style: Text2ImgStyleKey) => void;
 	setNegative: (negative: string) => void;
@@ -145,6 +150,7 @@ export interface Text2ImgState {
 
 export const useText2ImgStore = create<Text2ImgState>((set, get) => ({
 	open: false,
+	modelId: TEXT2IMG_MODEL_ID,
 	prompt: "",
 	style: "none",
 	negative: "",
@@ -158,6 +164,7 @@ export const useText2ImgStore = create<Text2ImgState>((set, get) => ({
 
 	setOpen: (open) => set({ open }),
 	close: () => set({ open: false }),
+	setModelId: (modelId) => set({ modelId }),
 	setPrompt: (prompt) => set({ prompt }),
 	setStyle: (style) => set({ style }),
 	setNegative: (negative) => set({ negative }),
@@ -181,61 +188,77 @@ export const useText2ImgStore = create<Text2ImgState>((set, get) => ({
 		);
 		set({ running: true, results: placeholders });
 
-		const size = resolveImageSize(
-			get().aspectRatio,
-			get().sizePreset,
-			get().customSize,
-		);
-		const imageSize = `${size.w}x${size.h}`;
+		const size = resolveImageRequestSize({
+			aspectRatio: get().aspectRatio,
+			sizePreset: get().sizePreset,
+			customSize: get().customSize,
+		});
 		const finalPrompt = composeText2ImgPrompt({
 			prompt,
 			style: get().style,
 			locale: deps.locale,
 		});
-		const negative = get().negative.trim();
+
+		// 同步路由：一次调用出全部张数（按张数计费），失败整批标记可重试
+		const outcome = await textToImage({
+			modelId: get().modelId,
+			prompt: finalPrompt,
+			imageSize: `${size.w}x${size.h}`,
+			count: placeholders.length,
+		});
+		const files = outcome.success ? (outcome.files ?? []) : [];
+		if (files.length === 0) {
+			set({
+				running: false,
+				results: placeholders.map((p) => ({
+					...p,
+					status: "failed" as const,
+					error: outcome.error,
+				})),
+			});
+			deps.onFinished?.(0);
+			return;
+		}
 
 		let imported = 0;
 		const results: Text2ImgResult[] = [...placeholders];
+		let history = [...get().history];
 		for (let i = 0; i < placeholders.length; i++) {
-			const outcome = await textToImage({
-				prompt: finalPrompt,
-				negativePrompt: negative || undefined,
-				aspectRatio: get().aspectRatio,
-				imageSize,
-			});
-			if (outcome.success && outcome.file) {
-				const assetId = await deps.importAsset({
-					file: outcome.file,
-					name: outcome.file.name,
-				});
-				results[i] = {
-					key: placeholders[i].key,
-					status: "done",
-					assetId: assetId ?? undefined,
-					name: outcome.file.name,
-				};
-				imported += 1;
-				const history: Text2ImgHistoryItem[] = [
-					{
-						key: placeholders[i].key,
-						assetId: assetId ?? undefined,
-						name: outcome.file.name,
-						prompt,
-						aspectRatio: get().aspectRatio,
-						width: size.w,
-						height: size.h,
-					},
-					...get().history,
-				].slice(0, TEXT2IMG_HISTORY_CAP);
-				set({ results: [...results], history });
-			} else {
+			const file = files[i];
+			if (!file) {
+				// 供应商少返了图：剩余占位标记失败，可整批重试
 				results[i] = {
 					key: placeholders[i].key,
 					status: "failed",
-					error: outcome.error,
+					error: "生成数量不足",
 				};
 				set({ results: [...results] });
+				continue;
 			}
+			const assetId = await deps.importAsset({
+				file,
+				name: file.name,
+			});
+			results[i] = {
+				key: placeholders[i].key,
+				status: "done",
+				assetId: assetId ?? undefined,
+				name: file.name,
+			};
+			imported += 1;
+			history = [
+				{
+					key: placeholders[i].key,
+					assetId: assetId ?? undefined,
+					name: file.name,
+					prompt,
+					aspectRatio: get().aspectRatio,
+					width: size.w,
+					height: size.h,
+				},
+				...history,
+			].slice(0, TEXT2IMG_HISTORY_CAP);
+			set({ results: [...results], history });
 		}
 
 		set({ running: false });

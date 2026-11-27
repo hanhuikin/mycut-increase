@@ -17,6 +17,7 @@ import {
 	settleTask,
 } from "@/services/billing/ledger";
 
+/** 历史固定档；之外的 "宽x高" 走下方动态校验（与生图对话框能力上限一致）。 */
 const IMAGE_SIZES: readonly string[] = [
 	"1024x1024",
 	"1536x1024",
@@ -25,10 +26,20 @@ const IMAGE_SIZES: readonly string[] = [
 ];
 const MAX_IMAGES = 4;
 
+const SIZE_PATTERN = /^(\d{3,4})x(\d{3,4})$/;
+
 function parseSize(value: unknown): string | undefined {
-	return typeof value === "string" && IMAGE_SIZES.includes(value)
-		? value
-		: undefined;
+	if (typeof value !== "string") return undefined;
+	if (IMAGE_SIZES.includes(value)) return value;
+	const match = SIZE_PATTERN.exec(value);
+	if (!match) return undefined;
+	const width = Number(match[1]);
+	const height = Number(match[2]);
+	// 每边 256–1536：与 img2img-store 的 IMG2IMG_SIZE_CAPS 保持一致
+	if (width < 256 || height < 256 || width > 1536 || height > 1536) {
+		return undefined;
+	}
+	return value;
 }
 
 /**
@@ -87,8 +98,20 @@ async function postHandler(request: NextRequest) {
 		Math.max(typeof raw.count === "number" ? Math.round(raw.count) : 1, 1),
 		MAX_IMAGES,
 	);
+	// 参考图（图生图/多图融合）：data: 或 https 链接，最多 MAX_IMAGES 张
+	const images = Array.isArray(raw.images)
+		? raw.images
+				.filter(
+					(url): url is string =>
+						typeof url === "string" &&
+						(url.startsWith("data:image/") || url.startsWith("https://")),
+				)
+				.slice(0, MAX_IMAGES)
+		: [];
 
-	const cost = estimateModelCost({ model, resolution: "720p", seconds: 0 });
+	// 一次调用可要 n 张：按 张数 × 单价 计费（与前端「单价 × 数量」展示一致）
+	const cost =
+		estimateModelCost({ model, resolution: "720p", seconds: 0 }) * count;
 	if (model.dailyLimit != null) {
 		const usedToday = await countFreezesToday({
 			userId: user.id,
@@ -138,14 +161,15 @@ async function postHandler(request: NextRequest) {
 	const failures: string[] = [];
 	for (const routed of attempts) {
 		try {
-			const generated = await routed.protocol.generateImage?.({
-				model: routed.upstreamModel,
-				apiKey: routed.apiKey,
-				baseUrl: routed.baseUrl,
-				prompt,
-				size,
-				count,
-			});
+		const generated = await routed.protocol.generateImage?.({
+			model: routed.upstreamModel,
+			apiKey: routed.apiKey,
+			baseUrl: routed.baseUrl,
+			prompt,
+			size,
+			count,
+			...(images.length > 0 ? { images } : {}),
+		});
 			if (!generated || generated.dataUrls.length === 0) {
 				throw new Error("供应商返回了空结果");
 			}

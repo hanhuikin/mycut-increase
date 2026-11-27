@@ -141,141 +141,141 @@ export async function inpaintErase(
 // ===== 多图参考生图 =====
 
 export interface MultiImageToImageOptions {
+	/** 系统模型 id（ai_models），决定渠道路由与计费单价。 */
+	modelId: string;
 	/** 压缩后的参考图 dataURL，按序——首位为主参考。 */
 	imageDataUrls: string[];
 	prompt: string;
-	aspectRatio?: "1:1" | "16:9" | "3:4" | "9:16";
-	/** 生图尺寸，"宽x高"（如 "1024x576"），由比例×尺寸档/自定义合成。 */
-	imageSize?: string;
-	onProgress?: (msg: string) => void;
+	/** 生图尺寸，"宽x高"（已按渠道能力换算）。 */
+	imageSize: string;
+	/** 张数 1–4；一次调用按 张数 × 单价 计费。 */
+	count?: number;
 }
 
 export interface MultiImageToImageResult {
 	success: boolean;
-	file?: File;
+	/** 生成的图片文件（已从 data: 链接转存）。 */
+	files?: File[];
 	error?: string;
 }
 
 /**
- * 多图参考生图：N 张参考图 + 提示词 → 一张新图。
+ * 多图参考生图：N 张参考图 + 提示词 → 新图。
  *
- * input 逐字透传上游（fal 系多参考生图端点，具体端点由渠道按 modelId 映射），
- * 与 removeBackground 同构；每次调用生成一张、冻结一次点数。
+ * 走服务端同步生图路由（与 textToImage 同一条）；参考图以 data: URL 随
+ * 请求体带给上游（火山格式 Seedream 支持 2–10 张多图融合）。
  */
 export async function multiImageToImage(
 	options: MultiImageToImageOptions,
 ): Promise<MultiImageToImageResult> {
-	const {
-		imageDataUrls,
+	const { modelId, imageDataUrls, prompt, imageSize, count = 1 } = options;
+	return generateViaImageRoute({
+		modelId,
 		prompt,
-		aspectRatio = "1:1",
 		imageSize,
-		onProgress,
-	} = options;
-
-	try {
-		const { url } = await runJob({
-			params: {
-				modelId: "ai-tools-img2img-multi",
-				input: {
-					prompt,
-					image_urls: imageDataUrls,
-					aspect_ratio: aspectRatio,
-					...(imageSize ? { image_size: imageSize } : {}),
-				},
-			},
-			onProgress,
-		});
-
-		onProgress?.("下载结果...");
-		const response = await fetch(url);
-		if (!response.ok) {
-			throw new Error(`下载生成结果失败 (${response.status})`);
-		}
-		const blob = await response.blob();
-		const file = new File(
-			[blob],
-			`多图生图-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "")}.png`,
-			{ type: blob.type || "image/png" },
-		);
-
-		return { success: true, file };
-	} catch (error) {
-		console.error("多图生图失败:", error);
-		return {
-			success: false,
-			error: error instanceof Error ? error.message : "未知错误",
-		};
-	}
+		count,
+		images: imageDataUrls,
+	});
 }
 
 // ===== 文生图 =====
 
 export interface TextToImageOptions {
+	/** 系统模型 id（ai_models），决定渠道路由与计费单价。 */
+	modelId: string;
 	prompt: string;
-	/** 负面提示词（不希望出现的内容）；上游不支持时由渠道侧忽略。 */
-	negativePrompt?: string;
-	aspectRatio?: "1:1" | "16:9" | "3:4" | "9:16";
-	/** 生图尺寸，"宽x高"（如 "1024x576"），由比例×尺寸档/自定义合成。 */
-	imageSize?: string;
-	onProgress?: (msg: string) => void;
+	/** 请求尺寸，"宽x高"（已按渠道能力换算，每边 256–1536）。 */
+	imageSize: string;
+	/** 张数 1–4；一次调用按 张数 × 单价 计费。 */
+	count?: number;
 }
 
 export interface TextToImageResult {
 	success: boolean;
-	file?: File;
+	/** 生成的图片文件（已从 data: 链接转存）。 */
+	files?: File[];
 	error?: string;
 }
 
-/**
- * 文生图：纯文字提示 → 一张新图。
- *
- * input 逐字透传上游（fal 系文生图端点，具体端点由渠道按 modelId 映射），
- * 与 multiImageToImage 同构；每次调用生成一张、冻结一次点数，
- * 多张由前端串行循环（同 img2img 模式，先到先显示）。
- */
-export async function textToImage(
-	options: TextToImageOptions,
-): Promise<TextToImageResult> {
-	const {
-		prompt,
-		negativePrompt,
-		aspectRatio = "1:1",
-		imageSize,
-		onProgress,
-	} = options;
+/** 错误码 → 用户可读文案（/api/ai/image/generate 的 error 字段）。 */
+const IMAGE_GENERATE_ERROR_MESSAGES: Record<string, string> = {
+	insufficient: "点数不足",
+	model_unavailable: "生图模型不可用",
+	daily_limit: "今日生成次数已达上限",
+	pro_required: "该功能需要 Pro 权限",
+	model_not_image: "生图模型配置异常",
+	no_channel_available: "生图渠道不可用",
+};
 
+async function generateViaImageRoute({
+	modelId,
+	prompt,
+	imageSize,
+	count = 1,
+	images = [],
+}: {
+	modelId: string;
+	prompt: string;
+	imageSize: string;
+	count?: number;
+	images?: string[];
+}): Promise<{ success: boolean; files?: File[]; error?: string }> {
 	try {
-		const { url } = await runJob({
-			params: {
-				modelId: "ai-tools-text2img",
-				input: {
-					prompt,
-					aspect_ratio: aspectRatio,
-					...(imageSize ? { image_size: imageSize } : {}),
-					...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
-				},
-			},
-			onProgress,
+		const response = await fetch("/api/ai/image/generate", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				modelId,
+				refId: crypto.randomUUID(),
+				prompt,
+				size: imageSize,
+				count,
+				...(images.length > 0 ? { images } : {}),
+			}),
 		});
-
-		onProgress?.("下载结果...");
-		const response = await fetch(url);
 		if (!response.ok) {
-			throw new Error(`下载生成结果失败 (${response.status})`);
+			const payload: unknown = await response.json().catch(() => null);
+			const code =
+				typeof payload === "object" &&
+				payload !== null &&
+				"error" in payload &&
+				typeof payload.error === "string"
+					? payload.error
+					: "";
+			throw new Error(
+				IMAGE_GENERATE_ERROR_MESSAGES[code] ??
+					`生图请求失败 (${response.status})`,
+			);
 		}
-		const blob = await response.blob();
+		const payload: unknown = await response.json();
+		const dataUrls =
+			typeof payload === "object" &&
+			payload !== null &&
+			"dataUrls" in payload &&
+			Array.isArray(payload.dataUrls)
+				? payload.dataUrls.filter(
+						(url): url is string => typeof url === "string",
+					)
+				: [];
+		if (dataUrls.length === 0) {
+			throw new Error("供应商返回了空结果");
+		}
+
 		// 同一批可能一秒内多张，文件名追加随机尾避免同名覆盖
 		const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "");
-		const file = new File(
-			[blob],
-			`文生图-${stamp}-${Math.random().toString(36).slice(2, 6)}.png`,
-			{ type: blob.type || "image/png" },
-		);
-
-		return { success: true, file };
+		const token = Math.random().toString(36).slice(2, 6);
+		const files: File[] = [];
+		for (let i = 0; i < dataUrls.length; i++) {
+			files.push(
+				await imageSourceToFile({
+					url: dataUrls[i],
+					name: `生图-${stamp}-${token}-${i + 1}`,
+				}),
+			);
+		}
+		return { success: true, files };
 	} catch (error) {
-		console.error("文生图失败:", error);
+		console.error("生图失败:", error);
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : "未知错误",
@@ -283,7 +283,39 @@ export async function textToImage(
 	}
 }
 
+/**
+ * 文生图：走服务端同步生图路由（/api/ai/image/generate）——渠道解析、
+ * 点数冻结/结算/退款都在那次请求里完成，供应商同步返回成品图。
+ */
+export async function textToImage(
+	options: TextToImageOptions,
+): Promise<TextToImageResult> {
+	return generateViaImageRoute(options);
+}
+
 // ===== 工具函数 =====
+
+/** data: URL 或 http(s) 临时链接 → File（扩展名跟随实际类型）。 */
+async function imageSourceToFile({
+	url,
+	name,
+}: {
+	url: string;
+	name: string;
+}): Promise<File> {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`下载生成结果失败 (${response.status})`);
+	}
+	const blob = await response.blob();
+	const ext =
+		blob.type === "image/jpeg"
+			? "jpg"
+			: blob.type === "image/webp"
+				? "webp"
+				: "png";
+	return new File([blob], `${name}.${ext}`, { type: blob.type || "image/png" });
+}
 
 async function fileToDataUrl(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {

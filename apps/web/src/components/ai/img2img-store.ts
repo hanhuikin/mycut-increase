@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { multiImageToImage } from "@/services/ai-tools";
 import { compressImageToDataUrl } from "@/utils/image";
+import { resolveImageRequestSize } from "./image-size";
 
 /**
  * 多图生图的生成会话状态。独立于对话框组件存活——中途关掉对话框，
@@ -89,13 +90,15 @@ export type Img2ImgResult = {
 
 export interface Img2ImgGenerateDeps {
 	/** 把完成的 File 存入项目素材库，返回资产 id。 */
-	importAsset: (file: File, name: string) => Promise<string | null>;
+	importAsset: (args: { file: File; name: string }) => Promise<string | null>;
 	/** 一批全部结束（无论成败）后回调，n = 成功入库张数。 */
 	onFinished?: (imported: number) => void;
 }
 
 interface Img2ImgState {
 	open: boolean;
+	/** 当前选中的生图模型（ai_models id），决定渠道路由与单价。 */
+	modelId: string;
 	slots: Img2ImgSlot[];
 	results: Img2ImgResult[];
 	prompt: string;
@@ -108,6 +111,7 @@ interface Img2ImgState {
 	openWith: (slots: Img2ImgSlot[]) => void;
 	setOpen: (open: boolean) => void;
 	close: () => void;
+	setModelId: (modelId: string) => void;
 	setPrompt: (prompt: string) => void;
 	setAspectRatio: (aspectRatio: Img2ImgAspectRatio) => void;
 	setSizePreset: (preset: Img2ImgSizePreset) => void;
@@ -122,6 +126,7 @@ interface Img2ImgState {
 
 export const useImg2ImgStore = create<Img2ImgState>((set, get) => ({
 	open: false,
+	modelId: IMG2IMG_MODEL_ID,
 	slots: [],
 	results: [],
 	prompt: "",
@@ -139,6 +144,7 @@ export const useImg2ImgStore = create<Img2ImgState>((set, get) => ({
 		}),
 	setOpen: (open) => set({ open }),
 	close: () => set({ open: false }),
+	setModelId: (modelId) => set({ modelId }),
 	setPrompt: (prompt) => set({ prompt }),
 	setAspectRatio: (aspectRatio) => set({ aspectRatio }),
 	setSizePreset: (sizePreset) => set({ sizePreset }),
@@ -216,38 +222,55 @@ export const useImg2ImgStore = create<Img2ImgState>((set, get) => ({
 			return;
 		}
 
-		const size = resolveImageSize(
-			get().aspectRatio,
-			get().sizePreset,
-			get().customSize,
-		);
+		const size = resolveImageRequestSize({
+			aspectRatio: get().aspectRatio,
+			sizePreset: get().sizePreset,
+			customSize: get().customSize,
+		});
 		const imageSize = `${size.w}x${size.h}`;
 
+		// 同步路由：一次调用带全部参考图、出全部张数（按张数计费）
+		const outcome = await multiImageToImage({
+			modelId: get().modelId,
+			imageDataUrls,
+			prompt: get().prompt.trim(),
+			imageSize,
+			count: placeholders.length,
+		});
+		const files = outcome.success ? (outcome.files ?? []) : [];
 		let imported = 0;
 		const results: Img2ImgResult[] = [...placeholders];
-		for (let i = 0; i < placeholders.length; i++) {
-			const outcome = await multiImageToImage({
-				imageDataUrls,
-				prompt: get().prompt.trim(),
-				aspectRatio: get().aspectRatio,
-				imageSize,
+		if (files.length === 0) {
+			set({
+				running: false,
+				results: placeholders.map((p) => ({
+					...p,
+					status: "failed" as const,
+					error: outcome.error,
+				})),
 			});
-			if (outcome.success && outcome.file) {
-				const assetId = await deps.importAsset(outcome.file, outcome.file.name);
-				results[i] = {
-					key: placeholders[i].key,
-					status: "done",
-					assetId: assetId ?? undefined,
-					name: outcome.file.name,
-				};
-				imported += 1;
-			} else {
+			deps.onFinished?.(0);
+			return;
+		}
+		for (let i = 0; i < placeholders.length; i++) {
+			const file = files[i];
+			if (!file) {
 				results[i] = {
 					key: placeholders[i].key,
 					status: "failed",
-					error: outcome.error,
+					error: "生成数量不足",
 				};
+				set({ results: [...results] });
+				continue;
 			}
+			const assetId = await deps.importAsset({ file, name: file.name });
+			results[i] = {
+				key: placeholders[i].key,
+				status: "done",
+				assetId: assetId ?? undefined,
+				name: file.name,
+			};
+			imported += 1;
 			set({ results: [...results] });
 		}
 

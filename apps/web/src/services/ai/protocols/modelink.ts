@@ -65,6 +65,14 @@ export const modelinkProtocol: Protocol = {
 
 	async generateImage(input: GenerateImageInput): Promise<GenerateImageResult> {
 		const base = trimBase(input.baseUrl) || DEFAULT_BASE;
+		// 参考图：火山格式（Seedream）收 string[]（多图融合）；gemini 的中转
+		// 结构只收单个 string，多图会让上游自行报错。无参考图不带字段。
+		const image =
+			input.images && input.images.length > 0
+				? input.images.length === 1
+					? input.images[0]
+					: input.images
+				: undefined;
 		const response = await fetch(`${base}/images/generations`, {
 			method: "POST",
 			headers: {
@@ -76,6 +84,9 @@ export const modelinkProtocol: Protocol = {
 				prompt: input.prompt,
 				n: input.count,
 				size: input.size,
+				// 固定 b64：默认的临时 url 直链会被浏览器 CORS 拦截，无法转存
+				response_format: "b64_json",
+				...(image !== undefined ? { image } : {}),
 			}),
 		});
 		if (!response.ok) {

@@ -83,6 +83,12 @@ export interface GenerateImageInput {
 	size: string;
 	/** Number of images to produce. */
 	count: number;
+	/**
+	 * Reference images (data: URLs or https links) for image-to-image.
+	 * Empty/absent = plain text-to-image; upstreams without reference
+	 * support ignore them.
+	 */
+	images?: string[];
 }
 
 /** A finished synchronous image job: JPEG dataURLs, one per requested image. */

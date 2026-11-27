@@ -235,6 +235,12 @@ export const en = {
 	"ai_t2i.inserted": "Inserted to timeline",
 	"ai_t2i.model_missing": "Text-to-image model not configured — contact admin",
 	"ai_t2i.res_regenerate_one": "Another one",
+	"ai_t2i.size_min_note":
+		"Small sizes are scaled up proportionally (min ~0.92MP, required by Seedream)",
+	"ai_t2i.model_label": "Model",
+	"ai_t2i.model_seedream": "Seedream 5.5 (CN)",
+	"ai_t2i.model_gemini": "Gemini 3 Pro (Global)",
+	"ai_img2img.model_seedream_multi": "Seedream 5.5 (multi-ref)",
 
 	"toast.project_not_found": "Project not found",
 	"toast.sound_file_not_available": "Sound file not available",

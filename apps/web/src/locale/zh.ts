@@ -230,6 +230,12 @@ export const zh = {
 	"ai_t2i.inserted": "已插入时间轴",
 	"ai_t2i.model_missing": "文生图模型未配置，请联系管理员",
 	"ai_t2i.res_regenerate_one": "再来一张",
+	"ai_t2i.size_min_note":
+		"尺寸过小时会按比例放大后提交（总像素 ≥ 92 万，Seedream 要求）",
+	"ai_t2i.model_label": "模型",
+	"ai_t2i.model_seedream": "Seedream 5.5（国内）",
+	"ai_t2i.model_gemini": "Gemini 3 Pro（海外）",
+	"ai_img2img.model_seedream_multi": "Seedream 5.5（多图参考）",
 
 	"toast.project_not_found": "项目未找到",
 	"toast.sound_file_not_available": "音频文件不可用",

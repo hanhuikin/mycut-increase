@@ -34,20 +34,20 @@ import { useLocale } from "@/locale/locale-context";
 import { estimateCost, useBilling } from "@/services/billing/client";
 import {
 	IMG2IMG_MAX_SLOTS,
-	IMG2IMG_MODEL_ID,
-	computeImageSize,
-	resolveImageSize,
 	useImg2ImgStore,
 	validateCustomSize,
 	type Img2ImgAspectRatio,
 	type Img2ImgSlot,
 } from "./img2img-store";
+import { resolveImageRequestSize } from "./image-size";
+import { IMG2IMG_MODEL_OPTIONS } from "./image-model-options";
 import { ParamChip, SizeHint, SizeInput } from "./param-controls";
 import { cn } from "@/utils/ui";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const ASPECTS: Img2ImgAspectRatio[] = ["1:1", "16:9", "3:4", "9:16"];
-const SIZE_PRESETS: Array<768 | 1024 | 1536> = [768, 1024, 1536];
+// 长边档：768 档放大后与 1024 档重合，故不提供
+const SIZE_PRESETS: Array<1024 | 1536> = [1024, 1536];
 
 /** 建议文案：点击把模板句追加进提示词（@图N/@imgN 随界面语言）。 */
 const SUGGESTION_TEMPLATES: Array<{
@@ -94,6 +94,7 @@ export function MultiImg2ImgDialog({
 	const store = useImg2ImgStore();
 	const {
 		open,
+		modelId,
 		slots,
 		results,
 		prompt,
@@ -104,6 +105,7 @@ export function MultiImg2ImgDialog({
 		running,
 		setOpen,
 		close,
+		setModelId,
 		setPrompt,
 		setAspectRatio,
 		setSizePreset,
@@ -127,7 +129,11 @@ export function MultiImg2ImgDialog({
 	// 打开自定义弹层时，以当前生效尺寸作为草稿初值
 	useEffect(() => {
 		if (!customOpen) return;
-		const current = resolveImageSize(aspectRatio, sizePreset, customSize);
+		const current = resolveImageRequestSize({
+			aspectRatio,
+			sizePreset,
+			customSize,
+		});
 		setDraftW(String(current.w));
 		setDraftH(String(current.h));
 	}, [customOpen, aspectRatio, sizePreset, customSize]);
@@ -139,7 +145,7 @@ export function MultiImg2ImgDialog({
 		[editor, open],
 	);
 
-	const model = billing.models.get(IMG2IMG_MODEL_ID);
+	const model = billing.models.get(modelId);
 	const costPerCall = model
 		? estimateCost({ model, resolution: "720p", seconds: 1 })
 		: null;
@@ -147,7 +153,15 @@ export function MultiImg2ImgDialog({
 	const insufficient =
 		billing.balance != null && totalCost != null && totalCost > billing.balance;
 
-	const effectiveSize = resolveImageSize(aspectRatio, sizePreset, customSize);
+	const effectiveSize = resolveImageRequestSize({
+		aspectRatio,
+		sizePreset,
+		customSize,
+	});
+	// 模型选项只展示 billing 已收录的（渠道/价格已配置的才会出现）
+	const modelOptions = IMG2IMG_MODEL_OPTIONS.filter(
+		(option) => billing.models.get(option.id) != null,
+	);
 	const canGenerate =
 		!running &&
 		activeProject != null &&
@@ -156,10 +170,13 @@ export function MultiImg2ImgDialog({
 		model != null &&
 		!insufficient;
 
-	const importAsset = async (
-		file: File,
-		name: string,
-	): Promise<string | null> => {
+	const importAsset = async ({
+		file,
+		name,
+	}: {
+		file: File;
+		name: string;
+	}): Promise<string | null> => {
 		if (!activeProject) return null;
 		const asset = await editor.media.addMediaAsset({
 			projectId: activeProject.metadata.id,
@@ -222,6 +239,33 @@ export function MultiImg2ImgDialog({
 							{t["ai_img2img.title"]}
 						</DialogTitle>
 					</DialogHeader>
+
+					{/* ⓪ 模型（billing 已收录的才会出现） */}
+					{modelOptions.length > 0 && (
+						<section>
+							<div className="text-muted-foreground mx-0.5 mb-1 text-[10px]">
+								{t["ai_t2i.model_label"]}
+							</div>
+							<div className="flex flex-wrap gap-1.5">
+								{modelOptions.map((option) => (
+									<button
+										key={option.id}
+										type="button"
+										disabled={running}
+										className={cn(
+											"rounded-full border px-2 py-0.5 text-[10px] transition-colors disabled:opacity-50",
+											modelId === option.id
+												? "border-primary bg-primary text-white"
+												: "border-border text-muted-foreground hover:text-foreground",
+										)}
+										onClick={() => setModelId(option.id)}
+									>
+										{t[option.labelKey]}
+									</button>
+								))}
+							</div>
+						</section>
+					)}
 
 					{/* ① 参考图：64×48 小槽位横排 · 拖动排序 · 首位=主参考 */}
 					<section>
@@ -386,7 +430,11 @@ export function MultiImg2ImgDialog({
 							</span>
 							<div className="bg-card flex overflow-hidden rounded-lg border">
 								{SIZE_PRESETS.map((preset) => {
-									const size = computeImageSize(aspectRatio, preset);
+									const size = resolveImageRequestSize({
+										aspectRatio,
+										sizePreset: preset,
+										customSize,
+									});
 									const label = `${size.w}×${size.h}`;
 									return (
 										<ParamChip
@@ -403,7 +451,7 @@ export function MultiImg2ImgDialog({
 										<ParamChip
 											label={
 												sizePreset === "custom" && customSize
-													? `${customSize.w}×${customSize.h}`
+													? `${effectiveSize.w}×${effectiveSize.h}`
 													: t["ai_img2img.size_custom"]
 											}
 											selected={sizePreset === "custom"}
