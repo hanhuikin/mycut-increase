@@ -1,0 +1,1167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>素材库 · 文生图功能 UI 与交互设计</title>
+<style>
+	:root {
+		--bg: #111214;
+		--card: #17181a;
+		--card2: #1d1e21;
+		--line: #2a2c2f;
+		--fg: #e6e6e6;
+		--muted: #9a9ea3;
+		--accent: #16a9f3;
+		--accent-dim: rgba(22, 169, 243, 0.15);
+		--amber: #eab308;
+		--red: #ef4444;
+		--green: #22c55e;
+		--app-line: #292929;
+		--app-fg: #dedede;
+		--app-muted: #8f8f8f;
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; }
+	body {
+		margin: 0;
+		background: var(--bg);
+		color: var(--fg);
+		font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+		font-size: 14px;
+		line-height: 1.7;
+	}
+	.wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+	h1 { font-size: 24px; margin: 0 0 6px; }
+	h2 { font-size: 18px; margin: 0 0 14px; padding-top: 8px; }
+	h3 { font-size: 14.5px; margin: 20px 0 8px; color: var(--accent); }
+	.meta { color: var(--muted); font-size: 12.5px; margin: 0 0 18px; }
+	section { margin-top: 44px; scroll-margin-top: 60px; }
+	.card {
+		background: var(--card);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		padding: 18px 20px;
+		margin-bottom: 14px;
+	}
+	table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0; }
+	th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+	th { background: var(--card2); color: var(--muted); font-weight: 600; white-space: nowrap; }
+	code, .kbd {
+		background: var(--card2);
+		border: 1px solid var(--line);
+		border-radius: 5px;
+		padding: 1px 6px;
+		font-family: Consolas, Menlo, monospace;
+		font-size: 12px;
+		color: #7dd3fc;
+	}
+	.kbd { color: var(--fg); }
+	nav.toc {
+		position: sticky; top: 0; z-index: 20;
+		background: rgba(17, 18, 20, 0.92);
+		backdrop-filter: blur(6px);
+		border-bottom: 1px solid var(--line);
+		display: flex; flex-wrap: wrap; gap: 4px 18px;
+		padding: 10px 4px;
+		font-size: 12.5px;
+	}
+	nav.toc a { color: var(--muted); text-decoration: none; }
+	nav.toc a:hover { color: var(--accent); }
+	.tag {
+		display: inline-block; font-size: 11px; border-radius: 999px;
+		padding: 1px 9px; margin-right: 6px; vertical-align: 1px;
+	}
+	.tag.rec { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(22,169,243,.4); }
+	.tag.alt { background: var(--card2); color: var(--muted); border: 1px solid var(--line); }
+	.tag.v2 { background: rgba(34,197,94,.12); color: var(--green); border: 1px solid rgba(34,197,94,.35); }
+	ul, ol { margin: 6px 0; padding-left: 22px; }
+	li { margin: 3px 0; }
+	.muted { color: var(--muted); }
+	.small { font-size: 12px; }
+	.warn { color: var(--amber); }
+	.danger { color: var(--red); }
+
+	/* 入口位置示意（对照真实界面红框） */
+	.entry-demo {
+		background: #0d0d0d; border: 1px solid var(--app-line); border-radius: 10px;
+		padding: 10px 14px; margin: 10px 0 4px;
+		display: flex; align-items: center; gap: 8px;
+		font-size: 11px; color: var(--app-muted);
+	}
+	.entry-demo .t { font-weight: 600; color: var(--app-fg); font-size: 12px; }
+	.entry-demo .gap { flex: 1; }
+	.entry-demo .new-btn {
+		border: 1.5px dashed var(--accent); color: var(--accent);
+		border-radius: 6px; padding: 3px 10px; font-size: 11px;
+		display: flex; align-items: center; gap: 4px;
+	}
+	.entry-demo .btn {
+		border: 0; background: transparent; color: var(--app-fg);
+		border-radius: 6px; padding: 3px 10px; font-size: 11px;
+	}
+	.entry-demo .btn.bordered { border: 1px solid var(--app-line); }
+	.entry-demo .arrow-note { color: var(--accent); font-size: 10px; margin-left: 2px; }
+
+	/* ===== 交互稿：编辑器框架 ===== */
+	.editor {
+		position: relative;
+		display: flex; flex-direction: column;
+		height: 660px;
+		border: 1px solid var(--app-line);
+		border-radius: 12px; overflow: hidden;
+		background: #0d0d0d;
+		color: var(--app-fg);
+		font-size: 12px;
+	}
+	.ed-top {
+		height: 36px; flex-shrink: 0;
+		border-bottom: 1px solid var(--app-line);
+		display: flex; align-items: center; gap: 10px; padding: 0 14px;
+		color: var(--app-muted); font-size: 11px;
+	}
+	.ed-top .dot { width: 9px; height: 9px; border-radius: 50%; }
+	.ed-top .btn-ph { border: 1px solid var(--app-line); border-radius: 6px; padding: 2px 10px; font-size: 10px; }
+	.ed-body { flex: 1; display: flex; min-height: 0; }
+	.rail {
+		width: 46px; flex-shrink: 0;
+		border-right: 1px solid var(--app-line);
+		display: flex; flex-direction: column; align-items: center;
+		gap: 3px; padding: 8px 0; overflow-y: auto; scrollbar-width: none;
+	}
+	.rail .tab {
+		width: 32px; height: 32px; border-radius: 8px;
+		display: flex; align-items: center; justify-content: center;
+		font-size: 15px; cursor: pointer; color: var(--app-muted);
+		filter: grayscale(1); opacity: .72; position: relative;
+		user-select: none;
+	}
+	.rail .tab:hover { background: #1b1b1b; opacity: 1; }
+	.rail .tab.active { background: #2c2c2c; color: #fff; opacity: 1; }
+
+	/* 素材面板（真实界面的「资源」页） */
+	.media-panel { width: 302px; flex-shrink: 0; border-right: 1px solid var(--app-line); display: flex; flex-direction: column; min-height: 0; background: #0d0d0d; }
+	.media-head {
+		display: flex; align-items: center; gap: 4px;
+		padding: 8px 10px; border-bottom: 1px solid var(--app-line);
+		flex-shrink: 0;
+	}
+	.media-head .title { font-size: 12px; font-weight: 600; flex: 1; }
+	.mbtn {
+		border: 0; background: transparent; color: var(--app-muted);
+		font-size: 10.5px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+		font-family: inherit; display: flex; align-items: center; gap: 4px;
+		white-space: nowrap;
+	}
+	.mbtn:hover { color: var(--app-fg); background: #1b1b1b; }
+	.mbtn.primary { background: var(--accent); color: #fff; }
+	.mbtn.primary:hover { filter: brightness(1.1); background: var(--accent); }
+	.mbtn.bordered { border: 1px solid var(--app-line); color: var(--app-fg); }
+	.mbtn .run-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: none; }
+	.mbtn.generating .run-dot { display: inline-block; animation: pulse 1.2s infinite; }
+	.media-grid { flex: 1; overflow-y: auto; padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-content: start; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+	.media-card { position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--app-line); }
+	.media-card .thumb { aspect-ratio: 16 / 9; position: relative; }
+	.media-card .dur { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.72); font-size: 9px; padding: 1px 4px; border-radius: 4px; color: #fff; }
+	.media-card .plus { position: absolute; right: 4px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+	.media-card .name { font-size: 9.5px; color: var(--app-muted); padding: 4px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #111; }
+
+	.canvas { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #101010; }
+	.preview { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+	.preview .frame {
+		width: 62%; aspect-ratio: 16 / 9; border-radius: 6px;
+		background: repeating-conic-gradient(#1c1c1c 0 25%, #141414 0 50%) 0 0 / 22px 22px;
+		border: 1px solid var(--app-line);
+		display: flex; align-items: center; justify-content: center;
+		color: #555; font-size: 11px; position: relative;
+	}
+	.preview .frame.has-img { border: 0; }
+	.preview .frame.has-img .img { position: absolute; inset: 0; border-radius: 6px; }
+	.tl { height: 128px; flex-shrink: 0; border-top: 1px solid var(--app-line); padding: 8px 12px; display: flex; flex-direction: column; gap: 5px; background: #0d0d0d; }
+	.tl .ruler { height: 12px; color: #4a4a4a; font-size: 8.5px; display: flex; justify-content: space-between; padding: 0 2px; }
+	.track { height: 28px; background: #151515; border-radius: 5px; display: flex; align-items: center; gap: 3px; padding: 2px 3px; position: relative; }
+	.track .tlabel { position: absolute; left: 6px; top: 1px; font-size: 8px; color: #5a5a5a; pointer-events: none; }
+	.clip { height: 22px; border-radius: 4px; min-width: 44px; flex-shrink: 0; position: relative; overflow: hidden; }
+	.clip.vid1 { width: 130px; background: linear-gradient(135deg, #2b4c7e, #1d3557); }
+	.clip.vid2 { width: 96px; background: linear-gradient(135deg, #4a6741, #2d4222); }
+	.clip .cname { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 6px; font-size: 8.5px; color: rgba(255,255,255,.85); white-space: nowrap; overflow: hidden; }
+	.playhead { position: absolute; top: 0; bottom: 0; width: 1.5px; background: #f43f5e; left: 46%; z-index: 3; pointer-events: none; }
+	.playhead::before { content: ""; position: absolute; top: 0; left: -3.5px; border: 4px solid transparent; border-top-color: #f43f5e; }
+
+	/* ===== 文生图对话框（对齐多图生成对话框形态） ===== */
+	.dlg-backdrop {
+		position: absolute; inset: 0; z-index: 40;
+		background: rgba(0, 0, 0, .58);
+		display: none; align-items: center; justify-content: center;
+	}
+	.dlg-backdrop.open { display: flex; }
+	.dlg {
+		width: 560px; max-width: 94%; max-height: 93%;
+		background: #141414; border: 1px solid #333; border-radius: 12px;
+		display: flex; flex-direction: column; overflow: hidden;
+		box-shadow: 0 24px 60px rgba(0,0,0,.6);
+	}
+	.dlg-head {
+		padding: 10px 14px; border-bottom: 1px solid #2a2a2a;
+		display: flex; justify-content: space-between; align-items: center;
+		font-size: 12px; font-weight: 600; flex-shrink: 0;
+	}
+	.dlg-head .x { cursor: pointer; color: var(--app-muted); font-size: 13px; padding: 2px 6px; border-radius: 6px; }
+	.dlg-head .x:hover { color: #fff; background: #222; }
+	.dlg-body { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 13px; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+	.dlg-body::-webkit-scrollbar { width: 6px; }
+	.dlg-body::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+	.dlg-foot {
+		border-top: 1px solid #2a2a2a; padding: 9px 14px;
+		display: flex; align-items: center; justify-content: space-between; gap: 8px;
+		flex-shrink: 0;
+	}
+
+	/* 表单控件 */
+	.lbl { font-size: 10px; color: var(--app-muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+	textarea.prompt {
+		width: 100%; min-height: 84px; resize: none; outline: none;
+		background: transparent; border: 1px solid var(--app-line); border-radius: 8px;
+		color: var(--app-fg); font-size: 11px; line-height: 1.6; padding: 8px;
+		font-family: inherit;
+	}
+	textarea.prompt:focus { border-color: #3d3d3d; }
+	textarea.neg { min-height: 46px; }
+	.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+	.chip {
+		border: 1px solid var(--app-line); background: transparent;
+		color: var(--app-muted); font-size: 10px; border-radius: 999px;
+		padding: 2.5px 9px; cursor: pointer; font-family: inherit;
+	}
+	.chip:hover { color: var(--app-fg); border-color: #3d3d3d; }
+	.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+	.style-hint { font-size: 9.5px; color: #6f6f6f; margin-top: 5px; line-height: 1.5; }
+	.seg { display: inline-flex; border: 1px solid var(--app-line); border-radius: 8px; overflow: hidden; background: #141414; }
+	.seg button {
+		border: 0; background: transparent; color: var(--app-muted);
+		font-size: 10px; padding: 4px 9px; cursor: pointer; white-space: nowrap;
+		font-family: inherit;
+	}
+	.seg button:hover { color: var(--app-fg); }
+	.seg button.on { background: var(--accent); color: #fff; }
+	.param-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+	.param-row .plabel { font-size: 10px; color: var(--app-muted); }
+	.adv-toggle { font-size: 10px; color: var(--app-muted); cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; }
+	.adv-toggle:hover { color: var(--app-fg); }
+	.adv-body { margin-top: 8px; display: none; }
+	.adv-body.open { display: block; }
+	.cost { font-size: 10px; color: var(--app-muted); line-height: 1.5; }
+	.gen-btn {
+		border: 0; border-radius: 8px; background: var(--accent); color: #fff;
+		font-size: 11.5px; padding: 8px 16px; cursor: pointer; white-space: nowrap;
+		font-family: inherit; display: flex; align-items: center; gap: 5px;
+	}
+	.gen-btn:hover:not(:disabled) { filter: brightness(1.1); }
+	.gen-btn:disabled { opacity: .45; cursor: not-allowed; }
+	.gen-btn .kbd-inline { font-size: 9px; opacity: .75; }
+
+	/* 结果与历史（对话框内） */
+	.result-sec, .hist-sec { display: none; }
+	.result-sec.show, .hist-sec.show { display: block; }
+	.sec-title { font-size: 10px; color: var(--app-muted); margin-bottom: 6px; }
+	.result-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+	.res-card {
+		width: 88px; height: 88px; flex-shrink: 0; border-radius: 8px;
+		overflow: hidden; position: relative; border: 1px solid var(--app-line);
+	}
+	.res-card .img { position: absolute; inset: 0; cursor: pointer; }
+	.res-card.skeleton { border: 0; }
+	.res-card.skeleton .img { background: #1d1d1d; animation: pulse 1.3s ease-in-out infinite; }
+	@keyframes pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+	.res-card .bar {
+		position: absolute; left: 0; right: 0; bottom: 0;
+		background: rgba(0, 0, 0, .62);
+		display: flex; justify-content: space-around;
+		font-size: 9px; color: #d4d4d4; padding: 2px 0;
+	}
+	.res-card .bar span { cursor: pointer; }
+	.res-card .bar span:hover { color: #fff; text-decoration: underline; }
+	.hist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+	.hist-card { border: 1px solid var(--app-line); border-radius: 7px; overflow: hidden; cursor: pointer; }
+	.hist-card .img { height: 52px; }
+	.hist-card .cap { padding: 3px 5px 4px; font-size: 9px; color: var(--app-muted); }
+	.hist-card .cap .p { color: var(--app-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.hist-card .cap .m { font-size: 8.5px; opacity: .8; }
+	.hist-card:hover { border-color: #3d3d3d; }
+	.empty-hint { font-size: 10.5px; color: #6f6f6f; line-height: 1.6; border: 1px dashed var(--app-line); border-radius: 8px; padding: 12px; text-align: center; }
+
+	/* 弹层 */
+	.pop {
+		position: absolute; z-index: 45; background: #161616;
+		border: 1px solid #333; border-radius: 10px; padding: 12px;
+		width: 230px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+		display: none;
+	}
+	.pop.open { display: block; }
+	.pop .row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 10.5px; }
+	.pop input {
+		width: 58px; background: #101010; border: 1px solid var(--app-line); border-radius: 6px;
+		color: var(--app-fg); font-size: 10.5px; padding: 4px 6px; outline: none; font-family: inherit;
+	}
+	.pop .hint { font-size: 9.5px; color: #6f6f6f; margin-bottom: 8px; line-height: 1.5; }
+	.pop .hint.bad { color: #f87171; }
+	.pop .actions { display: flex; justify-content: flex-end; gap: 6px; }
+	.pop .btn { border: 0; border-radius: 6px; font-size: 10px; padding: 4px 10px; cursor: pointer; font-family: inherit; }
+	.pop .btn.ghost { background: transparent; border: 1px solid var(--app-line); color: var(--app-muted); }
+	.pop .btn.primary { background: var(--accent); color: #fff; }
+	.pop .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+	.lightbox {
+		position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.82);
+		display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+		cursor: zoom-out;
+	}
+	.lightbox.open { display: flex; }
+	.lightbox .big { width: min(560px, 74vw); aspect-ratio: 16 / 9; border-radius: 12px; }
+	.lightbox .cap { color: #bbb; font-size: 12px; max-width: 560px; text-align: center; padding: 0 16px; }
+
+	.toast-wrap { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+	.toast {
+		background: #1d1d1f; color: #eee; border: 1px solid #333;
+		border-radius: 999px; font-size: 12px; padding: 7px 16px;
+		box-shadow: 0 6px 20px rgba(0,0,0,.4);
+		animation: toast-in .18s ease-out;
+	}
+	@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+	.toast.out { opacity: 0; transition: opacity .25s; }
+
+	/* 状态一览 */
+	.state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+	.state-card { background: #0d0d0d; border: 1px solid var(--app-line); border-radius: 10px; overflow: hidden; color: var(--app-fg); }
+	.state-card .sc-head { padding: 8px 12px; font-size: 11px; border-bottom: 1px solid var(--app-line); color: var(--muted); background: #141414; }
+	.state-card .sc-body { padding: 12px; font-size: 11px; display: flex; flex-direction: column; gap: 8px; min-height: 168px; }
+
+	.flow-num {
+		display: inline-flex; width: 20px; height: 20px; border-radius: 50%;
+		background: var(--accent-dim); color: var(--accent);
+		align-items: center; justify-content: center;
+		font-size: 11px; margin-right: 8px; flex-shrink: 0;
+	}
+	.flow-li { display: flex; align-items: flex-start; margin: 7px 0; }
+	@media (max-width: 900px) {
+		.canvas { display: none; }
+		.editor { height: auto; min-height: 560px; }
+		.ed-body { flex-direction: column; }
+		.media-panel { width: 100%; }
+		.dlg-backdrop { position: fixed; }
+	}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+	<header>
+		<h1>素材库 · 文生图功能 — UI 与交互设计</h1>
+		<p class="meta">
+			状态：设计稿 v2（按评审意见修改：入口与「多图生成」对齐）· 日期：2026-11-27 · 范围：素材库新增「生图（文生图）」能力，<b>不改动现有「多图生成」交互</b>
+		</p>
+		<nav class="toc">
+			<a href="#overview">① 概述与定位</a>
+			<a href="#entry">② 入口方案</a>
+			<a href="#mockup">③ 交互稿（可点击演示）</a>
+			<a href="#states">④ 状态一览</a>
+			<a href="#flows">⑤ 交互细节与边界</a>
+			<a href="#params">⑥ 参数与默认值</a>
+			<a href="#i18n">⑦ 文案（i18n）</a>
+			<a href="#impl">⑧ 服务与实施拆分</a>
+		</nav>
+	</header>
+
+	<!-- ============ ① 概述 ============ -->
+	<section id="overview">
+		<h2>① 概述与定位</h2>
+		<div class="card">
+			<p><b>目标：</b>在素材库中提供「文字 → 图片」的直接创作入口：写提示词、选比例与数量、生成后图片自动存入项目素材库，可预览、可一键插入时间轴，形成 <b>生图 → 素材库 → 时间轴</b> 的闭环。</p>
+			<p><b>与「多图生成」的关系：</b>互补而非替代。多图生成需要先进入多选、挑 2–4 张参考图（以图为基础改图）；文生图无任何前置素材要求（从零生成）。两者入口并排在素材库头部工具栏，共用同一套参数控件、成本/余额条、结果条带与入库逻辑，降低实现与维护成本。</p>
+			<table>
+				<tr><th>维度</th><th>文生图（本次新增）</th><th>多图生成（已有，不动）</th></tr>
+				<tr><td>入口</td><td>素材库头部工具栏「生图」按钮（多图生成左侧）</td><td>素材库头部工具栏「多图生成」按钮 → 进入多选 → 选 2–4 张 → 底部动作条</td></tr>
+				<tr><td>前置条件</td><td>无（点按钮直接开对话框）</td><td>需选中 ≥2 张图片</td></tr>
+				<tr><td>形态</td><td>对话框（生成不中断，关闭再开状态还在）</td><td>对话框（同）</td></tr>
+				<tr><td>输入</td><td>提示词（必填）＋ 风格预设 ＋ 负面提示词（可选）</td><td>≥2 张参考图 ＋ 提示词（@图N 引用）</td></tr>
+				<tr><td>参数</td><td>比例 / 尺寸档 / 数量（1·2·4）</td><td>比例 / 尺寸档 / 数量（1·2）</td></tr>
+				<tr><td>后端模型</td><td><code>ai-tools-text2img</code>（新渠道映射）</td><td><code>ai-tools-img2img-multi</code></td></tr>
+				<tr><td>结果</td><td colspan="2" class="muted">一致：自动存入项目素材库 · 预览 / 插入时间轴 / 重新生成</td></tr>
+			</table>
+			<p class="small muted">预留：v2 可把两个入口收纳为一个「AI 生图」入口（对话框内「文生图 | 多图生成」两个页签），本期不动多图生成，避免回归风险。</p>
+		</div>
+	</section>
+
+	<!-- ============ ② 入口 ============ -->
+	<section id="entry">
+		<h2>② 入口方案</h2>
+		<div class="card">
+			<h3><span class="tag rec">采用</span>素材库头部工具栏「生图」按钮 — 与「多图生成」对齐（评审红框位置）</h3>
+			<div class="entry-demo">
+				<span class="t">资源</span>
+				<span class="gap"></span>
+				<span class="new-btn">✦ 生图<span class="arrow-note">← 新增入口</span></span>
+				<span class="btn">多图生成</span>
+				<span class="btn">≡</span>
+				<span class="btn">⇅</span>
+				<span class="btn bordered">⬆ 上传</span>
+			</div>
+			<ul>
+				<li>位置：标题「资源」与「多图生成」按钮之间，与「多图生成」同一行、同样式尺寸（ghost 小按钮），形成「生图 | 多图生成」AI 生图入口组。</li>
+				<li>点击直接打开文生图对话框，无任何前置选择；与多图生成（先多选后出对话框）形成明确分工。</li>
+				<li>不新增 icon 栏 tab，素材栏保持 12 个入口不拥挤；AI 创作动作收敛在素材工具栏。</li>
+				<li>生成期间若对话框已关闭，入口按钮上显示绿色呼吸点（运行中提示），点击重新打开可继续查看进度。</li>
+				<li>多选模式进入后隐藏「生图」按钮（与多图生成按钮此时变为「退出多图生成」一致），避免多选状态与文生图动作互相干扰。</li>
+			</ul>
+			<h3><span class="tag alt">备选（不采用）</span>icon 栏新增「生图」tab（常驻面板形态）</h3>
+			<ul>
+				<li>优点是能承载更大的历史画廊；但 icon 栏已有 12 个 tab，且与多图生成的入口分离，用户需要在两处找「生图」类功能。按评审意见不采用。</li>
+			</ul>
+		</div>
+	</section>
+
+	<!-- ============ ③ 交互稿 ============ -->
+	<section id="mockup">
+		<h2>③ 交互稿（可点击演示）</h2>
+		<p class="small muted">
+			下方为高保真交互原型：素材库头部有「✦ 生图」按钮（高亮）— <b>点击它打开文生图对话框</b>。对话框内提示词、风格、灵感、参数、自定义尺寸、生成（模拟 1–3 秒返回）、结果条带、最近生成、插入时间轴、大图预览均可操作；关闭对话框再打开，结果与历史仍在（演示 store 状态存活）；生成中关闭对话框，入口按钮会出现绿色呼吸点。
+		</p>
+		<div class="editor">
+			<div class="ed-top">
+				<span class="dot" style="background:#ff5f57"></span>
+				<span class="dot" style="background:#febc2e"></span>
+				<span class="dot" style="background:#28c840"></span>
+				<span style="margin-left:8px">mycut · 项目「演示项目」</span>
+				<span style="flex:1"></span>
+				<span class="btn-ph">导出</span>
+			</div>
+			<div class="ed-body">
+				<div class="rail" id="rail"></div>
+
+				<!-- 素材库面板（资源页） -->
+				<div class="media-panel">
+					<div class="media-head">
+						<span class="title">资源</span>
+						<button class="mbtn primary" id="entry-t2i" title="文生图（新增入口）">✦ 生图<span class="run-dot"></span></button>
+						<button class="mbtn">多图生成</button>
+						<button class="mbtn" title="列表/网格">≡</button>
+						<button class="mbtn" title="排序">⇅</button>
+						<button class="mbtn bordered">⬆ 上传</button>
+					</div>
+					<div class="media-grid">
+						<div class="media-card">
+							<div class="thumb" style="background:linear-gradient(135deg,#2b4c7e,#1d3557)">
+								<span class="plus">＋</span><span class="dur">3:20</span>
+							</div>
+							<div class="name">20261124-132917.mp4</div>
+						</div>
+						<div class="media-card">
+							<div class="thumb" style="background:linear-gradient(135deg,#4a6741,#2d4222)">
+								<span class="plus">＋</span><span class="dur">3:20</span>
+							</div>
+							<div class="name">飞书20261125-152.mp4</div>
+						</div>
+						<div class="media-card">
+							<div class="thumb" style="background:linear-gradient(135deg,#6c5b7b,#355c7d)">
+								<span class="plus">＋</span>
+							</div>
+							<div class="name">参考图-角色.png</div>
+						</div>
+						<div class="media-card">
+							<div class="thumb" style="background:linear-gradient(135deg,#134e5e,#71b280)">
+								<span class="plus">＋</span>
+							</div>
+							<div class="name">参考图-场景.png</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="canvas">
+					<div class="preview">
+						<div class="frame" id="preview-frame">预览画布（演示占位）</div>
+					</div>
+					<div class="tl">
+						<div class="ruler"><span>0s</span><span>2s</span><span>4s</span><span>6s</span><span>8s</span><span>10s</span></div>
+						<div style="position:relative">
+							<div class="playhead"></div>
+							<div class="track" id="track-video">
+								<span class="tlabel">主视频轨</span>
+								<div class="clip vid1"><span class="cname">猫片-A.mp4</span></div>
+								<div class="clip vid2"><span class="cname">猫片-B.mp4</span></div>
+							</div>
+							<div class="track" style="opacity:.75">
+								<span class="tlabel">画中画轨</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 文生图对话框（点「生图」打开） -->
+			<div class="dlg-backdrop" id="dlg-backdrop">
+				<div class="dlg" role="dialog" aria-label="文生图">
+					<div class="dlg-head">
+						<span>文生图</span>
+						<span class="x" id="dlg-close" title="关闭（Esc）">✕</span>
+					</div>
+					<div class="dlg-body">
+
+						<!-- 提示词 -->
+						<section>
+							<div class="lbl"><span>提示词</span><span id="char-count">0/2000</span></div>
+							<textarea id="prompt" class="prompt" maxlength="2000" placeholder="描述想要的画面，例如：黄昏的江南水乡，乌篷船划过水面，胶片质感…（⌘↵ 生成）"></textarea>
+							<div class="lbl" style="margin-top:8px"><span>灵感（点击追加到提示词）</span></div>
+							<div class="chips" id="idea-chips"></div>
+						</section>
+
+						<!-- 风格 -->
+						<section>
+							<div class="lbl"><span>风格（可选，单选）</span></div>
+							<div class="chips" id="style-chips"></div>
+							<div class="style-hint" id="style-hint">不附加风格词，按提示词原样生成。</div>
+						</section>
+
+						<!-- 高级 -->
+						<section>
+							<button type="button" class="adv-toggle" id="adv-toggle">▸ 高级（负面提示词）</button>
+							<div class="adv-body" id="adv-body">
+								<div class="lbl" style="margin-top:8px"><span>负面提示词（不希望出现的内容）</span></div>
+								<textarea id="negative" class="prompt neg" maxlength="500" placeholder="模糊、文字、水印、多余的手指…"></textarea>
+							</div>
+						</section>
+
+						<!-- 参数 -->
+						<section style="position:relative">
+							<div class="param-row" style="margin-bottom:7px">
+								<span class="plabel">比例</span>
+								<div class="seg" id="aspect-seg"></div>
+							</div>
+							<div class="param-row" style="margin-bottom:7px">
+								<span class="plabel">尺寸</span>
+								<div class="seg" id="size-seg"></div>
+							</div>
+							<div class="param-row">
+								<span class="plabel">数量</span>
+								<div class="seg" id="count-seg"></div>
+							</div>
+							<!-- 自定义尺寸弹层 -->
+							<div class="pop" id="size-pop" style="right:0; top:64px">
+								<div class="row">
+									<span class="muted">宽</span><input id="cw" inputmode="numeric" value="1024"> ×
+									<span class="muted">高</span><input id="ch" inputmode="numeric" value="1024">
+									<span class="muted">px</span>
+								</div>
+								<div class="hint" id="size-hint">每边 256–1536，64 步进自动吸附，总像素 ≤ 1536×1536。</div>
+								<div class="actions">
+									<button class="btn ghost" id="size-cancel">取消</button>
+									<button class="btn primary" id="size-apply">应用</button>
+								</div>
+							</div>
+						</section>
+
+						<!-- 结果条带（生成后出现） -->
+						<section class="result-sec" id="result-sec">
+							<div class="sec-title">本次结果（已自动存入素材库）</div>
+							<div class="result-strip" id="result-strip"></div>
+						</section>
+
+						<!-- 最近生成 -->
+						<section class="hist-sec" id="hist-sec">
+							<div class="sec-title">最近生成（本次会话 · 素材库为最终归宿）</div>
+							<div class="hist-grid" id="hist-grid"></div>
+						</section>
+					</div>
+
+					<!-- 底部：成本 + 生成 -->
+					<div class="dlg-foot">
+						<div class="cost" id="cost-line"></div>
+						<button class="gen-btn" id="gen-btn" disabled>
+							✦ <span id="gen-label">生成</span> <span class="kbd-inline">⌘↵</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<p class="small muted" style="margin-top:8px">
+			演示提示：① 点素材头部的「✦ 生图」打开对话框 → ② 输入提示词、选风格与数量 → ③ 点「生成」看逐张返回 → ④ 点结果卡的「插入」看时间轴联动 → ⑤ 点 ✕ 关掉对话框再重开，结果还在。
+		</p>
+	</section>
+
+	<!-- ============ ④ 状态一览 ============ -->
+	<section id="states">
+		<h2>④ 状态一览</h2>
+		<div class="state-grid">
+			<div class="state-card">
+				<div class="sc-head">空态（首次打开对话框）</div>
+				<div class="sc-body">
+					<div style="color:#6f6f6f;font-size:10.5px;line-height:1.6;border:1px dashed #292929;border-radius:8px;padding:12px;text-align:center">
+						还没有生成记录<br>写下提示词，开始你的第一张图 ✦
+					</div>
+					<div class="muted small">提示词为空 → 生成按钮置灰；底部仍显示成本与余额。</div>
+				</div>
+			</div>
+			<div class="state-card">
+				<div class="sc-head">生成中（数量=2）</div>
+				<div class="sc-body">
+					<div style="display:flex;gap:8px">
+						<div style="width:88px;height:88px;border-radius:8px;background:#1d1d1d;animation:pulse 1.3s infinite"></div>
+						<div style="width:88px;height:88px;border-radius:8px;background:#1d1d1d;animation:pulse 1.3s .4s infinite"></div>
+					</div>
+					<div class="muted small">占位卡脉冲动画，<b>逐张返回逐张点亮</b>；按钮变「生成中…」并禁用，参数控件全部禁用；此期间关闭对话框不中断（store 存活），入口按钮出现绿色呼吸点，重开对话框进度原样恢复。</div>
+				</div>
+			</div>
+			<div class="state-card">
+				<div class="sc-head">单张失败</div>
+				<div class="sc-body">
+					<div style="width:88px;height:88px;border-radius:8px;border:1px solid #7f1d1d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;color:#f87171">
+						<span>生成失败</span><span style="text-decoration:underline;cursor:pointer">重试</span>
+					</div>
+					<div class="muted small">失败只标记该张，其余继续；重试仅重跑失败位；错误信息 toast 展示上游原因。</div>
+				</div>
+			</div>
+			<div class="state-card">
+				<div class="sc-head">余额不足</div>
+				<div class="sc-body">
+					<div class="cost">预计 32 点 ｜ 余额 12 点 <span style="color:#ef4444">余额不足</span></div>
+					<button class="gen-btn" disabled style="opacity:.45">✦ 生成 <span class="kbd-inline">⌘↵</span></button>
+					<div class="muted small">成本 = 单价 × 数量；不足时按钮禁用 + 红字提示（与多图生成一致）。冻结点数说明随余额一并显示。</div>
+				</div>
+			</div>
+			<div class="state-card">
+				<div class="sc-head">模型未配置 / 服务不可用</div>
+				<div class="sc-body">
+					<div class="cost"><span style="color:#eab308">生图模型未配置，请联系管理员</span></div>
+					<button class="gen-btn" disabled style="opacity:.45">✦ 生成 <span class="kbd-inline">⌘↵</span></button>
+					<div class="muted small">billing 模型目录里查不到 <code>ai-tools-text2img</code> 时：黄字提示 + 禁用（与多图生成同判定）。</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============ ⑤ 交互细节 ============ -->
+	<section id="flows">
+		<h2>⑤ 交互细节与边界</h2>
+		<div class="card">
+			<h3 style="margin-top:0">核心流程</h3>
+			<div class="flow-li"><span class="flow-num">1</span><div>素材库 → 点头部工具栏「✦ 生图」（多图生成左侧）→ 打开文生图对话框。</div></div>
+			<div class="flow-li"><span class="flow-num">2</span><div>输入提示词（或点「灵感」chip 追加模板句；选「风格」在生成时自动拼接风格词到提示词尾部）。</div></div>
+			<div class="flow-li"><span class="flow-num">3</span><div>选比例 → 尺寸档实时换算短边（长边基准，64 步进吸附）；需要精细控制时点「自定义」在弹层里输入宽高（校验 + 吸附 + 总像素上限）。</div></div>
+			<div class="flow-li"><span class="flow-num">4</span><div>选数量 1/2/4，成本行实时变为「单价 × 数量」，余额不足即刻禁用。</div></div>
+			<div class="flow-li"><span class="flow-num">5</span><div>点「生成」或 <span class="kbd">⌘↵</span>/<span class="kbd">Ctrl+↵</span>：按钮变「生成中…」，出现占位卡；逐张请求、逐张点亮（先到先显示）。</div></div>
+			<div class="flow-li"><span class="flow-num">6</span><div>每张成功后立即<b>自动存入项目素材库</b>（命名 <code>文生图-YYYYMMDDHHmmss.png</code>，与多图生成命名规则对齐），toast「已生成并存入素材库」。</div></div>
+			<div class="flow-li"><span class="flow-num">7</span><div>结果卡底部操作：<b>预览</b>（遮罩大图，点击空白/Esc 关闭）· <b>插入</b>（放到播放头所在 overlay 轨，同多图生成行为，可重复插入）· <b>重新生成</b>（同参数追加一张）。</div></div>
+			<div class="flow-li"><span class="flow-num">8</span><div>「最近生成」区顶部插入本次记录；点历史卡可预览（「再来一张」= 提示词回填 + 同参数直接生成）。</div></div>
+			<div class="flow-li"><span class="flow-num">9</span><div>关闭对话框（✕ / Esc / 点遮罩）生成不中断；期间素材入口按钮带绿色呼吸点；重开对话框结果与进度原样恢复。去「资源」网格里也能看到刚生成的图，可拖入时间轴 — 与普通素材完全同权。</div></div>
+
+			<h3>键盘与焦点</h3>
+			<table>
+				<tr><th>按键</th><th>行为</th><th>条件</th></tr>
+				<tr><td><span class="kbd">⌘↵</span> / <span class="kbd">Ctrl+↵</span></td><td>生成</td><td>焦点在提示词/负面词输入框内，且可生成</td></tr>
+				<tr><td><span class="kbd">Esc</span></td><td>逐层关闭：自定义尺寸弹层 → 大图预览 → 对话框</td><td>对应层打开时；关对话框不影响进行中的生成</td></tr>
+				<tr><td><span class="kbd">Tab</span></td><td>对话框内常规焦点流转（chips 可聚焦、Enter 触发）</td><td>—</td></tr>
+			</table>
+
+			<h3>边界与异常</h3>
+			<table>
+				<tr><th>场景</th><th>处理</th></tr>
+				<tr><td>提示词为空 / 纯空白</td><td>生成按钮禁用；字数计数 <code>0/2000</code></td></tr>
+				<tr><td>生成中修改参数</td><td>参数控件禁用（与多图生成一致），避免同批参数漂移</td></tr>
+				<tr><td>生成中关对话框 / 切面板</td><td>不中断；入口按钮呼吸点提示；重开恢复结果与进度（zustand store 与组件解耦，同多图生成模式）</td></tr>
+				<tr><td>数量 4 全部排队</td><td>串行逐张请求（与多图生成同模式），点数逐张冻结/扣减</td></tr>
+				<tr><td>上游超时 / 网络错误</td><td>该张标记失败 + 可重试；不影响同批其他张</td></tr>
+				<tr><td>余额不足</td><td>禁用生成 + 红字；不影响已完成结果的查看与插入</td></tr>
+				<tr><td>重复点「插入」</td><td>允许，同一素材可在时间轴多处使用</td></tr>
+				<tr><td>无活动项目</td><td>生成禁用（与多图生成 <code>activeProject != null</code> 校验一致）</td></tr>
+				<tr><td>多选模式</td><td>「生图」按钮隐藏（多图生成按钮此时为「退出多图生成」），退出多选后恢复</td></tr>
+				<tr><td>历史数量</td><td>会话级历史上限 40 条，超出丢弃最旧（素材库才是持久层）</td></tr>
+			</table>
+		</div>
+	</section>
+
+	<!-- ============ ⑥ 参数 ============ -->
+	<section id="params">
+		<h2>⑥ 参数与默认值</h2>
+		<div class="card">
+			<table>
+				<tr><th>参数</th><th>默认</th><th>可选值</th><th>说明</th></tr>
+				<tr><td>提示词</td><td>空</td><td>≤ 2000 字</td><td>必填；生成时若选了风格则拼接风格词</td></tr>
+				<tr><td>风格</td><td>无</td><td>无 / 摄影 / 插画 / 3D 渲染 / 动漫 / 国风水墨</td><td>单选，可再点一次取消；仅是提示词后缀，不另传参</td></tr>
+				<tr><td>负面提示词</td><td>空</td><td>≤ 500 字</td><td>高级区默认收起；上游不支持时前端丢弃并 toast 说明</td></tr>
+				<tr><td>比例</td><td>1:1</td><td>1:1 · 16:9 · 3:4 · 9:16</td><td>与多图生成共用常量</td></tr>
+				<tr><td>尺寸档</td><td>1024</td><td>768 · 1024 · 1536 · 自定义</td><td>长边基准；短边按比例换算并吸附 64 步进</td></tr>
+				<tr><td>自定义尺寸</td><td>—</td><td>每边 256–1536，总像素 ≤ 1536²</td><td>弹层内即时校验 + 吸附预览（复用 <code>validateCustomSize</code>）</td></tr>
+				<tr><td>数量</td><td>1</td><td>1 · 2 · 4</td><td>文生图无参考图，放宽到 4；上限可随渠道能力调整</td></tr>
+				<tr><td>成本</td><td>—</td><td>单价 × 数量</td><td>billing 模型目录下发单价，前端 <code>estimateCost</code> 估算</td></tr>
+			</table>
+			<h3>风格词映射（追加到提示词尾部，用户可关闭）</h3>
+			<table>
+				<tr><th>风格</th><th>附加文案（zh）</th><th>附加文案（en）</th></tr>
+				<tr><td>摄影</td><td>，摄影质感，自然光影，高细节，真实感</td><td>, photorealistic, natural lighting, highly detailed</td></tr>
+				<tr><td>插画</td><td>，扁平插画风格，色块干净，构图清晰</td><td>, flat illustration, clean shapes, clear composition</td></tr>
+				<tr><td>3D 渲染</td><td>，3D 渲染，柔和棚光，OC 渲染质感</td><td>, 3D render, soft studio lighting, octane style</td></tr>
+				<tr><td>动漫</td><td>，动漫风格，赛璐璐上色，清晰线稿</td><td>, anime style, cel shading, clean lineart</td></tr>
+				<tr><td>国风水墨</td><td>，中国水墨画，留白意境，墨色浓淡</td><td>, Chinese ink painting, minimalist, ink wash</td></tr>
+			</table>
+		</div>
+	</section>
+
+	<!-- ============ ⑦ i18n ============ -->
+	<section id="i18n">
+		<h2>⑦ 文案（i18n 提案）</h2>
+		<div class="card">
+			<p class="small muted">与多图生成完全同义的文案<b>直接复用 <code>ai_img2img.*</code></b>（比例/尺寸/数量/成本/余额/生成/结果卡动作/自定义尺寸弹层），仅新增下表 <code>ai_t2i.*</code>：</p>
+			<table>
+				<tr><th>key</th><th>zh</th><th>en</th></tr>
+				<tr><td><code>ai_t2i.entry</code></td><td>生图</td><td>Generate</td></tr>
+				<tr><td><code>ai_t2i.title</code></td><td>文生图</td><td>Text to Image</td></tr>
+				<tr><td><code>ai_t2i.prompt_label</code></td><td>提示词</td><td>Prompt</td></tr>
+				<tr><td><code>ai_t2i.prompt_placeholder</code></td><td>描述想要的画面，例如：黄昏的江南水乡，乌篷船划过水面，胶片质感…（⌘↵ 生成）</td><td>Describe the scene you want… (⌘↵ to generate)</td></tr>
+				<tr><td><code>ai_t2i.idea_label</code></td><td>灵感（点击追加到提示词）</td><td>Ideas (click to append)</td></tr>
+				<tr><td><code>ai_t2i.style_label</code></td><td>风格（可选，单选）</td><td>Style (optional)</td></tr>
+				<tr><td><code>ai_t2i.style_none</code></td><td>无</td><td>None</td></tr>
+				<tr><td><code>ai_t2i.style_photo</code> / <code>style_illustration</code> / <code>style_3d</code> / <code>style_anime</code> / <code>style_ink</code></td><td>摄影 / 插画 / 3D 渲染 / 动漫 / 国风水墨</td><td>Photo / Illustration / 3D / Anime / Ink</td></tr>
+				<tr><td><code>ai_t2i.style_hint_none</code></td><td>不附加风格词，按提示词原样生成。</td><td>No style suffix will be added.</td></tr>
+				<tr><td><code>ai_t2i.style_hint_on</code></td><td>生成时自动附加风格词：{suffix}</td><td>Style suffix appended: {suffix}</td></tr>
+				<tr><td><code>ai_t2i.advanced</code></td><td>高级（负面提示词）</td><td>Advanced (negative prompt)</td></tr>
+				<tr><td><code>ai_t2i.negative_label</code></td><td>负面提示词（不希望出现的内容）</td><td>Negative prompt</td></tr>
+				<tr><td><code>ai_t2i.negative_placeholder</code></td><td>模糊、文字、水印、多余的手指…</td><td>blurry, text, watermark, extra fingers…</td></tr>
+				<tr><td><code>ai_t2i.count_4</code></td><td>4</td><td>4</td></tr>
+				<tr><td><code>ai_t2i.results_title</code></td><td>本次结果（已自动存入素材库）</td><td>Results (saved to media library)</td></tr>
+				<tr><td><code>ai_t2i.history_title</code></td><td>最近生成（本次会话 · 素材库为最终归宿）</td><td>Recent (this session · saved in media library)</td></tr>
+				<tr><td><code>ai_t2i.empty_history</code></td><td>还没有生成记录，写下提示词开始创作 ✦</td><td>No generations yet — write a prompt to start ✦</td></tr>
+				<tr><td><code>ai_t2i.saved</code></td><td>已生成并存入素材库</td><td>Generated and saved to media library</td></tr>
+				<tr><td><code>ai_t2i.inserted</code></td><td>已插入时间轴</td><td>Inserted to timeline</td></tr>
+				<tr><td><code>ai_t2i.res_regenerate_one</code></td><td>再来一张</td><td>Another one</td></tr>
+				<tr><td><code>ai_t2i.prompt_too_long</code></td><td>提示词超长（上限 {n} 字）</td><td>Prompt too long (max {n} chars)</td></tr>
+			</table>
+		</div>
+	</section>
+
+	<!-- ============ ⑧ 实施拆分 ============ -->
+	<section id="impl">
+		<h2>⑧ 服务与实施拆分</h2>
+		<div class="card">
+			<h3 style="margin-top:0">服务层（与 <code>multiImageToImage</code> 同构）</h3>
+			<ul>
+				<li><code>services/ai-tools/index.ts</code> 新增 <code>textToImage({ prompt, negativePrompt?, aspectRatio, imageSize, onProgress? })</code> → <code>runJob({ params: { modelId: "ai-tools-text2img", input: { prompt, aspect_ratio, image_size, ...(negative_prompt) } } })</code>；每次调用一张，下载 blob → <code>File("文生图-…png")</code>。</li>
+				<li>渠道映射（服务端）：<code>ai-tools-text2img</code> → 具体生图端点（fal 的 flux 系等），由渠道配置决定，前端不感知；负面词上游不支持时由渠道侧忽略。</li>
+				<li>计费：模型目录新增 <code>ai-tools-text2img</code> 单价；前端复用 <code>billing.models.get(id)</code> + <code>estimateCost</code>。</li>
+			</ul>
+			<h3>状态层</h3>
+			<ul>
+				<li><code>components/ai/text2img-store.ts</code>：zustand（与 img2img-store 同模式，与组件解耦 → 关对话框生成不中断），字段 <code>open / prompt / style / negative / aspectRatio / sizePreset / customSize / numImages(1|2|4) / running / results / history</code>；尺寸换算直接复用 <code>img2img-store</code> 的 <code>computeImageSize / resolveImageSize / validateCustomSize / IMG2IMG_SIZE_CAPS</code>（导出共用，不复制）。</li>
+				<li>history 为会话级（不落 localStorage）；素材库为持久层。</li>
+			</ul>
+			<h3>UI 层</h3>
+			<ul>
+				<li><code>components/ai/text2img-dialog.tsx</code>：Dialog 结构对齐 <code>img2img-dialog.tsx</code>（标题 / 提示词+灵感 / 风格 / 高级负面词 / 参数分段 / 成本+生成 / 结果条带），额外加「最近生成」网格；控件样式复用其 ParamChip/seg 模式。</li>
+				<li><code>panels/assets/views/assets.tsx</code>：<code>PanelView</code> 的 <code>actions</code> 里、「多图生成」按钮<b>左侧</b>加「✦ 生图」按钮（<code>store.running && !open</code> 时带呼吸点；<code>selectMode</code> 时隐藏）+ 渲染 <code>&lt;Text2ImgDialog onInsertTimeline={…} /&gt;</code>。</li>
+				<li>插入时间轴：复用多图生成宿主已有的插入逻辑（<code>handleImg2ImgInsert</code> 同款：素材资产 → 播放头处建 image 元素），抽公共函数共用。</li>
+				<li>locale：zh.ts / en.ts 成对新增（见⑦）。<b>不改</b> icon 栏 / <code>assets-panel-store</code> / tab 配置。</li>
+			</ul>
+			<h3>分期</h3>
+			<table>
+				<tr><th>阶段</th><th>内容</th></tr>
+				<tr><td><b>v1（本期）</b></td><td>工具栏入口 · 对话框（提示词+灵感 chips · 风格预设 · 负面词高级折叠 · 比例/尺寸/数量 · 成本/余额 · 生成逐张 · 结果条带 · 会话级最近生成）· 插入时间轴 · zh/en 文案</td></tr>
+				<tr><td><span class="tag v2">v2+</span></td><td>提示词一键优化（LLM 润色）· 历史持久化 · 结果「用作参考」一键带图跳多图生成 · 与任务中心队列打通 · seed/同款批量再生成 · 两入口收纳为「AI 生图」双页签</td></tr>
+			</table>
+			<h3>验收清单</h3>
+			<ul class="small">
+				<li>素材工具栏「生图」按钮位于「多图生成」左侧、同样式对齐；多选模式下隐藏。</li>
+				<li>空提示词禁用生成；⌘↵ / Ctrl+↵ 可触发；生成中参数与按钮禁用。</li>
+				<li>生成中关闭对话框：生成不中断、入口按钮呼吸点；重开恢复结果与进度。</li>
+				<li>结果自动出现在「资源」网格，可拖入时间轴；「插入」落在播放头处且可重复。</li>
+				<li>比例切换时尺寸档文案实时换算；自定义尺寸校验、64 吸附、总像素上限。</li>
+				<li>数量 4 成本 ×4；余额不足禁用；模型未配置黄字提示。</li>
+				<li>失败仅标记单张，可重试，同批其他张不受影响。</li>
+				<li>zh / en 切换完整无缺 key；<code>tsc</code> / eslint / <code>next build</code> 通过。</li>
+			</ul>
+		</div>
+	</section>
+</div>
+
+<div class="lightbox" id="lightbox">
+	<div class="big" id="lb-img"></div>
+	<div class="cap" id="lb-cap"></div>
+</div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+	"use strict";
+	/* ---------- 公共 ---------- */
+	var $ = function (id) { return document.getElementById(id); };
+	var GRADS = [
+		"linear-gradient(135deg,#0f2027,#2c5364,#4ca1af)",
+		"linear-gradient(135deg,#355c7d,#6c5b7b,#c06c84)",
+		"linear-gradient(135deg,#f8b500,#e65c00,#aa076b)",
+		"linear-gradient(135deg,#134e5e,#71b280)",
+		"linear-gradient(135deg,#41295a,#2f0743,#1b0338)",
+		"linear-gradient(135deg,#ee9ca7,#ffdde1)",
+		"linear-gradient(135deg,#16222a,#3a6073)",
+		"linear-gradient(135deg,#093028,#237a57)",
+		"linear-gradient(135deg,#8e0e00,#1f1c18)",
+		"linear-gradient(135deg,#1f4037,#99f2c8)"
+	];
+	var gradIdx = 0;
+	function nextGrad() { return GRADS[gradIdx++ % GRADS.length]; }
+
+	var S = {
+		dialogOpen: false,
+		prompt: "", style: "none", negative: "",
+		aspect: "1:1", sizePreset: 1024, customSize: null, count: 1,
+		running: false, balance: 220, costPer: 8,
+		results: [], history: []
+	};
+
+	function toast(msg) {
+		var el = document.createElement("div");
+		el.className = "toast";
+		el.textContent = msg;
+		$("toast-wrap").appendChild(el);
+		setTimeout(function () { el.classList.add("out"); }, 2200);
+		setTimeout(function () { el.remove(); }, 2550);
+	}
+
+	/* ---------- icon 栏（无新增 tab） ---------- */
+	var TABS = [
+		{ icon: "🗂", label: "素材", active: true },
+		{ icon: "🔤", label: "文字" },
+		{ icon: "🙂", label: "贴纸" },
+		{ icon: "✨", label: "特效" },
+		{ icon: "⇥", label: "转场" },
+		{ icon: "💬", label: "字幕" },
+		{ icon: "🎚", label: "调节" },
+		{ icon: "🎬", label: "AI 视频" },
+		{ icon: "🕗", label: "任务" },
+		{ icon: "🪄", label: "AI 工具" },
+		{ icon: "🎵", label: "AI 音频" },
+		{ icon: "⚙", label: "设置" }
+	];
+	(function renderRail() {
+		var rail = $("rail");
+		TABS.forEach(function (tab) {
+			var el = document.createElement("div");
+			el.className = "tab" + (tab.active ? " active" : "");
+			el.title = tab.label;
+			el.textContent = tab.icon;
+			rail.appendChild(el);
+		});
+	})();
+
+	/* ---------- 对话框开关 ---------- */
+	function openDialog() { S.dialogOpen = true; $("dlg-backdrop").classList.add("open"); syncEntry(); }
+	function closeDialog() {
+		// 生成中关闭不中断：仅收起对话框，入口按钮出现呼吸点
+		S.dialogOpen = false;
+		$("dlg-backdrop").classList.remove("open");
+		closeSizePop();
+		syncEntry();
+	}
+	function syncEntry() {
+		var btn = $("entry-t2i");
+		btn.classList.toggle("generating", S.running && !S.dialogOpen);
+		btn.title = S.running && !S.dialogOpen ? "文生图生成中，点击查看进度" : "文生图（新增入口）";
+	}
+	$("entry-t2i").onclick = openDialog;
+	$("dlg-close").onclick = closeDialog;
+	$("dlg-backdrop").onclick = function (e) { if (e.target === this) closeDialog(); };
+
+	/* ---------- 参数 ---------- */
+	var ASPECTS = ["1:1", "16:9", "3:4", "9:16"];
+	var RATIOS = { "1:1": [1, 1], "16:9": [16, 9], "3:4": [3, 4], "9:16": [9, 16] };
+	var SIZE_PRESETS = [768, 1024, 1536, "custom"];
+	var COUNTS = [1, 2, 4];
+	function snap64(v) { return Math.min(1536, Math.max(256, Math.round(v / 64) * 64)); }
+	function computeSize(aspect, longEdge) {
+		var r = RATIOS[aspect];
+		var w = r[0] >= r[1] ? longEdge : longEdge * r[0] / r[1];
+		var h = r[1] >= r[0] ? longEdge : longEdge * r[1] / r[0];
+		return { w: snap64(Math.round(w)), h: snap64(Math.round(h)) };
+	}
+	function effectiveSize() {
+		if (S.sizePreset === "custom" && S.customSize) return S.customSize;
+		return computeSize(S.aspect, S.sizePreset === "custom" ? 1024 : S.sizePreset);
+	}
+	function segRender(container, values, getSel, onPick, labelFn) {
+		container.innerHTML = "";
+		values.forEach(function (v) {
+			var b = document.createElement("button");
+			b.type = "button";
+			b.textContent = labelFn(v);
+			if (getSel() === v) b.classList.add("on");
+			b.onclick = function () { if (!S.running) onPick(v); };
+			container.appendChild(b);
+		});
+	}
+	function renderParams() {
+		segRender($("aspect-seg"), ASPECTS,
+			function () { return S.aspect; },
+			function (v) { S.aspect = v; renderParams(); renderCost(); },
+			function (v) { return v; });
+		segRender($("size-seg"), SIZE_PRESETS,
+			function () { return S.sizePreset; },
+			function (v) {
+				if (v === "custom") { openSizePop(); return; }
+				S.sizePreset = v; renderParams(); renderCost();
+			},
+			function (v) {
+				if (v === "custom") {
+					return S.sizePreset === "custom" && S.customSize
+						? S.customSize.w + "×" + S.customSize.h : "自定义";
+				}
+				var s = computeSize(S.aspect, v);
+				return s.w + "×" + s.h;
+			});
+		segRender($("count-seg"), COUNTS,
+			function () { return S.count; },
+			function (v) { S.count = v; renderParams(); renderCost(); },
+			function (v) { return String(v); });
+	}
+
+	/* ---------- 风格 / 灵感 ---------- */
+	var STYLES = [
+		{ key: "none", label: "无", suffix: "" },
+		{ key: "photo", label: "摄影", suffix: "，摄影质感，自然光影，高细节，真实感" },
+		{ key: "illustration", label: "插画", suffix: "，扁平插画风格，色块干净，构图清晰" },
+		{ key: "3d", label: "3D 渲染", suffix: "，3D 渲染，柔和棚光，OC 渲染质感" },
+		{ key: "anime", label: "动漫", suffix: "，动漫风格，赛璐璐上色，清晰线稿" },
+		{ key: "ink", label: "国风水墨", suffix: "，中国水墨画，留白意境，墨色浓淡" }
+	];
+	var IDEAS = ["电影感光影", "极简海报", "儿童绘本", "赛博朋克城市", "产品白底图"];
+	var IDEA_TEXT = {
+		"电影感光影": "电影感构图与光影，宽画幅，",
+		"极简海报": "极简主义海报构图，大面积留白，",
+		"儿童绘本": "儿童绘本插画风格，柔和色彩，",
+		"赛博朋克城市": "赛博朋克未来城市，霓虹灯夜景，",
+		"产品白底图": "产品摄影，纯白背景，柔和布光，"
+	};
+	function renderStyles() {
+		var box = $("style-chips");
+		box.innerHTML = "";
+		STYLES.forEach(function (st) {
+			var b = document.createElement("button");
+			b.type = "button";
+			b.className = "chip" + (S.style === st.key ? " on" : "");
+			b.textContent = st.label;
+			b.onclick = function () {
+				if (S.running) return;
+				S.style = (S.style === st.key) ? "none" : st.key;
+				renderStyles();
+			};
+			box.appendChild(b);
+		});
+		var cur = STYLES.find(function (s) { return s.key === S.style; });
+		$("style-hint").textContent = cur && cur.suffix
+			? "生成时自动附加风格词：" + cur.suffix
+			: "不附加风格词，按提示词原样生成。";
+	}
+	(function renderIdeas() {
+		var box = $("idea-chips");
+		IDEAS.forEach(function (label) {
+			var b = document.createElement("button");
+			b.type = "button";
+			b.className = "chip";
+			b.textContent = label;
+			b.onclick = function () {
+				if (S.running) return;
+				var p = $("prompt");
+				var add = IDEA_TEXT[label];
+				p.value = p.value.trim() ? p.value.trim() + " " + add : add;
+				S.prompt = p.value;
+				syncPrompt();
+			};
+			box.appendChild(b);
+		});
+	})();
+
+	/* ---------- 高级折叠 ---------- */
+	$("adv-toggle").onclick = function () {
+		var body = $("adv-body");
+		var open = !body.classList.contains("open");
+		body.classList.toggle("open", open);
+		this.textContent = (open ? "▾" : "▸") + " 高级（负面提示词）";
+	};
+
+	/* ---------- 自定义尺寸 ---------- */
+	function openSizePop() {
+		var cur = effectiveSize();
+		$("cw").value = cur.w; $("ch").value = cur.h;
+		sizeHint();
+		$("size-pop").classList.add("open");
+	}
+	function closeSizePop() { $("size-pop").classList.remove("open"); }
+	function sizeHint() {
+		var w = parseInt($("cw").value, 10), h = parseInt($("ch").value, 10);
+		var el = $("size-hint");
+		var bad = !isFinite(w) || !isFinite(h) || w < 256 || h < 256 || w > 1536 || h > 1536 || snap64(w) * snap64(h) > 1536 * 1536;
+		if (bad) {
+			el.className = "hint bad";
+			el.textContent = "每边需在 256–1536 之间，且总像素 ≤ 1536×1536。";
+			return false;
+		}
+		el.className = "hint";
+		el.textContent = "将吸附为 " + snap64(w) + "×" + snap64(h) + "（64 步进）。";
+		return true;
+	}
+	$("cw").oninput = sizeHint;
+	$("ch").oninput = sizeHint;
+	$("size-cancel").onclick = closeSizePop;
+	$("size-apply").onclick = function () {
+		if (!sizeHint()) return;
+		S.customSize = { w: snap64(parseInt($("cw").value, 10)), h: snap64(parseInt($("ch").value, 10)) };
+		S.sizePreset = "custom";
+		renderParams(); renderCost();
+		closeSizePop();
+	};
+	document.addEventListener("keydown", function (e) {
+		if (e.key !== "Escape") return;
+		if ($("lightbox").classList.contains("open")) { closeLightbox(); return; }
+		if ($("size-pop").classList.contains("open")) { closeSizePop(); return; }
+		if (S.dialogOpen) closeDialog();
+	});
+
+	/* ---------- 提示词 ---------- */
+	function syncPrompt() {
+		$("char-count").textContent = S.prompt.length + "/2000";
+		renderButton(); renderCost();
+	}
+	$("prompt").addEventListener("input", function () { S.prompt = this.value; syncPrompt(); });
+	$("prompt").addEventListener("keydown", function (e) {
+		if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); generate(); }
+	});
+
+	/* ---------- 成本 / 按钮 ---------- */
+	function totalCost() { return S.costPer * S.count; }
+	function insufficient() { return S.balance < totalCost(); }
+	function renderCost() {
+		var el = $("cost-line");
+		var html = "预计 " + totalCost() + " 点 ｜ 余额 " + S.balance + " 点";
+		if (insufficient()) html += ' <span style="color:#ef4444">余额不足</span>';
+		el.innerHTML = html;
+		renderButton();
+	}
+	function renderButton() {
+		var btn = $("gen-btn"), label = $("gen-label");
+		var can = !S.running && S.prompt.trim().length > 0 && !insufficient();
+		btn.disabled = !can;
+		label.textContent = S.running ? "生成中…" : "生成";
+	}
+
+	/* ---------- 生成（模拟） ---------- */
+	function generate() {
+		if (S.running || !S.prompt.trim() || insufficient()) return;
+		if (!S.dialogOpen) openDialog();
+		S.running = true;
+		syncEntry(); renderButton(); renderParams(); renderStyles();
+		$("result-sec").classList.add("show");
+		var batch = [];
+		for (var i = 0; i < S.count; i++) {
+			var key = "r" + Date.now() + "-" + i;
+			batch.push(key);
+			S.results.unshift({ key: key, status: "gen", grad: nextGrad(), prompt: S.prompt.trim(), aspect: S.aspect, size: effectiveSize() });
+		}
+		renderResults();
+		batch.forEach(function (key, i) {
+			setTimeout(function () {
+				var r = S.results.find(function (x) { return x.key === key; });
+				if (r) {
+					r.status = "done";
+					addHistory(r);
+					S.balance = Math.max(0, S.balance - S.costPer);
+					renderResults(); renderHistory(); renderCost();
+				}
+				if (i === batch.length - 1) {
+					S.running = false;
+					syncEntry(); renderButton(); renderParams(); renderStyles();
+					toast("已生成并存入素材库");
+				}
+			}, 1100 + i * 850);
+		});
+	}
+	$("gen-btn").onclick = generate;
+
+	/* ---------- 结果条带 ---------- */
+	function renderResults() {
+		var strip = $("result-strip");
+		strip.innerHTML = "";
+		S.results.slice(0, 12).forEach(function (r) {
+			var card = document.createElement("div");
+			if (r.status === "gen") {
+				card.className = "res-card skeleton";
+				card.innerHTML = '<div class="img"></div>';
+			} else {
+				card.className = "res-card";
+				var img = document.createElement("div");
+				img.className = "img"; img.style.background = r.grad;
+				img.title = "点击预览";
+				img.onclick = function () { openLightbox(r); };
+				var bar = document.createElement("div");
+				bar.className = "bar";
+				bar.innerHTML =
+					'<span data-a="pv">预览</span><span data-a="ins">插入</span><span data-a="re">重生成</span>';
+				bar.querySelector('[data-a="pv"]').onclick = function () { openLightbox(r); };
+				bar.querySelector('[data-a="ins"]').onclick = function () { insertToTimeline(r); };
+				bar.querySelector('[data-a="re"]').onclick = function () { generate(); };
+				card.appendChild(img); card.appendChild(bar);
+			}
+			strip.appendChild(card);
+		});
+	}
+
+	/* ---------- 最近生成 ---------- */
+	function addHistory(r) {
+		S.history.unshift({ grad: r.grad, prompt: r.prompt, aspect: r.aspect, size: r.size.w + "×" + r.size.h });
+		if (S.history.length > 40) S.history.pop();
+	}
+	function renderHistory() {
+		var grid = $("hist-grid");
+		if (S.history.length > 0) $("hist-sec").classList.add("show");
+		grid.innerHTML = "";
+		S.history.slice(0, 8).forEach(function (h) {
+			var card = document.createElement("div");
+			card.className = "hist-card";
+			card.title = h.prompt;
+			card.innerHTML =
+				'<div class="img" style="background:' + h.grad + '"></div>' +
+				'<div class="cap"><div class="p"></div><div class="m">' + h.aspect + " · " + h.size + "</div></div>";
+			card.querySelector(".p").textContent = h.prompt;
+			card.onclick = function () {
+				openLightbox({ grad: h.grad, prompt: h.prompt, aspect: h.aspect });
+			};
+			grid.appendChild(card);
+		});
+	}
+
+	/* ---------- 插入时间轴 ---------- */
+	function insertToTimeline(r) {
+		var track = $("track-video");
+		var clip = document.createElement("div");
+		clip.className = "clip";
+		clip.style.width = "64px";
+		clip.style.background = r.grad;
+		clip.innerHTML = '<span class="cname">文生图</span>';
+		track.appendChild(clip);
+		var frame = $("preview-frame");
+		frame.classList.add("has-img");
+		frame.innerHTML = '<div class="img" style="background:' + r.grad + '"></div>';
+		setTimeout(function () {
+			frame.classList.remove("has-img");
+			frame.innerHTML = "预览画布（演示占位）";
+		}, 1600);
+		toast("已插入时间轴（播放头处）");
+	}
+
+	/* ---------- 大图预览 ---------- */
+	function openLightbox(r) {
+		$("lb-img").style.background = r.grad;
+		$("lb-cap").textContent = r.prompt + "（" + r.aspect + "）";
+		$("lightbox").classList.add("open");
+	}
+	function closeLightbox() { $("lightbox").classList.remove("open"); }
+	$("lightbox").onclick = closeLightbox;
+
+	/* ---------- 初始：对话框默认收起，点「生图」打开 ---------- */
+	renderParams(); renderStyles(); renderCost(); syncPrompt(); syncEntry();
+</script>
+</body>
+</html>

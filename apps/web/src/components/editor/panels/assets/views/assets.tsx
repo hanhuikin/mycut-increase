@@ -41,11 +41,14 @@ import {
 	useSelectionScope,
 } from "@/selection";
 import { buildElementFromMedia } from "@/timeline/element-utils";
+import { Sparkles } from "lucide-react";
 import { MultiImg2ImgDialog } from "@/components/ai/img2img-dialog";
 import {
 	useImg2ImgStore,
 	type Img2ImgSlot,
 } from "@/components/ai/img2img-store";
+import { Text2ImgDialog } from "@/components/ai/text2img-dialog";
+import { useText2ImgStore } from "@/components/ai/text2img-store";
 import {
 	type MediaSortKey,
 	type MediaSortOrder,
@@ -192,6 +195,10 @@ export function MediaView() {
 	}, [filteredMediaItems]);
 
 	const img2img = useImg2ImgStore();
+	// 文生图入口：只订阅按钮需要的字段，避免对话框里输入提示词时重排素材列表
+	const t2iRunning = useText2ImgStore((state) => state.running);
+	const t2iOpen = useText2ImgStore((state) => state.open);
+	const openText2Img = useText2ImgStore((state) => state.setOpen);
 	// 多选模式：点击素材只做选中切换（多图生图用），不再触发插入时间轴；
 	// 退出后恢复原生点击行为。普通模式完全不受影响。
 	const [selectMode, setSelectMode] = useState(false);
@@ -233,11 +240,31 @@ export function MediaView() {
 		<>
 			<input {...fileInputProps} />
 			<MultiImg2ImgDialog onInsertTimeline={handleImg2ImgInsert} />
+			<Text2ImgDialog onInsertTimeline={handleImg2ImgInsert} />
 
 			<PanelView
 				title={t["assets.assets"]}
 				actions={
 					<div className="flex items-center gap-1.5">
+						{!selectMode && (
+							<Button
+								size="sm"
+								variant="ghost"
+								className="h-8 gap-1.5 px-2 text-xs"
+								title={t["ai_t2i.title"]}
+								onClick={() => openText2Img(true)}
+							>
+								<Sparkles className="size-3.5" />
+								{t["ai_t2i.entry"]}
+								{t2iRunning && !t2iOpen && (
+									// 生成中且对话框已关：入口呼吸点提示，点击重开查看进度
+									<span
+										aria-hidden
+										className="ml-0.5 size-1.5 animate-pulse rounded-full bg-emerald-500"
+									/>
+								)}
+							</Button>
+						)}
 						<Button
 							size="sm"
 							variant={selectMode ? "default" : "ghost"}

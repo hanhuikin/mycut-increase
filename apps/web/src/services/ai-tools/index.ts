@@ -209,6 +209,80 @@ export async function multiImageToImage(
 	}
 }
 
+// ===== 文生图 =====
+
+export interface TextToImageOptions {
+	prompt: string;
+	/** 负面提示词（不希望出现的内容）；上游不支持时由渠道侧忽略。 */
+	negativePrompt?: string;
+	aspectRatio?: "1:1" | "16:9" | "3:4" | "9:16";
+	/** 生图尺寸，"宽x高"（如 "1024x576"），由比例×尺寸档/自定义合成。 */
+	imageSize?: string;
+	onProgress?: (msg: string) => void;
+}
+
+export interface TextToImageResult {
+	success: boolean;
+	file?: File;
+	error?: string;
+}
+
+/**
+ * 文生图：纯文字提示 → 一张新图。
+ *
+ * input 逐字透传上游（fal 系文生图端点，具体端点由渠道按 modelId 映射），
+ * 与 multiImageToImage 同构；每次调用生成一张、冻结一次点数，
+ * 多张由前端串行循环（同 img2img 模式，先到先显示）。
+ */
+export async function textToImage(
+	options: TextToImageOptions,
+): Promise<TextToImageResult> {
+	const {
+		prompt,
+		negativePrompt,
+		aspectRatio = "1:1",
+		imageSize,
+		onProgress,
+	} = options;
+
+	try {
+		const { url } = await runJob({
+			params: {
+				modelId: "ai-tools-text2img",
+				input: {
+					prompt,
+					aspect_ratio: aspectRatio,
+					...(imageSize ? { image_size: imageSize } : {}),
+					...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
+				},
+			},
+			onProgress,
+		});
+
+		onProgress?.("下载结果...");
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`下载生成结果失败 (${response.status})`);
+		}
+		const blob = await response.blob();
+		// 同一批可能一秒内多张，文件名追加随机尾避免同名覆盖
+		const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "");
+		const file = new File(
+			[blob],
+			`文生图-${stamp}-${Math.random().toString(36).slice(2, 6)}.png`,
+			{ type: blob.type || "image/png" },
+		);
+
+		return { success: true, file };
+	} catch (error) {
+		console.error("文生图失败:", error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "未知错误",
+		};
+	}
+}
+
 // ===== 工具函数 =====
 
 async function fileToDataUrl(file: File): Promise<string> {
